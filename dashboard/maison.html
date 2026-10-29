@@ -55,7 +55,7 @@
             Le tableau de bord s'ouvre dans un nouvel onglet.
             Si rien ne se passe, utilise le bouton ci-dessous.
         </p>
-        <a id="open-dashboard" href="maison-dashboard.html" target="_blank" rel="noopener noreferrer">
+        <a id="open-dashboard" href="/templates/maison-dashboard.html" target="_blank" rel="noopener noreferrer">
             Ouvrir le tableau de bord
         </a>
     </main>
@@ -66,23 +66,24 @@
         // Domoticz charge ce fichier comme une page personnalisée.
         // L'ouverture automatique est tentée une fois ; le lien reste disponible
         // si le navigateur bloque les fenêtres ouvertes sans action utilisateur.
-        const dashboardUrl = new URL("maison-dashboard.html", window.location.href);
+        const dashboardUrl = new URL("/templates/maison-dashboard.html", window.location.origin);
         const openLink = document.getElementById("open-dashboard");
         const status = document.getElementById("status");
 
         openLink.href = dashboardUrl.href;
 
-        window.addEventListener("load", () => {
-            const newTab = window.open(dashboardUrl.href, "_blank");
+        // Tenter l'ouverture immédiatement pendant l'exécution du script.
+        // Certains navigateurs bloquent malgré tout les fenêtres automatiques.
+        const newTab = window.open(dashboardUrl.href, "_blank");
 
-            if (newTab) {
-                status.textContent =
-                    "Le tableau de bord a été ouvert dans un nouvel onglet. Tu peux revenir ici si nécessaire.";
-            } else {
-                status.textContent =
-                    "Le navigateur a bloqué l'ouverture automatique. Clique sur le bouton pour continuer.";
-            }
-        });
+        if (newTab) {
+            newTab.opener = null;
+            status.textContent =
+                "Le tableau de bord a été ouvert dans un nouvel onglet. Tu peux revenir ici si nécessaire.";
+        } else {
+            status.textContent =
+                "Le navigateur a bloqué l'ouverture automatique. Clique sur le bouton pour continuer.";
+        }
     </script>
 </body>
 </html>
