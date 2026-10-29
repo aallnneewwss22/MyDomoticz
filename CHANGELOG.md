@@ -5,6 +5,7 @@ Ce fichier retrace les évolutions notables de MyDomoticz, de la plus récente �
 ## [Non publié]
 
 ### Ajouté
+- Filtrage du tableau de bord pour afficher uniquement les équipements d’IDX 44, 48, 52 et 322.
 - Séparation entre une page d'entrée Domoticz et le tableau de bord autonome, installé à côté dans `www/templates`.
 - Ouverture automatique du tableau de bord dans un nouvel onglet, avec un lien de secours si le navigateur bloque l'ouverture.
 - Mise en page autonome utilisant toute la largeur disponible du navigateur.

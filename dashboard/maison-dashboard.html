@@ -360,6 +360,7 @@
             "use strict";
 
             const REFRESH_MS = 30_000;
+            const DISPLAYED_DEVICE_IDXS = new Set(["44", "48", "52", "322"]);
             const state = { devices: [] };
             const $ = (id) => document.getElementById(id);
 
@@ -536,7 +537,10 @@
                             (data.status === "OK" || data.status === undefined)
                         ) {
                             return data.result.filter(
-                                (device) => device && (device.Name || device.idx !== undefined)
+                                (device) =>
+                                    device &&
+                                    device.idx !== undefined &&
+                                    DISPLAYED_DEVICE_IDXS.has(String(device.idx))
                             );
                         }
 
