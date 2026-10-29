@@ -11,9 +11,11 @@ Fonctions :
 - consultation en lecture seule des équipements Domoticz ;
 - recherche par nom ou valeur et filtre par catégorie ;
 - actualisation automatique toutes les 30 secondes ;
-- état de connexion et heure de dernière actualisation.
+- état de connexion et heure de dernière actualisation ;
+- ouverture automatique du tableau de bord dans un nouvel onglet lorsqu'il est lancé depuis le cadre Domoticz ;
+- affichage autonome utilisant toute la largeur disponible du navigateur.
 
-Cette première version n'envoie aucune commande aux équipements.
+Si le navigateur bloque l'ouverture automatique, cliquer sur le lien proposé dans la page d'entrée. Cette première version n'envoie aucune commande aux équipements.
 
 ## Installation
 
@@ -21,6 +23,7 @@ Cette première version n'envoie aucune commande aux équipements.
 2. Copier `dashboard/maison.html` vers `www/templates/maison.html`.
 3. Activer le menu **Custom** dans les paramètres Domoticz si cette option est disponible dans la version installée.
 4. Recharger l'interface Domoticz puis ouvrir **Custom → maison**.
+5. La page tente d'ouvrir le tableau de bord dans un nouvel onglet. Si le navigateur bloque cette ouverture automatique, cliquer sur **Ouvrir le tableau de bord dans un nouvel onglet**.
 
 Le chemin du répertoire Domoticz dépend de l'installation. Vérifier le chemin réel sur le Raspberry Pi avant de copier le fichier.
 
