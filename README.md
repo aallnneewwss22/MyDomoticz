@@ -35,6 +35,18 @@ La page d'entrée tente d'ouvrir le tableau de bord dans un nouvel onglet. Si le
 
 Le fichier autonome doit rester à côté du lanceur dans `www/templates`, car le lanceur ouvre le chemin correspondant à la version courante. Le chemin du répertoire Domoticz dépend de l'installation : vérifier le chemin réel sur le Raspberry Pi avant de copier les fichiers.
 
+### ZIP de déploiement généré par la Pull Request
+
+Lorsqu'une Pull Request modifie le tableau de bord, GitHub Actions construit l'artefact `maison-dashboard-raspberry-pi`. Il contient à la racine du ZIP :
+
+- `maison.html` ;
+- le fichier versionné actuellement référencé par le lanceur, par exemple `maison-dashboard-v2.html` ;
+- `LISEZ-MOI.txt`, qui rappelle le chemin de destination et les fichiers à copier.
+
+Pour le récupérer, ouvrir la Pull Request, suivre son exécution dans **Checks** ou **Actions**, puis télécharger l'artefact `maison-dashboard-raspberry-pi` depuis le détail de l'exécution réussie. Décompresser le ZIP et copier les deux fichiers HTML dans `/home/pi/domoticz/www/templates` sur le Raspberry Pi. Le classeur `IDX2.xlsx` ou `IDX2.XLS` n'est pas inclus : il reste à gérer séparément et doit être conservé dans le répertoire s'il est utilisé par l'installation.
+
+L'artefact est temporaire (conservation de 14 jours) et correspond au contenu de la branche de la Pull Request au moment de l'exécution ; attendre la réussite du workflow après les dernières modifications avant de télécharger le ZIP.
+
 Les anciennes versions numérotées peuvent être conservées sur le Raspberry Pi pour faciliter un retour arrière. Seul le fichier indiqué par le lanceur est ouvert automatiquement.
 
 ## Lisibilité du code
