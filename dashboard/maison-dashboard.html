@@ -355,7 +355,7 @@
         </p>
     </main>
 
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <script>
         (() => {
             "use strict";
@@ -669,7 +669,7 @@
                     $("empty").classList.remove("hidden");
                     $("empty").textContent =
                         "Le fichier IDX2.xlsx ou IDX2.XLS n’a pas pu être lu. Place-le dans le même répertoire que cette page HTML et vérifie que la première colonne contient les IDX.";
-                    $("refresh").disabled = false;
+                    $("refresh").disabled = true;
                 }
             }
 
