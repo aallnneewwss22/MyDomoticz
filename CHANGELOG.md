@@ -9,16 +9,17 @@ Ce fichier retrace les évolutions notables de MyDomoticz, de la plus récente �
 - Séparation entre une page d'entrée Domoticz et le tableau de bord autonome, installé à côté dans `www/templates`.
 - Ouverture automatique du tableau de bord dans un nouvel onglet, avec un lien de secours si le navigateur bloque l'ouverture.
 - Mise en page autonome utilisant toute la largeur disponible du navigateur.
+- Règle de versionnement documentée : chaque évolution du tableau de bord autonome crée un nouveau fichier `maison-dashboard-vN.html`, avec un numéro supérieur au précédent.
 
 ### Amélioré
-- Utilisation d'un nouveau nom de fichier `maison-dashboard-v2.html` pour contourner les caches qui ignorent les paramètres de requête dans l'URL du tableau de bord.
+- Utilisation de `maison-dashboard-v2.html` pour contourner les caches qui ignorent les paramètres de requête dans l'URL du tableau de bord.
 - Ajout d'un paramètre d'URL variable à chaque ouverture du tableau de bord pour éviter la réutilisation d'une ancienne page HTML en cache.
 - Ajout d’un paramètre variable à l’URL du classeur Excel, en complément de `cache: "no-store"`, pour éviter la réutilisation d’une ancienne copie de `IDX2.xlsx`.
 - Mise en forme du HTML, du CSS et du JavaScript pour faciliter la lecture et la maintenance.
 - Suppression de la liste d’IDX codée en dur au profit du classeur Excel.
 
 ### Documentation
-- Ajout du présent journal pour suivre les évolutions du projet au fil des versions.
+- Le README décrit la procédure d'incrémentation, la mise à jour du lanceur, la conservation des anciennes versions et les fichiers à déployer ensemble.
 
 
 ## [1.0.0] — 2026-10-29
@@ -37,3 +38,5 @@ Ce fichier retrace les évolutions notables de MyDomoticz, de la plus récente �
 ### À valider
 - Compatibilité des endpoints de l'API JSON avec la version de Domoticz installée sur le Raspberry Pi.
 - Fonctionnement de la page dans l'interface Domoticz réelle.
+
+
