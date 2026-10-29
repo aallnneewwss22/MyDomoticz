@@ -8,8 +8,8 @@
 <style>
 :root{--bg:#f3f5f8;--panel:#fff;--text:#182230;--muted:#657184;--border:#dce2ea;--accent:#2867d8;--good:#168653;--bad:#bf3434;--shadow:0 3px 14px #14233712}
 @media(prefers-color-scheme:dark){:root{--bg:#111722;--panel:#1b2432;--text:#edf2f8;--muted:#a6b2c2;--border:#344154;--accent:#83aaff;--good:#66d6a0;--bad:#ff8585;--shadow:0 3px 14px #0003}}
-*{box-sizing:border-box}body{margin:0;padding:18px;background:var(--bg);color:var(--text);font:16px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
-main{max-width:1320px;margin:auto}header{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:18px}
+*{box-sizing:border-box}html,body{min-height:100%;width:100%}body{min-height:100vh;margin:0;padding:clamp(10px,1.4vw,22px);background:var(--bg);color:var(--text);font:16px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{width:100%;max-width:none;min-height:calc(100vh - 2 * clamp(10px,1.4vw,22px));margin:0}header{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:18px}
 h1{margin:0;font-size:clamp(1.45rem,3vw,2rem)}h2{font-size:1.15rem;margin:0 0 12px}.subtitle{color:var(--muted);margin-top:4px;font-size:.92rem}
 .toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;width:min(100%,620px)}
 input,select,button{font:inherit;color:var(--text);border:1px solid var(--border);border-radius:10px;background:var(--panel);padding:10px 12px;min-height:42px}
@@ -24,10 +24,16 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 .device-card{padding:15px;min-width:0}.device-top{display:flex;align-items:flex-start;gap:10px}.device-icon{display:grid;place-items:center;width:42px;height:42px;flex:0 0 42px;border-radius:12px;background:var(--bg);font-size:1.35rem}
 .device-name{font-weight:700;overflow-wrap:anywhere}.device-type{color:var(--muted);font-size:.8rem;margin-top:2px}.device-value{font-size:1.12rem;font-weight:650;margin-top:16px;overflow-wrap:anywhere}.device-meta{color:var(--muted);font-size:.78rem;margin-top:7px}
 .empty{padding:26px 16px;text-align:center;color:var(--muted);background:var(--panel);border:1px dashed var(--border);border-radius:14px}.note{margin-top:20px;color:var(--muted);font-size:.82rem}.hidden{display:none!important}
-@media(max-width:600px){body{padding:12px}.summary{grid-template-columns:1fr;gap:8px}.summary-card{padding:12px 14px}.summary-value{font-size:1.3rem}.toolbar{width:100%}select{flex:1 1 120px}}
+.launch-notice{max-width:680px;margin:12vh auto 0;padding:clamp(20px,4vw,36px);background:var(--panel);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);text-align:center}.launch-notice h1{margin-bottom:12px}.launch-notice p{color:var(--muted)}.launch-link{display:inline-flex;align-items:center;justify-content:center;margin-top:12px;padding:12px 18px;border-radius:10px;background:var(--accent);color:#fff;font-weight:700;text-decoration:none}.launch-link:focus-visible{outline:3px solid var(--accent);outline-offset:3px}.launcher main{display:none}
+@media(max-width:600px){body{padding:12px}main{min-height:calc(100vh - 24px)}.summary{grid-template-columns:1fr;gap:8px}.summary-card{padding:12px 14px}.summary-value{font-size:1.3rem}.toolbar{width:100%}select{flex:1 1 120px}}
 </style>
 </head>
 <body>
+<section id="launchNotice" class="launch-notice hidden" role="status" aria-labelledby="launchTitle">
+<h1 id="launchTitle">🏠 Ma maison</h1>
+<p id="launchMessage">Ouverture du tableau de bord dans un nouvel onglet…</p>
+<a id="openDashboard" class="launch-link" href="" target="_blank" rel="noopener noreferrer">Ouvrir le tableau de bord dans un nouvel onglet</a>
+</section>
 <main>
 <header><div><h1>🏠 Ma maison</h1><div class="subtitle">Tableau de bord Domoticz</div></div>
 <div class="toolbar"><input id="search" type="search" placeholder="Rechercher un équipement…" aria-label="Rechercher un équipement">
@@ -42,6 +48,13 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 </main>
 <script>
 (()=>{"use strict";
+const launchNotice=document.getElementById("launchNotice"),openLink=document.getElementById("openDashboard");
+if(window.self!==window.top){
+ document.body.classList.add("launcher");launchNotice.classList.remove("hidden");openLink.href=window.location.href;
+ let opened=null;try{opened=window.open(window.location.href,"_blank");}catch(e){}
+ if(opened){try{opened.opener=null;}catch(e){}document.getElementById("launchMessage").textContent="Le tableau de bord a été ouvert dans un nouvel onglet.";}else{document.getElementById("launchMessage").textContent="Le navigateur a bloqué l’ouverture automatique. Utilise le bouton ci-dessous pour ouvrir le tableau de bord."}
+ return;
+}
 const $=id=>document.getElementById(id),state={devices:[]},REFRESH_MS=30000;
 const val=(v,fallback="—")=>v===undefined||v===null||v===""?fallback:String(v);
 function category(d){const s=[d.Type,d.SubType,d.SwitchType].join(" ").toLowerCase();if(/temp|thermostat|humidity|temperature|weather|barometer|wind|rain|uv/.test(s))return"Climat";if(/energy|power|electric|gas|counter|utility|voltage|current|consumption/.test(s))return"Énergie";if(/light|switch|dimmer|blinds|door|contact|motion|smoke|security|push|selector/.test(s))return"Commandes et sécurité";return"Autres"}
