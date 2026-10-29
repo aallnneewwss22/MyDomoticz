@@ -1,72 +1,88 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="color-scheme" content="light dark">
-<title>Ma maison — Domoticz</title>
-<style>
-:root{--bg:#f3f5f8;--panel:#fff;--text:#182230;--muted:#657184;--border:#dce2ea;--accent:#2867d8;--good:#168653;--bad:#bf3434;--shadow:0 3px 14px #14233712}
-@media(prefers-color-scheme:dark){:root{--bg:#111722;--panel:#1b2432;--text:#edf2f8;--muted:#a6b2c2;--border:#344154;--accent:#83aaff;--good:#66d6a0;--bad:#ff8585;--shadow:0 3px 14px #0003}}
-*{box-sizing:border-box}html,body{min-height:100%;width:100%}body{min-height:100vh;margin:0;padding:clamp(10px,1.4vw,22px);background:var(--bg);color:var(--text);font:16px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
-main{width:100%;max-width:none;min-height:calc(100vh - 2 * clamp(10px,1.4vw,22px));margin:0}header{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:18px}
-h1{margin:0;font-size:clamp(1.45rem,3vw,2rem)}h2{font-size:1.15rem;margin:0 0 12px}.subtitle{color:var(--muted);margin-top:4px;font-size:.92rem}
-.toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;width:min(100%,620px)}
-input,select,button{font:inherit;color:var(--text);border:1px solid var(--border);border-radius:10px;background:var(--panel);padding:10px 12px;min-height:42px}
-input{flex:1 1 190px;min-width:120px}select{flex:0 1 180px}button{cursor:pointer}button:disabled{opacity:.6;cursor:wait}
-button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
-.statusbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:12px 0 16px;color:var(--muted);font-size:.9rem}
-.status{display:inline-flex;align-items:center;gap:7px}.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--muted)}.dot.ok{background:var(--good)}.dot.error{background:var(--bad)}
-.summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:20px}
-.summary-card,.device-card{background:var(--panel);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow)}
-.summary-card{padding:15px 16px}.summary-label{color:var(--muted);font-size:.86rem}.summary-value{font-weight:750;font-size:1.55rem;margin-top:4px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,245px),1fr));gap:12px}
-.device-card{padding:15px;min-width:0}.device-top{display:flex;align-items:flex-start;gap:10px}.device-icon{display:grid;place-items:center;width:42px;height:42px;flex:0 0 42px;border-radius:12px;background:var(--bg);font-size:1.35rem}
-.device-name{font-weight:700;overflow-wrap:anywhere}.device-type{color:var(--muted);font-size:.8rem;margin-top:2px}.device-value{font-size:1.12rem;font-weight:650;margin-top:16px;overflow-wrap:anywhere}.device-meta{color:var(--muted);font-size:.78rem;margin-top:7px}
-.empty{padding:26px 16px;text-align:center;color:var(--muted);background:var(--panel);border:1px dashed var(--border);border-radius:14px}.note{margin-top:20px;color:var(--muted);font-size:.82rem}.hidden{display:none!important}
-.launch-notice{max-width:680px;margin:12vh auto 0;padding:clamp(20px,4vw,36px);background:var(--panel);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);text-align:center}.launch-notice h1{margin-bottom:12px}.launch-notice p{color:var(--muted)}.launch-link{display:inline-flex;align-items:center;justify-content:center;margin-top:12px;padding:12px 18px;border-radius:10px;background:var(--accent);color:#fff;font-weight:700;text-decoration:none}.launch-link:focus-visible{outline:3px solid var(--accent);outline-offset:3px}.launcher main{display:none}
-@media(max-width:600px){body{padding:12px}main{min-height:calc(100vh - 24px)}.summary{grid-template-columns:1fr;gap:8px}.summary-card{padding:12px 14px}.summary-value{font-size:1.3rem}.toolbar{width:100%}select{flex:1 1 120px}}
-</style>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Ouvrir — Ma maison</title>
+    <style>
+        :root {
+            color-scheme: light dark;
+            font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        }
+
+        body {
+            display: grid;
+            min-height: 80vh;
+            margin: 0;
+            padding: 24px;
+            place-items: center;
+            text-align: center;
+        }
+
+        main {
+            width: min(100%, 520px);
+        }
+
+        p {
+            line-height: 1.5;
+        }
+
+        a {
+            display: inline-block;
+            margin-top: 12px;
+            padding: 12px 18px;
+            border-radius: 8px;
+            background: #2867d8;
+            color: #fff;
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        a:focus-visible {
+            outline: 3px solid currentColor;
+            outline-offset: 3px;
+        }
+
+        #status {
+            min-height: 1.5em;
+        }
+    </style>
 </head>
 <body>
-<section id="launchNotice" class="launch-notice hidden" role="status" aria-labelledby="launchTitle">
-<h1 id="launchTitle">🏠 Ma maison</h1>
-<p id="launchMessage">Ouverture du tableau de bord dans un nouvel onglet…</p>
-<a id="openDashboard" class="launch-link" href="" target="_blank" rel="noopener noreferrer">Ouvrir le tableau de bord dans un nouvel onglet</a>
-</section>
-<main>
-<header><div><h1>🏠 Ma maison</h1><div class="subtitle">Tableau de bord Domoticz</div></div>
-<div class="toolbar"><input id="search" type="search" placeholder="Rechercher un équipement…" aria-label="Rechercher un équipement">
-<select id="category" aria-label="Filtrer par catégorie"><option value="all">Toutes les catégories</option></select><button id="refresh" type="button">Actualiser</button></div></header>
-<div class="statusbar"><div class="status"><span id="dot" class="dot"></span><span id="connection">Connexion à Domoticz…</span></div><div id="updated">Aucune actualisation effectuée</div></div>
-<section class="summary" aria-label="Résumé">
-<div class="summary-card"><div class="summary-label">Équipements affichés</div><div class="summary-value" id="total">—</div></div>
-<div class="summary-card"><div class="summary-label">Interrupteurs / actionneurs</div><div class="summary-value" id="switches">—</div></div>
-<div class="summary-card"><div class="summary-label">Capteurs / mesures</div><div class="summary-value" id="sensors">—</div></div></section>
-<section><h2>Équipements</h2><div id="grid" class="grid"></div><div id="empty" class="empty hidden">Aucun équipement à afficher. Essaie une autre recherche ou vérifie la configuration de Domoticz.</div></section>
-<p class="note">Version 1.0 — consultation uniquement. Cette page ne commande aucun équipement. Actualisation automatique toutes les 30 secondes.</p>
-</main>
-<script>
-(()=>{"use strict";
-const launchNotice=document.getElementById("launchNotice"),openLink=document.getElementById("openDashboard");
-if(window.self!==window.top){
- document.body.classList.add("launcher");launchNotice.classList.remove("hidden");openLink.href=window.location.href;
- let opened=null;try{opened=window.open(window.location.href,"_blank");}catch(e){}
- if(opened){try{opened.opener=null;}catch(e){}document.getElementById("launchMessage").textContent="Le tableau de bord a été ouvert dans un nouvel onglet.";}else{document.getElementById("launchMessage").textContent="Le navigateur a bloqué l’ouverture automatique. Utilise le bouton ci-dessous pour ouvrir le tableau de bord."}
- return;
-}
-const $=id=>document.getElementById(id),state={devices:[]},REFRESH_MS=30000;
-const val=(v,fallback="—")=>v===undefined||v===null||v===""?fallback:String(v);
-function category(d){const s=[d.Type,d.SubType,d.SwitchType].join(" ").toLowerCase();if(/temp|thermostat|humidity|temperature|weather|barometer|wind|rain|uv/.test(s))return"Climat";if(/energy|power|electric|gas|counter|utility|voltage|current|consumption/.test(s))return"Énergie";if(/light|switch|dimmer|blinds|door|contact|motion|smoke|security|push|selector/.test(s))return"Commandes et sécurité";return"Autres"}
-function icon(d){return({"Climat":"🌡️","Énergie":"⚡","Commandes et sécurité":"💡","Autres":"📟"})[category(d)]}
-function isSwitch(d){return/light|switch|dimmer|blinds|door|contact|security/i.test(d.Type||"")}
-function categories(){const s=$("category"),old=s.value,list=[...new Set(state.devices.map(category))].sort();s.replaceChildren(new Option("Toutes les catégories","all"));list.forEach(c=>s.add(new Option(c,c)));if(list.includes(old))s.value=old}
-function card(d){const a=document.createElement("article");a.className="device-card";const top=document.createElement("div");top.className="device-top";const ico=document.createElement("div");ico.className="device-icon";ico.setAttribute("aria-hidden","true");ico.textContent=icon(d);const head=document.createElement("div");head.style.minWidth="0";const name=document.createElement("div");name.className="device-name";name.textContent=val(d.Name,"Équipement sans nom");const kind=document.createElement("div");kind.className="device-type";kind.textContent=category(d)+" · "+val(d.Type,"Type inconnu");head.append(name,kind);top.append(ico,head);const value=document.createElement("div");value.className="device-value";value.textContent=val(d.Data,"Pas de valeur disponible");const meta=document.createElement("div");meta.className="device-meta";const details=[];if(d.LastUpdate)details.push("Mis à jour : "+d.LastUpdate);if(d.BatteryLevel!==undefined&&Number(d.BatteryLevel)>=0&&Number(d.BatteryLevel)<101)details.push("Batterie : "+d.BatteryLevel+"%");if(d.idx!==undefined)details.push("IDX "+d.idx);meta.textContent=details.join(" · ")||"Aucune information complémentaire";a.append(top,value,meta);return a}
-function render(){const q=$("search").value.trim().toLocaleLowerCase("fr"),c=$("category").value;const list=state.devices.filter(d=>(!q||val(d.Name,"").toLocaleLowerCase("fr").includes(q)||val(d.Data,"").toLocaleLowerCase("fr").includes(q))&&(c==="all"||category(d)===c));$("grid").replaceChildren(...list.map(card));$("empty").classList.toggle("hidden",list.length>0);$("empty").textContent=list.length?"":"Aucun équipement à afficher. Essaie une autre recherche ou vérifie que Domoticz possède des équipements utilisés.";$("total").textContent=list.length;$("switches").textContent=list.filter(isSwitch).length;$("sensors").textContent=list.filter(d=>!isSwitch(d)).length}
-async function getDevices(){const urls=["/json.htm?type=devices&filter=all&used=true&order=Name","/json.htm?type=command&param=getdevices&filter=all&used=true&order=Name"];let error;for(const url of urls){try{const r=await fetch(url,{credentials:"same-origin",cache:"no-store"});if(!r.ok)throw Error("HTTP "+r.status);const j=await r.json();if(j&&Array.isArray(j.result)&&(j.status==="OK"||j.status===undefined))return j.result.filter(d=>d&&(d.Name||d.idx!==undefined));throw Error(j?.message||"Réponse API inattendue")}catch(e){error=e}}throw error||Error("API Domoticz indisponible")}
-async function refresh(){$("refresh").disabled=true;$("connection").textContent="Lecture des équipements…";$("dot").className="dot";try{state.devices=await getDevices();categories();render();$("connection").textContent="Connecté à Domoticz";$("dot").className="dot ok";$("updated").textContent="Dernière actualisation : "+new Date().toLocaleTimeString("fr-FR")}catch(e){$("connection").textContent="Impossible de lire l’API Domoticz";$("dot").className="dot error";$("updated").textContent=val(e?.message,"Erreur inconnue");if(!state.devices.length){$("grid").replaceChildren();$("empty").classList.remove("hidden");$("empty").textContent="La page n’a pas pu récupérer les équipements. Vérifie que tu es connecté à Domoticz et que l’API JSON est accessible depuis cette page."}}finally{$("refresh").disabled=false}}
-$("refresh").addEventListener("click",refresh);$("search").addEventListener("input",render);$("category").addEventListener("change",render);refresh();setInterval(refresh,REFRESH_MS)
-})();
-</script>
+    <main>
+        <h1>🏠 Ma maison</h1>
+        <p id="status">
+            Le tableau de bord s'ouvre dans un nouvel onglet.
+            Si rien ne se passe, utilise le bouton ci-dessous.
+        </p>
+        <a id="open-dashboard" href="maison-dashboard.html" target="_blank" rel="noopener noreferrer">
+            Ouvrir le tableau de bord
+        </a>
+    </main>
+
+    <script>
+        "use strict";
+
+        // Domoticz charge ce fichier comme une page personnalisée.
+        // L'ouverture automatique est tentée une fois ; le lien reste disponible
+        // si le navigateur bloque les fenêtres ouvertes sans action utilisateur.
+        const dashboardUrl = new URL("maison-dashboard.html", window.location.href);
+        const openLink = document.getElementById("open-dashboard");
+        const status = document.getElementById("status");
+
+        openLink.href = dashboardUrl.href;
+
+        window.addEventListener("load", () => {
+            const newTab = window.open(dashboardUrl.href, "_blank");
+
+            if (newTab) {
+                status.textContent =
+                    "Le tableau de bord a été ouvert dans un nouvel onglet. Tu peux revenir ici si nécessaire.";
+            } else {
+                status.textContent =
+                    "Le navigateur a bloqué l'ouverture automatique. Clique sur le bouton pour continuer.";
+            }
+        });
+    </script>
 </body>
 </html>
