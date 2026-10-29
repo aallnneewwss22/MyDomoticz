@@ -10,6 +10,7 @@ Ce fichier retrace les évolutions notables de MyDomoticz, de la plus récente �
 - Ouverture automatique du tableau de bord dans un nouvel onglet, avec un lien de secours si le navigateur bloque l'ouverture.
 - Mise en page autonome utilisant toute la largeur disponible du navigateur.
 - Règle de versionnement documentée : chaque évolution du tableau de bord autonome crée un nouveau fichier `maison-dashboard-vN.html`, avec un numéro supérieur au précédent.
+- Génération automatique par GitHub Actions d'un ZIP de déploiement contenant le lanceur, le tableau de bord versionné actif et un fichier d'instructions, pour les Pull Requests qui modifient le tableau de bord.
 
 ### Amélioré
 - Utilisation de `maison-dashboard-v2.html` pour contourner les caches qui ignorent les paramètres de requête dans l'URL du tableau de bord.
@@ -19,7 +20,7 @@ Ce fichier retrace les évolutions notables de MyDomoticz, de la plus récente �
 - Suppression de la liste d’IDX codée en dur au profit du classeur Excel.
 
 ### Documentation
-- Le README décrit la procédure d'incrémentation, la mise à jour du lanceur, la conservation des anciennes versions et les fichiers à déployer ensemble.
+- Le README décrit la procédure d'incrémentation, la mise à jour du lanceur, la conservation des anciennes versions, les fichiers à déployer ensemble et la récupération de l'artefact ZIP généré par GitHub Actions.
 
 
 ## [1.0.0] — 2026-10-29
