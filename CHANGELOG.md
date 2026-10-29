@@ -4,8 +4,13 @@ Ce fichier retrace les évolutions notables de MyDomoticz, de la plus récente �
 
 ## [Non publié]
 
+### Ajouté
+- Ouverture du tableau de bord dans un nouvel onglet lorsqu'il est lancé depuis le cadre Domoticz, avec un lien de secours si le navigateur bloque l'ouverture automatique.
+- Mise en page autonome élargie pour exploiter toute la largeur disponible du navigateur.
+
 ### Documentation
 - Ajout du présent journal pour suivre les évolutions du projet au fil des versions.
+
 
 ## [1.0.0] — 2026-10-29
 
