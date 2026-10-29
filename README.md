@@ -13,7 +13,7 @@ Fonctions du tableau de bord :
 
 - interface responsive pour PC, tablette et smartphone ;
 - consultation en lecture seule des équipements Domoticz ;
-- affichage limité aux IDX 44, 48, 52 et 322 ; les autres équipements sont ignorés ;
+- affichage limité aux IDX lus dynamiquement dans la première colonne du fichier Excel `IDX2.xlsx` ou `IDX2.XLS` ;
 - recherche par nom ou valeur et filtre par catégorie ;
 - actualisation automatique toutes les 30 secondes ;
 - état de connexion et heure de dernière actualisation ;
