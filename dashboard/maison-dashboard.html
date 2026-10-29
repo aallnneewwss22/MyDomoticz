@@ -355,13 +355,18 @@
         </p>
     </main>
 
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <script>
         (() => {
             "use strict";
 
             const REFRESH_MS = 30_000;
-            const DISPLAYED_DEVICE_IDXS = new Set(["44", "48", "52", "322"]);
-            const state = { devices: [] };
+            const IDX_FILE_CANDIDATES = ["IDX2.xlsx", "IDX2.XLS", "IDX2.xls", "IDX2.XLSX"];
+            const state = {
+                devices: [],
+                displayedIdxs: new Set(),
+                idxFileName: ""
+            };
             const $ = (id) => document.getElementById(id);
 
             function valueOrFallback(value, fallback = "—") {
@@ -540,7 +545,7 @@
                                 (device) =>
                                     device &&
                                     device.idx !== undefined &&
-                                    DISPLAYED_DEVICE_IDXS.has(String(device.idx))
+                                    state.displayedIdxs.has(String(device.idx))
                             );
                         }
 
@@ -553,6 +558,68 @@
                 throw lastError || new Error("API Domoticz indisponible");
             }
 
+            function normalizeIdx(value) {
+                if (typeof value === "number" && Number.isInteger(value) && value > 0) {
+                    return String(value);
+                }
+
+                const text = String(value ?? "").trim();
+                return /^\\d+$/.test(text) ? text : "";
+            }
+
+            async function loadDisplayedIdxs() {
+                if (!window.XLSX) {
+                    throw new Error("La bibliothèque de lecture Excel n’a pas été chargée. Vérifie l’accès à cdn.jsdelivr.net.");
+                }
+
+                let lastError;
+
+                for (const fileName of IDX_FILE_CANDIDATES) {
+                    try {
+                        const response = await fetch(new URL(fileName, window.location.href), {
+                            credentials: "same-origin",
+                            cache: "no-store"
+                        });
+
+                        if (!response.ok) {
+                            throw new Error(`${fileName} : HTTP ${response.status}`);
+                        }
+
+                        const workbook = XLSX.read(await response.arrayBuffer(), { type: "array" });
+                        const firstSheetName = workbook.SheetNames[0];
+
+                        if (!firstSheetName) {
+                            throw new Error(`${fileName} ne contient aucune feuille.`);
+                        }
+
+                        const rows = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheetName], {
+                            header: 1,
+                            raw: true,
+                            defval: null
+                        });
+                        const idxs = new Set(
+                            rows
+                                .map((row) => normalizeIdx(row?.[0]))
+                                .filter(Boolean)
+                        );
+
+                        if (idxs.size === 0) {
+                            throw new Error(`${fileName} ne contient aucun IDX numérique dans la première colonne.`);
+                        }
+
+                        state.displayedIdxs = idxs;
+                        state.idxFileName = fileName;
+                        return;
+                    } catch (error) {
+                        lastError = error;
+                    }
+                }
+
+                throw new Error(
+                    `Impossible de charger IDX2.xlsx / IDX2.XLS à côté de la page. ${lastError?.message || ""}`
+                );
+            }
+
             async function refreshDevices() {
                 $("refresh").disabled = true;
                 $("connection").textContent = "Lecture des équipements…";
@@ -563,10 +630,12 @@
                     updateCategories();
                     renderDevices();
 
-                    $("connection").textContent = "Connecté à Domoticz";
+                    $("connection").textContent =
+                        `Connecté à Domoticz · ${state.displayedIdxs.size} IDX chargés`;
                     $("dot").className = "dot ok";
                     $("updated").textContent =
-                        "Dernière actualisation : " + new Date().toLocaleTimeString("fr-FR");
+                        `Fichier : ${state.idxFileName} · actualisé à ` +
+                        new Date().toLocaleTimeString("fr-FR");
                 } catch (error) {
                     $("connection").textContent = "Impossible de lire l’API Domoticz";
                     $("dot").className = "dot error";
@@ -583,12 +652,32 @@
                 }
             }
 
+            async function initializeDashboard() {
+                $("refresh").disabled = true;
+                $("connection").textContent = "Chargement de la liste des IDX…";
+                $("dot").className = "dot";
+
+                try {
+                    await loadDisplayedIdxs();
+                    await refreshDevices();
+                    setInterval(refreshDevices, REFRESH_MS);
+                } catch (error) {
+                    $("connection").textContent = "Impossible de charger la liste des IDX";
+                    $("dot").className = "dot error";
+                    $("updated").textContent = valueOrFallback(error?.message, "Erreur inconnue");
+                    $("grid").replaceChildren();
+                    $("empty").classList.remove("hidden");
+                    $("empty").textContent =
+                        "Le fichier IDX2.xlsx ou IDX2.XLS n’a pas pu être lu. Place-le dans le même répertoire que cette page HTML et vérifie que la première colonne contient les IDX.";
+                    $("refresh").disabled = true;
+                }
+            }
+
             $("refresh").addEventListener("click", refreshDevices);
             $("search").addEventListener("input", renderDevices);
             $("category").addEventListener("change", renderDevices);
 
-            refreshDevices();
-            setInterval(refreshDevices, REFRESH_MS);
+            initializeDashboard();
         })();
     </script>
 </body>

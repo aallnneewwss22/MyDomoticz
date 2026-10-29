@@ -5,13 +5,14 @@ Ce fichier retrace les évolutions notables de MyDomoticz, de la plus récente �
 ## [Non publié]
 
 ### Ajouté
-- Filtrage du tableau de bord pour afficher uniquement les équipements d’IDX 44, 48, 52 et 322.
+- Lecture dynamique des IDX depuis la première colonne du classeur `IDX2.xlsx` ou `IDX2.XLS`, chargé au démarrage de la page.
 - Séparation entre une page d'entrée Domoticz et le tableau de bord autonome, installé à côté dans `www/templates`.
 - Ouverture automatique du tableau de bord dans un nouvel onglet, avec un lien de secours si le navigateur bloque l'ouverture.
 - Mise en page autonome utilisant toute la largeur disponible du navigateur.
 
 ### Amélioré
 - Mise en forme du HTML, du CSS et du JavaScript pour faciliter la lecture et la maintenance.
+- Suppression de la liste d’IDX codée en dur au profit du classeur Excel.
 
 ### Documentation
 - Ajout du présent journal pour suivre les évolutions du projet au fil des versions.
