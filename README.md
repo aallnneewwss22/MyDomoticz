@@ -40,4 +40,5 @@ La page est en lecture seule. Ne pas exposer l'API Domoticz directement sur Inte
 
 ## Documentation
 
+- [Journal des modifications](CHANGELOG.md)
 - [Repères sur la base SQLite Domoticz](docs/database-domoticz.md)
