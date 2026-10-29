@@ -12,7 +12,7 @@ Ce fichier retrace les évolutions notables de MyDomoticz, de la plus récente �
 
 ### Amélioré
 - Ajout d'un paramètre d'URL variable à chaque ouverture du tableau de bord pour éviter la réutilisation d'une ancienne page HTML en cache.
-- Chargement du classeur Excel avec `cache: "no-store"` afin de demander une nouvelle copie du fichier IDX à chaque chargement de la page.
+- Ajout d’un paramètre variable à l’URL du classeur Excel, en complément de `cache: "no-store"`, pour éviter la réutilisation d’une ancienne copie de `IDX2.xlsx`.
 - Mise en forme du HTML, du CSS et du JavaScript pour faciliter la lecture et la maintenance.
 - Suppression de la liste d’IDX codée en dur au profit du classeur Excel.
 
