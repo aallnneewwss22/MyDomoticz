@@ -1,0 +1,13 @@
+# Secrets et configuration locale
+.env
+.env.*
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+
+# Fichiers temporaires
+.DS_Store
+Thumbs.db
+*.log
+__pycache__/
