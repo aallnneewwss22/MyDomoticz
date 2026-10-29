@@ -1,0 +1,65 @@
+name: Package dashboard for Raspberry Pi
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "dashboard/**"
+      - ".github/workflows/package-dashboard.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package-dashboard:
+    name: Build deployment ZIP
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout pull request
+        uses: actions/checkout@v4
+
+      - name: Prepare deployment files
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Read the versioned dashboard filename currently referenced by the launcher.
+          dashboard_file="$(grep -oE 'maison-dashboard-v[0-9]+\.html' dashboard/maison.html | head -n 1)"
+          if [[ -z "${dashboard_file}" ]]; then
+            echo "Could not determine the versioned dashboard filename from dashboard/maison.html" >&2
+            exit 1
+          fi
+          if [[ ! -f "dashboard/${dashboard_file}" ]]; then
+            echo "Launcher references dashboard/${dashboard_file}, but that file does not exist." >&2
+            exit 1
+          fi
+
+          mkdir -p package
+          cp dashboard/maison.html package/maison.html
+          cp "dashboard/${dashboard_file}" "package/${dashboard_file}"
+
+          cat > package/LISEZ-MOI.txt <<EOF
+          Déploiement du tableau de bord MyDomoticz
+          
+          Copiez maison.html et ${dashboard_file} dans :
+          /home/pi/domoticz/www/templates
+          
+          Les deux fichiers doivent être copiés ensemble. Le lanceur maison.html
+          ouvre ${dashboard_file}. Vous pouvez conserver les anciennes versions.
+          
+          Ce ZIP contient les fichiers HTML du tableau de bord uniquement.
+          Le classeur IDX2.xlsx ou IDX2.XLS n'est pas inclus ; conservez-le dans
+          le répertoire templates s'il est utilisé par votre installation.
+          EOF
+
+          (cd package && zip -r ../maison-dashboard-raspberry-pi.zip .)
+
+      - name: Upload deployment ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: maison-dashboard-raspberry-pi
+          path: maison-dashboard-raspberry-pi.zip
+          if-no-files-found: error
+          retention-days: 14

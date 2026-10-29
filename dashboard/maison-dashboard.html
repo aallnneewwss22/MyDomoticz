@@ -576,7 +576,10 @@
 
                 for (const fileName of IDX_FILE_CANDIDATES) {
                     try {
-                        const response = await fetch(new URL(fileName, window.location.href), {
+                        const workbookUrl = new URL(fileName, window.location.href);
+                        workbookUrl.searchParams.set("_cb", Date.now().toString());
+
+                        const response = await fetch(workbookUrl, {
                             credentials: "same-origin",
                             cache: "no-store"
                         });
