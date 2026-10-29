@@ -1,0 +1,591 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <title>Ma maison — Domoticz</title>
+
+    <style>
+        :root {
+            --bg: #f3f5f8;
+            --panel: #fff;
+            --text: #182230;
+            --muted: #657184;
+            --border: #dce2ea;
+            --accent: #2867d8;
+            --good: #168653;
+            --bad: #bf3434;
+            --shadow: 0 3px 14px #14233712;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #111722;
+                --panel: #1b2432;
+                --text: #edf2f8;
+                --muted: #a6b2c2;
+                --border: #344154;
+                --accent: #83aaff;
+                --good: #66d6a0;
+                --bad: #ff8585;
+                --shadow: 0 3px 14px #0003;
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            min-height: 100%;
+        }
+
+        body {
+            min-height: 100vh;
+            margin: 0;
+            padding: clamp(10px, 1.4vw, 22px);
+            background: var(--bg);
+            color: var(--text);
+            font: 16px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+        }
+
+        main {
+            width: 100%;
+            max-width: none;
+            min-height: calc(100vh - 2 * clamp(10px, 1.4vw, 22px));
+            margin: 0;
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin-bottom: 18px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(1.45rem, 3vw, 2rem);
+        }
+
+        h2 {
+            margin: 0 0 12px;
+            font-size: 1.15rem;
+        }
+
+        .subtitle {
+            margin-top: 4px;
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+
+        .toolbar {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            width: min(100%, 620px);
+        }
+
+        input,
+        select,
+        button {
+            min-height: 42px;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--panel);
+            color: var(--text);
+            font: inherit;
+        }
+
+        input {
+            flex: 1 1 190px;
+            min-width: 120px;
+        }
+
+        select {
+            flex: 0 1 180px;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        button:disabled {
+            cursor: wait;
+            opacity: 0.6;
+        }
+
+        button:focus-visible,
+        input:focus-visible,
+        select:focus-visible {
+            outline: 3px solid var(--accent);
+            outline-offset: 2px;
+        }
+
+        .statusbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 12px 0 16px;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        .status {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .dot {
+            display: inline-block;
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: var(--muted);
+        }
+
+        .dot.ok {
+            background: var(--good);
+        }
+
+        .dot.error {
+            background: var(--bad);
+        }
+
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .summary-card,
+        .device-card {
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: var(--panel);
+            box-shadow: var(--shadow);
+        }
+
+        .summary-card {
+            padding: 15px 16px;
+        }
+
+        .summary-label {
+            color: var(--muted);
+            font-size: 0.86rem;
+        }
+
+        .summary-value {
+            margin-top: 4px;
+            font-size: 1.55rem;
+            font-weight: 750;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 245px), 1fr));
+            gap: 12px;
+        }
+
+        .device-card {
+            min-width: 0;
+            padding: 15px;
+        }
+
+        .device-top {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .device-icon {
+            display: grid;
+            flex: 0 0 42px;
+            place-items: center;
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            background: var(--bg);
+            font-size: 1.35rem;
+        }
+
+        .device-name {
+            overflow-wrap: anywhere;
+            font-weight: 700;
+        }
+
+        .device-type {
+            margin-top: 2px;
+            color: var(--muted);
+            font-size: 0.8rem;
+        }
+
+        .device-value {
+            margin-top: 16px;
+            overflow-wrap: anywhere;
+            font-size: 1.12rem;
+            font-weight: 650;
+        }
+
+        .device-meta {
+            margin-top: 7px;
+            color: var(--muted);
+            font-size: 0.78rem;
+        }
+
+        .empty {
+            padding: 26px 16px;
+            border: 1px dashed var(--border);
+            border-radius: 14px;
+            background: var(--panel);
+            color: var(--muted);
+            text-align: center;
+        }
+
+        .note {
+            margin-top: 20px;
+            color: var(--muted);
+            font-size: 0.82rem;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 12px;
+            }
+
+            main {
+                min-height: calc(100vh - 24px);
+            }
+
+            .summary {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+
+            .summary-card {
+                padding: 12px 14px;
+            }
+
+            .summary-value {
+                font-size: 1.3rem;
+            }
+
+            .toolbar {
+                width: 100%;
+            }
+
+            select {
+                flex: 1 1 120px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <main>
+        <header>
+            <div>
+                <h1>🏠 Ma maison</h1>
+                <div class="subtitle">Tableau de bord Domoticz</div>
+            </div>
+
+            <div class="toolbar">
+                <input
+                    id="search"
+                    type="search"
+                    placeholder="Rechercher un équipement…"
+                    aria-label="Rechercher un équipement"
+                >
+                <select id="category" aria-label="Filtrer par catégorie">
+                    <option value="all">Toutes les catégories</option>
+                </select>
+                <button id="refresh" type="button">Actualiser</button>
+            </div>
+        </header>
+
+        <div class="statusbar">
+            <div class="status">
+                <span id="dot" class="dot"></span>
+                <span id="connection">Connexion à Domoticz…</span>
+            </div>
+            <div id="updated">Aucune actualisation effectuée</div>
+        </div>
+
+        <section class="summary" aria-label="Résumé">
+            <div class="summary-card">
+                <div class="summary-label">Équipements affichés</div>
+                <div class="summary-value" id="total">—</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label">Interrupteurs / actionneurs</div>
+                <div class="summary-value" id="switches">—</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label">Capteurs / mesures</div>
+                <div class="summary-value" id="sensors">—</div>
+            </div>
+        </section>
+
+        <section>
+            <h2>Équipements</h2>
+            <div id="grid" class="grid"></div>
+            <div id="empty" class="empty hidden">
+                Aucun équipement à afficher. Essaie une autre recherche ou vérifie la configuration de Domoticz.
+            </div>
+        </section>
+
+        <p class="note">
+            Version 1.0 — consultation uniquement. Cette page ne commande aucun équipement.
+            Actualisation automatique toutes les 30 secondes.
+        </p>
+    </main>
+
+    <script>
+        (() => {
+            "use strict";
+
+            const REFRESH_MS = 30_000;
+            const state = { devices: [] };
+            const $ = (id) => document.getElementById(id);
+
+            function valueOrFallback(value, fallback = "—") {
+                return value === undefined || value === null || value === ""
+                    ? fallback
+                    : String(value);
+            }
+
+            function getCategory(device) {
+                const type = [
+                    device.Type,
+                    device.SubType,
+                    device.SwitchType
+                ].join(" ").toLowerCase();
+
+                if (/temp|thermostat|humidity|temperature|weather|barometer|wind|rain|uv/.test(type)) {
+                    return "Climat";
+                }
+
+                if (/energy|power|electric|gas|counter|utility|voltage|current|consumption/.test(type)) {
+                    return "Énergie";
+                }
+
+                if (/light|switch|dimmer|blinds|door|contact|motion|smoke|security|push|selector/.test(type)) {
+                    return "Commandes et sécurité";
+                }
+
+                return "Autres";
+            }
+
+            function getIcon(device) {
+                const icons = {
+                    "Climat": "🌡️",
+                    "Énergie": "⚡",
+                    "Commandes et sécurité": "💡",
+                    "Autres": "📟"
+                };
+
+                return icons[getCategory(device)];
+            }
+
+            function isSwitch(device) {
+                return /light|switch|dimmer|blinds|door|contact|security/i.test(device.Type || "");
+            }
+
+            function updateCategories() {
+                const select = $("category");
+                const previousSelection = select.value;
+                const categories = [...new Set(state.devices.map(getCategory))].sort();
+
+                select.replaceChildren(new Option("Toutes les catégories", "all"));
+
+                categories.forEach((category) => {
+                    select.add(new Option(category, category));
+                });
+
+                if (categories.includes(previousSelection)) {
+                    select.value = previousSelection;
+                }
+            }
+
+            function createDeviceCard(device) {
+                const card = document.createElement("article");
+                card.className = "device-card";
+
+                const top = document.createElement("div");
+                top.className = "device-top";
+
+                const icon = document.createElement("div");
+                icon.className = "device-icon";
+                icon.setAttribute("aria-hidden", "true");
+                icon.textContent = getIcon(device);
+
+                const heading = document.createElement("div");
+                heading.style.minWidth = "0";
+
+                const name = document.createElement("div");
+                name.className = "device-name";
+                name.textContent = valueOrFallback(device.Name, "Équipement sans nom");
+
+                const type = document.createElement("div");
+                type.className = "device-type";
+                type.textContent = `${getCategory(device)} · ${valueOrFallback(device.Type, "Type inconnu")}`;
+
+                heading.append(name, type);
+                top.append(icon, heading);
+
+                const value = document.createElement("div");
+                value.className = "device-value";
+                value.textContent = valueOrFallback(device.Data, "Pas de valeur disponible");
+
+                const metadata = document.createElement("div");
+                metadata.className = "device-meta";
+
+                const details = [];
+
+                if (device.LastUpdate) {
+                    details.push(`Mis à jour : ${device.LastUpdate}`);
+                }
+
+                if (
+                    device.BatteryLevel !== undefined &&
+                    Number(device.BatteryLevel) >= 0 &&
+                    Number(device.BatteryLevel) < 101
+                ) {
+                    details.push(`Batterie : ${device.BatteryLevel}%`);
+                }
+
+                if (device.idx !== undefined) {
+                    details.push(`IDX ${device.idx}`);
+                }
+
+                metadata.textContent = details.join(" · ") || "Aucune information complémentaire";
+                card.append(top, value, metadata);
+
+                return card;
+            }
+
+            function renderDevices() {
+                const query = $("search").value.trim().toLocaleLowerCase("fr");
+                const selectedCategory = $("category").value;
+
+                const visibleDevices = state.devices.filter((device) => {
+                    const matchesQuery =
+                        !query ||
+                        valueOrFallback(device.Name, "").toLocaleLowerCase("fr").includes(query) ||
+                        valueOrFallback(device.Data, "").toLocaleLowerCase("fr").includes(query);
+
+                    const matchesCategory =
+                        selectedCategory === "all" ||
+                        getCategory(device) === selectedCategory;
+
+                    return matchesQuery && matchesCategory;
+                });
+
+                $("grid").replaceChildren(...visibleDevices.map(createDeviceCard));
+                $("empty").classList.toggle("hidden", visibleDevices.length > 0);
+
+                if (visibleDevices.length === 0) {
+                    $("empty").textContent =
+                        "Aucun équipement à afficher. Essaie une autre recherche ou vérifie que Domoticz possède des équipements utilisés.";
+                }
+
+                $("total").textContent = visibleDevices.length;
+                $("switches").textContent = visibleDevices.filter(isSwitch).length;
+                $("sensors").textContent = visibleDevices.filter((device) => !isSwitch(device)).length;
+            }
+
+            async function fetchDevices() {
+                const endpoints = [
+                    "/json.htm?type=devices&filter=all&used=true&order=Name",
+                    "/json.htm?type=command&param=getdevices&filter=all&used=true&order=Name"
+                ];
+
+                let lastError;
+
+                for (const endpoint of endpoints) {
+                    try {
+                        const response = await fetch(endpoint, {
+                            credentials: "same-origin",
+                            cache: "no-store"
+                        });
+
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}`);
+                        }
+
+                        const data = await response.json();
+
+                        if (
+                            data &&
+                            Array.isArray(data.result) &&
+                            (data.status === "OK" || data.status === undefined)
+                        ) {
+                            return data.result.filter(
+                                (device) => device && (device.Name || device.idx !== undefined)
+                            );
+                        }
+
+                        throw new Error(data?.message || "Réponse API inattendue");
+                    } catch (error) {
+                        lastError = error;
+                    }
+                }
+
+                throw lastError || new Error("API Domoticz indisponible");
+            }
+
+            async function refreshDevices() {
+                $("refresh").disabled = true;
+                $("connection").textContent = "Lecture des équipements…";
+                $("dot").className = "dot";
+
+                try {
+                    state.devices = await fetchDevices();
+                    updateCategories();
+                    renderDevices();
+
+                    $("connection").textContent = "Connecté à Domoticz";
+                    $("dot").className = "dot ok";
+                    $("updated").textContent =
+                        "Dernière actualisation : " + new Date().toLocaleTimeString("fr-FR");
+                } catch (error) {
+                    $("connection").textContent = "Impossible de lire l’API Domoticz";
+                    $("dot").className = "dot error";
+                    $("updated").textContent = valueOrFallback(error?.message, "Erreur inconnue");
+
+                    if (state.devices.length === 0) {
+                        $("grid").replaceChildren();
+                        $("empty").classList.remove("hidden");
+                        $("empty").textContent =
+                            "La page n’a pas pu récupérer les équipements. Vérifie que tu es connecté à Domoticz et que l’API JSON est accessible depuis cette page.";
+                    }
+                } finally {
+                    $("refresh").disabled = false;
+                }
+            }
+
+            $("refresh").addEventListener("click", refreshDevices);
+            $("search").addEventListener("input", renderDevices);
+            $("category").addEventListener("change", renderDevices);
+
+            refreshDevices();
+            setInterval(refreshDevices, REFRESH_MS);
+        })();
+    </script>
+</body>
+</html>

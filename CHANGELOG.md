@@ -4,8 +4,17 @@ Ce fichier retrace les évolutions notables de MyDomoticz, de la plus récente �
 
 ## [Non publié]
 
+### Ajouté
+- Séparation entre une page d'entrée Domoticz et le tableau de bord autonome, installé à côté dans `www/templates`.
+- Ouverture automatique du tableau de bord dans un nouvel onglet, avec un lien de secours si le navigateur bloque l'ouverture.
+- Mise en page autonome utilisant toute la largeur disponible du navigateur.
+
+### Amélioré
+- Mise en forme du HTML, du CSS et du JavaScript pour faciliter la lecture et la maintenance.
+
 ### Documentation
 - Ajout du présent journal pour suivre les évolutions du projet au fil des versions.
+
 
 ## [1.0.0] — 2026-10-29
 
