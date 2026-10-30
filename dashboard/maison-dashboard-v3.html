@@ -113,28 +113,6 @@
             font-size: 0.9rem;
         }
 
-        .status {
-            display: inline-flex;
-            align-items: center;
-            gap: 7px;
-        }
-
-        .dot {
-            display: inline-block;
-            width: 9px;
-            height: 9px;
-            border-radius: 50%;
-            background: var(--muted);
-        }
-
-        .dot.ok {
-            background: var(--good);
-        }
-
-        .dot.error {
-            background: var(--bad);
-        }
-
         .grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(min(100%, 245px), 1fr));
@@ -232,10 +210,6 @@
         </header>
 
         <div class="statusbar">
-            <div class="status">
-                <span id="dot" class="dot"></span>
-                <span id="connection">Connexion à Domoticz…</span>
-            </div>
             <div id="updated">Aucune actualisation effectuée</div>
         </div>
 
@@ -479,22 +453,15 @@
 
             async function refreshDevices() {
                 $("refresh").disabled = true;
-                $("connection").textContent = "Lecture des équipements…";
-                $("dot").className = "dot";
 
                 try {
                     state.devices = await fetchDevices();
                     renderDevices();
 
-                    $("connection").textContent =
-                        `Connecté à Domoticz · ${state.displayedIdxs.size} IDX chargés`;
-                    $("dot").className = "dot ok";
                     $("updated").textContent =
                         `Fichier : ${state.idxFileName} · actualisé à ` +
                         new Date().toLocaleTimeString("fr-FR");
                 } catch (error) {
-                    $("connection").textContent = "Impossible de lire l’API Domoticz";
-                    $("dot").className = "dot error";
                     $("updated").textContent = valueOrFallback(error?.message, "Erreur inconnue");
 
                     if (state.devices.length === 0) {
@@ -510,16 +477,12 @@
 
             async function initializeDashboard() {
                 $("refresh").disabled = true;
-                $("connection").textContent = "Chargement de la liste des IDX…";
-                $("dot").className = "dot";
 
                 try {
                     await loadDisplayedIdxs();
                     await refreshDevices();
                     setInterval(refreshDevices, REFRESH_MS);
                 } catch (error) {
-                    $("connection").textContent = "Impossible de charger la liste des IDX";
-                    $("dot").className = "dot error";
                     $("updated").textContent = valueOrFallback(error?.message, "Erreur inconnue");
                     $("grid").replaceChildren();
                     $("empty").classList.remove("hidden");
