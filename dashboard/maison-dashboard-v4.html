@@ -1,0 +1,622 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <title>Ma maison — Domoticz</title>
+
+    <style>
+        :root {
+            --bg: #f3f5f8;
+            --panel: #fff;
+            --text: #182230;
+            --muted: #657184;
+            --border: #dce2ea;
+            --accent: #2867d8;
+            --good: #168653;
+            --bad: #bf3434;
+            --shadow: 0 3px 14px #14233712;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #111722;
+                --panel: #1b2432;
+                --text: #edf2f8;
+                --muted: #a6b2c2;
+                --border: #344154;
+                --accent: #83aaff;
+                --good: #66d6a0;
+                --bad: #ff8585;
+                --shadow: 0 3px 14px #0003;
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            min-height: 100%;
+        }
+
+        body {
+            min-height: 100vh;
+            margin: 0;
+            padding: clamp(10px, 1.4vw, 22px);
+            background: var(--bg);
+            color: var(--text);
+            font: 16px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+        }
+
+        main {
+            width: 100%;
+            max-width: none;
+            min-height: calc(100vh - 2 * clamp(10px, 1.4vw, 22px));
+            margin: 0;
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin-bottom: 18px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(1.45rem, 3vw, 2rem);
+        }
+
+        h2 {
+            margin: 0 0 12px;
+            font-size: 1.15rem;
+        }
+
+        .toolbar {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            width: min(100%, 620px);
+        }
+
+        button {
+            min-height: 42px;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--panel);
+            color: var(--text);
+            font: inherit;
+            cursor: pointer;
+        }
+
+        button:disabled {
+            cursor: wait;
+            opacity: 0.6;
+        }
+
+        dialog {
+            width: min(100% - 32px, 420px);
+            padding: 22px;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: var(--panel);
+            color: var(--text);
+            box-shadow: var(--shadow);
+        }
+
+        dialog::backdrop {
+            background: #0008;
+        }
+
+        .settings-form {
+            display: grid;
+            gap: 16px;
+        }
+
+        .settings-form h2 {
+            margin: 0;
+        }
+
+        .settings-field {
+            display: grid;
+            gap: 7px;
+        }
+
+        .settings-field input {
+            width: 100%;
+            min-height: 42px;
+            padding: 9px 11px;
+            border: 1px solid var(--border);
+            border-radius: 9px;
+            background: var(--bg);
+            color: var(--text);
+            font: inherit;
+        }
+
+        .settings-help {
+            margin: 0;
+            color: var(--muted);
+            font-size: 0.85rem;
+        }
+
+        .dialog-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+
+        .statusbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 12px 0 16px;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 245px), 1fr));
+            gap: 12px;
+        }
+
+        .device-card {
+            min-width: 0;
+            padding: 15px;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: var(--panel);
+            box-shadow: var(--shadow);
+        }
+
+        .device-top {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .device-icon {
+            display: grid;
+            flex: 0 0 42px;
+            place-items: center;
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            background: var(--bg);
+            font-size: 1.35rem;
+        }
+
+        .device-name {
+            overflow-wrap: anywhere;
+            font-weight: 700;
+        }
+
+        .device-type {
+            margin-top: 2px;
+            color: var(--muted);
+            font-size: 0.8rem;
+        }
+
+        .device-value {
+            margin-top: 16px;
+            overflow-wrap: anywhere;
+            font-size: 1.12rem;
+            font-weight: 650;
+        }
+
+        .device-meta {
+            margin-top: 7px;
+            color: var(--muted);
+            font-size: 0.78rem;
+        }
+
+        .empty {
+            padding: 26px 16px;
+            border: 1px dashed var(--border);
+            border-radius: 14px;
+            background: var(--panel);
+            color: var(--muted);
+            text-align: center;
+        }
+
+        .note {
+            margin-top: 20px;
+            color: var(--muted);
+            font-size: 0.82rem;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 12px;
+            }
+
+            main {
+                min-height: calc(100vh - 24px);
+            }
+
+        }
+    </style>
+</head>
+
+<body>
+    <main>
+        <header>
+            <div class="statusbar" id="updated">Aucune actualisation effectuée</div>
+
+            <div class="toolbar">
+                <button id="refresh" type="button">Actualiser</button>
+                <button id="open-settings" type="button">Paramètres...</button>
+            </div>
+        </header>
+
+        <dialog id="settings-dialog" aria-labelledby="settings-title">
+            <form id="settings-form" class="settings-form">
+                <h2 id="settings-title">Paramètres du tableau de bord</h2>
+                <label class="settings-field" for="refresh-interval">
+                    <span>Période de rafraîchissement (secondes)</span>
+                    <input id="refresh-interval" name="refresh-interval" type="number"
+                           min="5" max="3600" step="1" required>
+                </label>
+                <p class="settings-help">Valeur autorisée : de 5 secondes à 1 heure. Le réglage est mémorisé dans ce navigateur.</p>
+                <div class="dialog-actions">
+                    <button id="cancel-settings" type="button">Annuler</button>
+                    <button type="submit">Enregistrer</button>
+                </div>
+            </form>
+        </dialog>
+
+        <div id="grid" class="grid"></div>
+        <div id="empty" class="empty hidden">
+            Aucun équipement à afficher.
+        </div>
+
+    </main>
+
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+    <script>
+        (() => {
+            "use strict";
+
+            const DEFAULT_REFRESH_SECONDS = 30;
+            const MIN_REFRESH_SECONDS = 5;
+            const MAX_REFRESH_SECONDS = 3600;
+            const REFRESH_STORAGE_KEY = "mydomoticz.refreshIntervalSeconds";
+            const IDX_FILE_CANDIDATES = ["IDX2.xlsx", "IDX2.XLS", "IDX2.xls", "IDX2.XLSX"];
+            let refreshIntervalSeconds = loadRefreshInterval();
+            let refreshTimer = null;
+            const state = {
+                devices: [],
+                displayedIdxs: new Set(),
+                idxFileName: ""
+            };
+            const $ = (id) => document.getElementById(id);
+
+            function loadRefreshInterval() {
+                try {
+                    const saved = Number.parseInt(localStorage.getItem(REFRESH_STORAGE_KEY), 10);
+                    if (Number.isInteger(saved) && saved >= MIN_REFRESH_SECONDS && saved <= MAX_REFRESH_SECONDS) {
+                        return saved;
+                    }
+                } catch (error) {
+                    // Le tableau de bord reste utilisable si le stockage local est indisponible.
+                }
+                return DEFAULT_REFRESH_SECONDS;
+            }
+
+            function startAutoRefresh() {
+                if (refreshTimer !== null) {
+                    clearInterval(refreshTimer);
+                }
+                refreshTimer = setInterval(refreshDevices, refreshIntervalSeconds * 1000);
+            }
+
+            function valueOrFallback(value, fallback = "—") {
+                return value === undefined || value === null || value === ""
+                    ? fallback
+                    : String(value);
+            }
+
+            function getCategory(device) {
+                const type = [
+                    device.Type,
+                    device.SubType,
+                    device.SwitchType
+                ].join(" ").toLowerCase();
+
+                if (/temp|thermostat|humidity|temperature|weather|barometer|wind|rain|uv/.test(type)) {
+                    return "Climat";
+                }
+
+                if (/energy|power|electric|gas|counter|utility|voltage|current|consumption/.test(type)) {
+                    return "Énergie";
+                }
+
+                if (/light|switch|dimmer|blinds|door|contact|motion|smoke|security|push|selector/.test(type)) {
+                    return "Commandes et sécurité";
+                }
+
+                return "Autres";
+            }
+
+            function getIcon(device) {
+                const icons = {
+                    "Climat": "🌡️",
+                    "Énergie": "⚡",
+                    "Commandes et sécurité": "💡",
+                    "Autres": "📟"
+                };
+
+                return icons[getCategory(device)];
+            }
+
+            function isSwitch(device) {
+                return /light|switch|dimmer|blinds|door|contact|security/i.test(device.Type || "");
+            }
+
+            function createDeviceCard(device) {
+                const card = document.createElement("article");
+                card.className = "device-card";
+
+                const top = document.createElement("div");
+                top.className = "device-top";
+
+                const icon = document.createElement("div");
+                icon.className = "device-icon";
+                icon.setAttribute("aria-hidden", "true");
+                icon.textContent = getIcon(device);
+
+                const heading = document.createElement("div");
+                heading.style.minWidth = "0";
+
+                const name = document.createElement("div");
+                name.className = "device-name";
+                name.textContent = valueOrFallback(device.Name, "Équipement sans nom");
+
+                const type = document.createElement("div");
+                type.className = "device-type";
+                type.textContent = `${getCategory(device)} · ${valueOrFallback(device.Type, "Type inconnu")}`;
+
+                heading.append(name, type);
+                top.append(icon, heading);
+
+                const value = document.createElement("div");
+                value.className = "device-value";
+                value.textContent = valueOrFallback(device.Data, "Pas de valeur disponible");
+
+                const metadata = document.createElement("div");
+                metadata.className = "device-meta";
+
+                const details = [];
+
+                if (device.LastUpdate) {
+                    details.push(`Mis à jour : ${device.LastUpdate}`);
+                }
+
+                if (
+                    device.BatteryLevel !== undefined &&
+                    Number(device.BatteryLevel) >= 0 &&
+                    Number(device.BatteryLevel) < 101
+                ) {
+                    details.push(`Batterie : ${device.BatteryLevel}%`);
+                }
+
+                if (device.idx !== undefined) {
+                    details.push(`IDX ${device.idx}`);
+                }
+
+                metadata.textContent = details.join(" · ") || "Aucune information complémentaire";
+                card.append(top, value, metadata);
+
+                return card;
+            }
+
+            function renderDevices() {
+                const visibleDevices = state.devices;
+                $("grid").replaceChildren(...visibleDevices.map(createDeviceCard));
+                $("empty").classList.toggle("hidden", visibleDevices.length > 0);
+            }
+
+            async function fetchDevices() {
+                const endpoints = [
+                    "/json.htm?type=devices&filter=all&used=true&order=Name",
+                    "/json.htm?type=command&param=getdevices&filter=all&used=true&order=Name"
+                ];
+
+                let lastError;
+
+                for (const endpoint of endpoints) {
+                    try {
+                        const response = await fetch(endpoint, {
+                            credentials: "same-origin",
+                            cache: "no-store"
+                        });
+
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}`);
+                        }
+
+                        const data = await response.json();
+
+                        if (
+                            data &&
+                            Array.isArray(data.result) &&
+                            (data.status === "OK" || data.status === undefined)
+                        ) {
+                            return data.result.filter(
+                                (device) =>
+                                    device &&
+                                    device.idx !== undefined &&
+                                    state.displayedIdxs.has(String(device.idx))
+                            );
+                        }
+
+                        throw new Error(data?.message || "Réponse API inattendue");
+                    } catch (error) {
+                        lastError = error;
+                    }
+                }
+
+                throw lastError || new Error("API Domoticz indisponible");
+            }
+
+            function normalizeIdx(value) {
+                if (typeof value === "number" && Number.isInteger(value) && value > 0) {
+                    return String(value);
+                }
+
+                const text = String(value ?? "").trim();
+                return /^\\d+$/.test(text) ? text : "";
+            }
+
+            async function loadDisplayedIdxs() {
+                if (!window.XLSX) {
+                    throw new Error("La bibliothèque de lecture Excel n’a pas été chargée. Vérifie l’accès à cdn.jsdelivr.net.");
+                }
+
+                let lastError;
+
+                for (const fileName of IDX_FILE_CANDIDATES) {
+                    try {
+                        const workbookUrl = new URL(fileName, window.location.href);
+                        workbookUrl.searchParams.set("_cb", Date.now().toString());
+
+                        const response = await fetch(workbookUrl, {
+                            credentials: "same-origin",
+                            cache: "no-store"
+                        });
+
+                        if (!response.ok) {
+                            throw new Error(`${fileName} : HTTP ${response.status}`);
+                        }
+
+                        const workbook = XLSX.read(await response.arrayBuffer(), { type: "array" });
+                        const firstSheetName = workbook.SheetNames[0];
+
+                        if (!firstSheetName) {
+                            throw new Error(`${fileName} ne contient aucune feuille.`);
+                        }
+
+                        const rows = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheetName], {
+                            header: 1,
+                            raw: true,
+                            defval: null
+                        });
+                        const idxs = new Set(
+                            rows
+                                .map((row) => normalizeIdx(row?.[0]))
+                                .filter(Boolean)
+                        );
+
+                        if (idxs.size === 0) {
+                            throw new Error(`${fileName} ne contient aucun IDX numérique dans la première colonne.`);
+                        }
+
+                        state.displayedIdxs = idxs;
+                        state.idxFileName = fileName;
+                        return;
+                    } catch (error) {
+                        lastError = error;
+                    }
+                }
+
+                throw new Error(
+                    `Impossible de charger IDX2.xlsx / IDX2.XLS à côté de la page. ${lastError?.message || ""}`
+                );
+            }
+
+            async function refreshDevices() {
+                $("refresh").disabled = true;
+
+                try {
+                    state.devices = await fetchDevices();
+                    renderDevices();
+
+                    $("updated").textContent =
+                        `Fichier : ${state.idxFileName} · actualisé à ` +
+                        new Date().toLocaleTimeString("fr-FR");
+                } catch (error) {
+                    $("updated").textContent = valueOrFallback(error?.message, "Erreur inconnue");
+
+                    if (state.devices.length === 0) {
+                        $("grid").replaceChildren();
+                        $("empty").classList.remove("hidden");
+                        $("empty").textContent =
+                            "La page n’a pas pu récupérer les équipements. Vérifie que tu es connecté à Domoticz et que l’API JSON est accessible depuis cette page.";
+                    }
+                } finally {
+                    $("refresh").disabled = false;
+                }
+            }
+
+            async function initializeDashboard() {
+                $("refresh").disabled = true;
+
+                try {
+                    await loadDisplayedIdxs();
+                    await refreshDevices();
+                    startAutoRefresh();
+                } catch (error) {
+                    $("updated").textContent = valueOrFallback(error?.message, "Erreur inconnue");
+                    $("grid").replaceChildren();
+                    $("empty").classList.remove("hidden");
+                    $("empty").textContent =
+                        "Le fichier IDX2.xlsx ou IDX2.XLS n’a pas pu être lu. Place-le dans le même répertoire que cette page HTML et vérifie que la première colonne contient les IDX.";
+                    $("refresh").disabled = true;
+                }
+            }
+
+            const settingsDialog = $("settings-dialog");
+            const refreshInput = $("refresh-interval");
+
+            $("refresh").addEventListener("click", refreshDevices);
+
+            $("open-settings").addEventListener("click", () => {
+                refreshInput.value = String(refreshIntervalSeconds);
+                settingsDialog.showModal();
+            });
+
+            $("cancel-settings").addEventListener("click", () => settingsDialog.close());
+
+            $("settings-form").addEventListener("submit", (event) => {
+                event.preventDefault();
+                const value = Number(refreshInput.value);
+                if (!Number.isInteger(value) || value < MIN_REFRESH_SECONDS || value > MAX_REFRESH_SECONDS) {
+                    refreshInput.setCustomValidity(
+                        `Saisis une valeur entière comprise entre ${MIN_REFRESH_SECONDS} et ${MAX_REFRESH_SECONDS} secondes.`
+                    );
+                    refreshInput.reportValidity();
+                    return;
+                }
+
+                refreshInput.setCustomValidity("");
+                refreshIntervalSeconds = value;
+                try {
+                    localStorage.setItem(REFRESH_STORAGE_KEY, String(value));
+                } catch (error) {
+                    // Le nouveau réglage s'applique à cette session même si sa mémorisation échoue.
+                }
+                startAutoRefresh();
+                settingsDialog.close();
+            });
+
+            refreshInput.addEventListener("input", () => refreshInput.setCustomValidity(""));
+
+            initializeDashboard();
+        })();
+    </script>
+</body>
+</html>

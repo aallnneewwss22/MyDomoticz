@@ -4,6 +4,10 @@ Ce fichier retrace les évolutions notables de MyDomoticz, de la plus récente �
 
 ## [Non publié]
 
+### Ajouté
+- Bouton « Paramètres... » permettant de régler la période d'actualisation automatique de 5 secondes à 1 heure (30 secondes par défaut), avec mémorisation du réglage dans le navigateur.
+- Création de `maison-dashboard-v4.html` pour cette évolution.
+
 ### Modifié
 - Simplification du tableau de bord : le header ne conserve que le bouton « Actualiser », la section « Résumé » et le texte de version/fonctionnement en bas de page sont supprimés.
 
