@@ -122,6 +122,10 @@
         .device-card {
             min-width: 0;
             padding: 15px;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: var(--panel);
+            box-shadow: var(--shadow);
         }
 
         .device-top {
@@ -213,13 +217,10 @@
             <div id="updated">Aucune actualisation effectuée</div>
         </div>
 
-        <section>
-            <h2>Équipements</h2>
-            <div id="grid" class="grid"></div>
-            <div id="empty" class="empty hidden">
-                Aucun équipement à afficher. Essaie une autre recherche ou vérifie la configuration de Domoticz.
-            </div>
-        </section>
+        <div id="grid" class="grid"></div>
+        <div id="empty" class="empty hidden">
+            Aucun équipement à afficher.
+        </div>
 
     </main>
 
