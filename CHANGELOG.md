@@ -4,6 +4,9 @@ Ce fichier retrace les évolutions notables de MyDomoticz, de la plus récente �
 
 ## [Non publié]
 
+### Modifié
+- Simplification du tableau de bord : le header ne conserve que le bouton « Actualiser », la section « Résumé » et le texte de version/fonctionnement en bas de page sont supprimés.
+
 ### Ajouté
 - Lecture dynamique des IDX depuis la première colonne du classeur `IDX2.xlsx` ou `IDX2.XLS`, chargé au démarrage de la page.
 - Séparation entre une page d'entrée Domoticz et le tableau de bord autonome, installé à côté dans `www/templates`.
