@@ -4,6 +4,11 @@ Ce fichier retrace les évolutions notables de MyDomoticz, de la plus récente �
 
 ## [Non publié]
 
+### Modifié
+- Les équipements associés à une ligne dont la troisième colonne de `IDX2.xlsx` / `IDX2.XLS` est renseignée ne sont plus affichés.
+- Création de `maison-dashboard-v5.html` pour cette évolution.
+
+
 ### Ajouté
 - Bouton « Paramètres... » permettant de régler la période d'actualisation automatique de 5 secondes à 1 heure (30 secondes par défaut), avec mémorisation du réglage dans le navigateur.
 - Création de `maison-dashboard-v4.html` pour cette évolution.
