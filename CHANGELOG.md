@@ -5,6 +5,12 @@ Ce fichier retrace les évolutions notables de MyDomoticz, de la plus récente �
 ## [Non publié]
 
 ### Ajouté
+- Choix du thème graphique depuis la boîte de dialogue « Paramètres... » : Automatique, Classique clair, Sombre, Nature et Bleu nuit.
+- Mémorisation du thème choisi dans le navigateur ; le mode Automatique suit la préférence clair/sombre du système.
+- Création de `maison-dashboard-v7.html` pour cette évolution.
+
+
+### Ajouté
 - Bouton « Action... » ouvrant une boîte de dialogue alimentée par les lignes de `IDX2.xlsx` / `IDX2.XLS` dont la troisième colonne est renseignée.
 - Chaque bouton reprend le libellé de la deuxième colonne et envoie à Domoticz une commande d'activation (`switchcmd=On`) pour l'IDX de la première colonne.
 - Création de `maison-dashboard-v6.html` pour cette évolution.
