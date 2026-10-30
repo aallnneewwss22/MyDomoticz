@@ -4,7 +4,13 @@ Ce fichier retrace les évolutions notables de MyDomoticz, de la plus récente �
 
 ## [Non publié]
 
+### Ajouté
+- Bouton « Action... » ouvrant une boîte de dialogue alimentée par les lignes de `IDX2.xlsx` / `IDX2.XLS` dont la troisième colonne est renseignée.
+- Chaque bouton reprend le libellé de la deuxième colonne et envoie à Domoticz une commande d'activation (`switchcmd=On`) pour l'IDX de la première colonne.
+- Création de `maison-dashboard-v6.html` pour cette évolution.
+
 ### Modifié
+- Le tableau de bord distingue maintenant les lignes d'affichage (troisième colonne vide) des lignes d'action (troisième colonne renseignée).
 - Les équipements associés à une ligne dont la troisième colonne de `IDX2.xlsx` / `IDX2.XLS` est renseignée ne sont plus affichés.
 - Création de `maison-dashboard-v5.html` pour cette évolution.
 
