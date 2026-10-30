@@ -103,7 +103,7 @@
         }
 
         dialog {
-            width: min(100% - 32px, 420px);
+            width: min(100% - 32px, 560px);
             padding: 22px;
             border: 1px solid var(--border);
             border-radius: 14px;
@@ -123,6 +123,7 @@
 
         .actions-list {
             display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 9px;
             max-height: min(60vh, 520px);
             overflow-y: auto;
