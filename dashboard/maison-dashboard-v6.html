@@ -511,7 +511,7 @@
                 }
 
                 const text = String(value ?? "").trim();
-                return /^\\d+$/.test(text) ? text : "";
+                return /^\d+$/.test(text) ? text : "";
             }
 
             async function loadDisplayedIdxs() {
