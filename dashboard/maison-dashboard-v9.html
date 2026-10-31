@@ -1,0 +1,873 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <title>Ma maison — Domoticz</title>
+
+    <style>
+        :root {
+            --bg: #f3f5f8;
+            --panel: #fff;
+            --text: #182230;
+            --muted: #657184;
+            --border: #dce2ea;
+            --accent: #2867d8;
+            --good: #168653;
+            --bad: #bf3434;
+            --shadow: 0 3px 14px #14233712;
+        }
+
+        :root[data-theme="nature"] {
+            --bg: #eef3ed;
+            --panel: #ffffff;
+            --text: #243329;
+            --muted: #68786b;
+            --border: #d3dfd2;
+            --accent: #397a50;
+            --good: #267447;
+            --bad: #b33b3b;
+            --shadow: 0 3px 14px #203b2512;
+        }
+
+        :root[data-theme="midnight"] {
+            --bg: #101a2b;
+            --panel: #192943;
+            --text: #edf4ff;
+            --muted: #a5b7d0;
+            --border: #304665;
+            --accent: #79aaff;
+            --good: #70d6aa;
+            --bad: #ff9292;
+            --shadow: 0 3px 14px #0004;
+        }
+
+        :root[data-theme="dark"] {
+            --bg: #111722;
+            --panel: #1b2432;
+            --text: #edf2f8;
+            --muted: #a6b2c2;
+            --border: #344154;
+            --accent: #83aaff;
+            --good: #66d6a0;
+            --bad: #ff8585;
+            --shadow: 0 3px 14px #0003;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root[data-theme="auto"] {
+                --bg: #111722;
+                --panel: #1b2432;
+                --text: #edf2f8;
+                --muted: #a6b2c2;
+                --border: #344154;
+                --accent: #83aaff;
+                --good: #66d6a0;
+                --bad: #ff8585;
+                --shadow: 0 3px 14px #0003;
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            min-height: 100%;
+        }
+
+        body {
+            min-height: 100vh;
+            margin: 0;
+            padding: clamp(10px, 1.4vw, 22px);
+            background: var(--bg);
+            color: var(--text);
+            font: 16px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+        }
+
+        main {
+            width: 100%;
+            max-width: none;
+            min-height: calc(100vh - 2 * clamp(10px, 1.4vw, 22px));
+            margin: 0;
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin-bottom: 18px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(1.45rem, 3vw, 2rem);
+        }
+
+        h2 {
+            margin: 0 0 12px;
+            font-size: 1.15rem;
+        }
+
+        .toolbar {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            width: min(100%, 620px);
+        }
+
+        button {
+            min-height: 42px;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--panel);
+            color: var(--text);
+            font: inherit;
+            cursor: pointer;
+        }
+
+        button:disabled {
+            cursor: wait;
+            opacity: 0.6;
+        }
+
+        dialog {
+            width: min(100% - 32px, 560px);
+            padding: 22px;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: var(--panel);
+            color: var(--text);
+            box-shadow: var(--shadow);
+        }
+
+        dialog::backdrop {
+            background: #0008;
+        }
+
+        .settings-form {
+            display: grid;
+            gap: 16px;
+        }
+
+        .actions-list {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 9px;
+            max-height: min(60vh, 520px);
+            overflow-y: auto;
+        }
+
+        .action-button {
+            width: 100%;
+            text-align: left;
+        }
+
+        .action-status {
+            min-height: 1.4em;
+            margin: 0;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        .settings-form h2 {
+            margin: 0;
+        }
+
+        .settings-field {
+            display: grid;
+            gap: 7px;
+        }
+
+        .settings-field input,
+        .settings-field select {
+            width: 100%;
+            min-height: 42px;
+            padding: 9px 11px;
+            border: 1px solid var(--border);
+            border-radius: 9px;
+            background: var(--bg);
+            color: var(--text);
+            font: inherit;
+        }
+
+        .settings-help {
+            margin: 0;
+            color: var(--muted);
+            font-size: 0.85rem;
+        }
+
+        .dialog-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+
+        .statusbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 12px 0 16px;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 245px), 1fr));
+            gap: 12px;
+        }
+
+        .grid-row-break {
+            grid-column: 1 / -1;
+            height: 0;
+        }
+
+        .device-card {
+            min-width: 0;
+            padding: 15px;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: var(--panel);
+            box-shadow: var(--shadow);
+        }
+
+        .device-top {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .device-icon {
+            display: grid;
+            flex: 0 0 42px;
+            place-items: center;
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            background: var(--bg);
+            font-size: 1.35rem;
+        }
+
+        .device-name {
+            overflow-wrap: anywhere;
+            font-weight: 700;
+        }
+
+        .device-type {
+            margin-top: 2px;
+            color: var(--muted);
+            font-size: 0.8rem;
+        }
+
+        .device-value {
+            margin-top: 16px;
+            overflow-wrap: anywhere;
+            font-size: 1.12rem;
+            font-weight: 650;
+        }
+
+        .device-meta {
+            margin-top: 7px;
+            color: var(--muted);
+            font-size: 0.78rem;
+        }
+
+        .empty {
+            padding: 26px 16px;
+            border: 1px dashed var(--border);
+            border-radius: 14px;
+            background: var(--panel);
+            color: var(--muted);
+            text-align: center;
+        }
+
+        .note {
+            margin-top: 20px;
+            color: var(--muted);
+            font-size: 0.82rem;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 12px;
+            }
+
+            main {
+                min-height: calc(100vh - 24px);
+            }
+
+        }
+    </style>
+</head>
+
+<body>
+    <main>
+        <header>
+            <div class="statusbar" id="updated">Aucune actualisation effectuée</div>
+
+            <div class="toolbar">
+                <button id="refresh" type="button">Actualiser</button>
+                <button id="open-settings" type="button">Paramètres...</button>
+                <button id="open-actions" type="button">Action...</button>
+            </div>
+        </header>
+
+        <dialog id="actions-dialog" aria-labelledby="actions-title">
+            <div class="settings-form">
+                <h2 id="actions-title">Actions Domoticz</h2>
+                <div id="actions-list" class="actions-list"></div>
+                <p id="action-status" class="action-status" role="status" aria-live="polite"></p>
+                <div class="dialog-actions">
+                    <button id="close-actions" type="button">Fermer</button>
+                </div>
+            </div>
+        </dialog>
+
+        <dialog id="settings-dialog" aria-labelledby="settings-title">
+            <form id="settings-form" class="settings-form">
+                <h2 id="settings-title">Paramètres du tableau de bord</h2>
+                <label class="settings-field" for="refresh-interval">
+                    <span>Période de rafraîchissement (secondes)</span>
+                    <input id="refresh-interval" name="refresh-interval" type="number"
+                           min="5" max="3600" step="1" required>
+                </label>
+                <label class="settings-field" for="theme-select">
+                    <span>Thème graphique</span>
+                    <select id="theme-select" name="theme">
+                        <option value="auto">Automatique (selon le système)</option>
+                        <option value="classic">Classique clair</option>
+                        <option value="dark">Sombre</option>
+                        <option value="nature">Nature</option>
+                        <option value="midnight">Bleu nuit</option>
+                    </select>
+                </label>
+                <p class="settings-help">La période et le thème sont mémorisés dans ce navigateur.</p>
+                <div class="dialog-actions">
+                    <button id="cancel-settings" type="button">Annuler</button>
+                    <button type="submit">Enregistrer</button>
+                </div>
+            </form>
+        </dialog>
+
+        <div id="grid" class="grid"></div>
+        <div id="empty" class="empty hidden">
+            Aucun équipement à afficher.
+        </div>
+
+    </main>
+
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+    <script>
+        (() => {
+            "use strict";
+
+            const DEFAULT_REFRESH_SECONDS = 30;
+            const MIN_REFRESH_SECONDS = 5;
+            const MAX_REFRESH_SECONDS = 3600;
+            const REFRESH_STORAGE_KEY = "mydomoticz.refreshIntervalSeconds";
+            const THEME_STORAGE_KEY = "mydomoticz.theme";
+            const AVAILABLE_THEMES = ["auto", "classic", "dark", "nature", "midnight"];
+            const IDX_FILE_CANDIDATES = ["IDX2.xlsx", "IDX2.XLS", "IDX2.xls", "IDX2.XLSX"];
+            let refreshIntervalSeconds = loadRefreshInterval();
+            let selectedTheme = loadTheme();
+            let refreshTimer = null;
+            const state = {
+                devices: [],
+                displayedIdxs: new Set(),
+                displayedIdxOrder: [],
+                displayedBreakBefore: new Set(),
+                actions: [],
+                idxFileName: ""
+            };
+            const $ = (id) => document.getElementById(id);
+
+            function loadRefreshInterval() {
+                try {
+                    const saved = Number.parseInt(localStorage.getItem(REFRESH_STORAGE_KEY), 10);
+                    if (Number.isInteger(saved) && saved >= MIN_REFRESH_SECONDS && saved <= MAX_REFRESH_SECONDS) {
+                        return saved;
+                    }
+                } catch (error) {
+                    // Le tableau de bord reste utilisable si le stockage local est indisponible.
+                }
+                return DEFAULT_REFRESH_SECONDS;
+            }
+
+            function loadTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_STORAGE_KEY);
+                    if (AVAILABLE_THEMES.includes(saved)) return saved;
+                } catch (error) {
+                    // Le thème automatique reste disponible si le stockage local est indisponible.
+                }
+                return "auto";
+            }
+
+            function applyTheme(theme) {
+                document.documentElement.dataset.theme = theme;
+            }
+
+            function startAutoRefresh() {
+                if (refreshTimer !== null) {
+                    clearInterval(refreshTimer);
+                }
+                refreshTimer = setInterval(refreshDevices, refreshIntervalSeconds * 1000);
+            }
+
+            function valueOrFallback(value, fallback = "—") {
+                return value === undefined || value === null || value === ""
+                    ? fallback
+                    : String(value);
+            }
+
+            function getCategory(device) {
+                const type = [
+                    device.Type,
+                    device.SubType,
+                    device.SwitchType
+                ].join(" ").toLowerCase();
+
+                if (/temp|thermostat|humidity|temperature|weather|barometer|wind|rain|uv/.test(type)) {
+                    return "Climat";
+                }
+
+                if (/energy|power|electric|gas|counter|utility|voltage|current|consumption/.test(type)) {
+                    return "Énergie";
+                }
+
+                if (/light|switch|dimmer|blinds|door|contact|motion|smoke|security|push|selector/.test(type)) {
+                    return "Commandes et sécurité";
+                }
+
+                return "Autres";
+            }
+
+            function getIcon(device) {
+                const icons = {
+                    "Climat": "🌡️",
+                    "Énergie": "⚡",
+                    "Commandes et sécurité": "💡",
+                    "Autres": "📟"
+                };
+
+                return icons[getCategory(device)];
+            }
+
+            function isSwitch(device) {
+                return /light|switch|dimmer|blinds|door|contact|security/i.test(device.Type || "");
+            }
+
+            function createDeviceCard(device) {
+                const card = document.createElement("article");
+                card.className = "device-card";
+
+                const top = document.createElement("div");
+                top.className = "device-top";
+
+                const icon = document.createElement("div");
+                icon.className = "device-icon";
+                icon.setAttribute("aria-hidden", "true");
+                icon.textContent = getIcon(device);
+
+                const heading = document.createElement("div");
+                heading.style.minWidth = "0";
+
+                const name = document.createElement("div");
+                name.className = "device-name";
+                name.textContent = valueOrFallback(device.Name, "Équipement sans nom");
+
+                const type = document.createElement("div");
+                type.className = "device-type";
+                type.textContent = `${getCategory(device)} · ${valueOrFallback(device.Type, "Type inconnu")}`;
+
+                heading.append(name, type);
+                top.append(icon, heading);
+
+                const value = document.createElement("div");
+                value.className = "device-value";
+                value.textContent = valueOrFallback(device.Data, "Pas de valeur disponible");
+
+                const metadata = document.createElement("div");
+                metadata.className = "device-meta";
+
+                const details = [];
+
+                if (device.LastUpdate) {
+                    details.push(`Mis à jour : ${device.LastUpdate}`);
+                }
+
+                if (
+                    device.BatteryLevel !== undefined &&
+                    Number(device.BatteryLevel) >= 0 &&
+                    Number(device.BatteryLevel) < 101
+                ) {
+                    details.push(`Batterie : ${device.BatteryLevel}%`);
+                }
+
+                if (device.idx !== undefined) {
+                    details.push(`IDX ${device.idx}`);
+                }
+
+                metadata.textContent = details.join(" · ") || "Aucune information complémentaire";
+                card.append(top, value, metadata);
+
+                return card;
+            }
+
+            function renderDevices() {
+                const grid = $("grid");
+                const items = [];
+                let hasRenderedDevice = false;
+
+                for (const device of state.devices) {
+                    if (state.displayedBreakBefore.has(String(device.idx)) && hasRenderedDevice) {
+                        const separator = document.createElement("div");
+                        separator.className = "grid-row-break";
+                        separator.setAttribute("aria-hidden", "true");
+                        items.push(separator);
+                    }
+                    items.push(createDeviceCard(device));
+                    hasRenderedDevice = true;
+                }
+
+                grid.replaceChildren(...items);
+                $("empty").classList.toggle("hidden", state.devices.length > 0);
+            }
+
+            async function fetchDevices() {
+                const endpoints = [
+                    "/json.htm?type=devices&filter=all&used=true&order=Name",
+                    "/json.htm?type=command&param=getdevices&filter=all&used=true&order=Name"
+                ];
+
+                let lastError;
+
+                for (const endpoint of endpoints) {
+                    try {
+                        const response = await fetch(endpoint, {
+                            credentials: "same-origin",
+                            cache: "no-store"
+                        });
+
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}`);
+                        }
+
+                        const data = await response.json();
+
+                        if (
+                            data &&
+                            Array.isArray(data.result) &&
+                            (data.status === "OK" || data.status === undefined)
+                        ) {
+                            const orderByIdx = new Map(
+                                state.displayedIdxOrder.map((idx, index) => [idx, index])
+                            );
+
+                            return data.result
+                                .filter(
+                                    (device) =>
+                                        device &&
+                                        device.idx !== undefined &&
+                                        state.displayedIdxs.has(String(device.idx))
+                                )
+                                .sort((a, b) =>
+                                    (orderByIdx.get(String(a.idx)) ?? Number.MAX_SAFE_INTEGER) -
+                                    (orderByIdx.get(String(b.idx)) ?? Number.MAX_SAFE_INTEGER)
+                                );
+                        }
+
+                        throw new Error(data?.message || "Réponse API inattendue");
+                    } catch (error) {
+                        lastError = error;
+                    }
+                }
+
+                throw lastError || new Error("API Domoticz indisponible");
+            }
+
+            function normalizeIdx(value) {
+                if (typeof value === "number" && Number.isInteger(value) && value > 0) {
+                    return String(value);
+                }
+
+                const text = String(value ?? "").trim();
+                return /^\d+$/.test(text) ? text : "";
+            }
+
+            async function loadDisplayedIdxs() {
+                if (!window.XLSX) {
+                    throw new Error("La bibliothèque de lecture Excel n’a pas été chargée. Vérifie l’accès à cdn.jsdelivr.net.");
+                }
+
+                let lastError;
+
+                for (const fileName of IDX_FILE_CANDIDATES) {
+                    try {
+                        const workbookUrl = new URL(fileName, window.location.href);
+                        workbookUrl.searchParams.set("_cb", Date.now().toString());
+
+                        const response = await fetch(workbookUrl, {
+                            credentials: "same-origin",
+                            cache: "no-store"
+                        });
+
+                        if (!response.ok) {
+                            throw new Error(`${fileName} : HTTP ${response.status}`);
+                        }
+
+                        const workbook = XLSX.read(await response.arrayBuffer(), { type: "array" });
+                        const firstSheetName = workbook.SheetNames[0];
+
+                        if (!firstSheetName) {
+                            throw new Error(`${fileName} ne contient aucune feuille.`);
+                        }
+
+                        const rows = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheetName], {
+                            header: 1,
+                            raw: true,
+                            defval: null,
+                            blankrows: true
+                        });
+                        // Colonne C vide : équipement affiché dans la grille.
+                        // Colonne C renseignée : action proposée dans la boîte « Action... ».
+                        const displayedIdxs = new Set();
+                        const displayedIdxOrder = [];
+                        const displayedBreakBefore = new Set();
+                        const actions = [];
+                        let displayedBreakPending = false;
+                        let actionBreakPending = false;
+
+                        for (const [rowOrder, row] of rows.entries()) {
+                            const isBlankRow = !Array.isArray(row) ||
+                                row.every((cell) =>
+                                    cell === null || cell === undefined || String(cell).trim() === ""
+                                );
+
+                            if (isBlankRow) {
+                                displayedBreakPending = true;
+                                actionBreakPending = true;
+                                continue;
+                            }
+
+                            const idx = normalizeIdx(row?.[0]);
+                            if (!idx) continue;
+
+                            const marker = row?.[2];
+                            const hasAction = marker !== null &&
+                                marker !== undefined &&
+                                String(marker).trim() !== "";
+
+                            if (hasAction) {
+                                const label = String(row?.[1] ?? "").trim() || `Action ${idx}`;
+                                actions.push({ idx, label, rowOrder, breakBefore: actionBreakPending });
+                                actionBreakPending = false;
+                            } else if (!displayedIdxs.has(idx)) {
+                                displayedIdxs.add(idx);
+                                displayedIdxOrder.push(idx);
+                                if (displayedBreakPending) displayedBreakBefore.add(idx);
+                                displayedBreakPending = false;
+                            }
+                        }
+
+                        if (displayedIdxs.size === 0 && actions.length === 0) {
+                            throw new Error(`${fileName} ne contient aucun IDX numérique dans la première colonne.`);
+                        }
+
+                        state.displayedIdxs = displayedIdxs;
+                        state.displayedIdxOrder = displayedIdxOrder;
+                        state.displayedBreakBefore = displayedBreakBefore;
+                        state.actions = actions;
+                        state.idxFileName = fileName;
+                        renderActions();
+                        return;
+                    } catch (error) {
+                        lastError = error;
+                    }
+                }
+
+                throw new Error(
+                    `Impossible de charger IDX2.xlsx / IDX2.XLS à côté de la page. ${lastError?.message || ""}`
+                );
+            }
+
+            async function activateDomoticzSwitch(action, button) {
+                button.disabled = true;
+                $("action-status").textContent = `Activation de « ${action.label} »…`;
+
+                try {
+                    const params = new URLSearchParams({
+                        type: "command",
+                        param: "switchlight",
+                        idx: action.idx,
+                        switchcmd: "On"
+                    });
+                    const response = await fetch(`/json.htm?${params.toString()}`, {
+                        method: "GET",
+                        credentials: "same-origin",
+                        cache: "no-store"
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Erreur HTTP ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    if (result?.status && String(result.status).toUpperCase() !== "OK") {
+                        throw new Error(result.message || "Domoticz a refusé la commande.");
+                    }
+
+                    $("action-status").textContent = `Commande envoyée : « ${action.label} » (IDX ${action.idx}).`;
+                } catch (error) {
+                    $("action-status").textContent = `Échec de « ${action.label} » : ${error.message || "erreur inconnue"}`;
+                } finally {
+                    button.disabled = false;
+                }
+            }
+
+            function renderActions() {
+                const container = $("actions-list");
+                container.replaceChildren();
+                $("action-status").textContent = "";
+
+                if (state.actions.length === 0) {
+                    const message = document.createElement("p");
+                    message.className = "settings-help";
+                    message.textContent = "Aucune action n'est définie dans la troisième colonne de IDX2.xlsx.";
+                    container.append(message);
+                    return;
+                }
+
+                const orderedActions = [...state.actions].sort((a, b) => a.rowOrder - b.rowOrder);
+
+                let hasRenderedAction = false;
+
+                for (const action of orderedActions) {
+                    if (action.breakBefore && hasRenderedAction) {
+                        const separator = document.createElement("div");
+                        separator.className = "grid-row-break";
+                        separator.setAttribute("aria-hidden", "true");
+                        container.append(separator);
+                    }
+
+                    const button = document.createElement("button");
+                    button.type = "button";
+                    button.className = "action-button";
+                    button.textContent = action.label;
+                    button.addEventListener("click", () => activateDomoticzSwitch(action, button));
+                    container.append(button);
+                    hasRenderedAction = true;
+                }
+            }
+
+            async function refreshDevices() {
+                $("refresh").disabled = true;
+
+                try {
+                    state.devices = await fetchDevices();
+                    renderDevices();
+
+                    $("updated").textContent =
+                        `Fichier : ${state.idxFileName} · actualisé à ` +
+                        new Date().toLocaleTimeString("fr-FR");
+                } catch (error) {
+                    $("updated").textContent = valueOrFallback(error?.message, "Erreur inconnue");
+
+                    if (state.devices.length === 0) {
+                        $("grid").replaceChildren();
+                        $("empty").classList.remove("hidden");
+                        $("empty").textContent =
+                            "La page n’a pas pu récupérer les équipements. Vérifie que tu es connecté à Domoticz et que l’API JSON est accessible depuis cette page.";
+                    }
+                } finally {
+                    $("refresh").disabled = false;
+                }
+            }
+
+            async function initializeDashboard() {
+                $("refresh").disabled = true;
+
+                try {
+                    await loadDisplayedIdxs();
+                    await refreshDevices();
+                    startAutoRefresh();
+                } catch (error) {
+                    $("updated").textContent = valueOrFallback(error?.message, "Erreur inconnue");
+                    $("grid").replaceChildren();
+                    $("empty").classList.remove("hidden");
+                    $("empty").textContent =
+                        "Le fichier IDX2.xlsx ou IDX2.XLS n’a pas pu être lu. Place-le dans le même répertoire que cette page HTML et vérifie que la première colonne contient les IDX.";
+                    $("refresh").disabled = true;
+                }
+            }
+
+            const settingsDialog = $("settings-dialog");
+            const refreshInput = $("refresh-interval");
+            const themeSelect = $("theme-select");
+            const actionsDialog = $("actions-dialog");
+
+            $("refresh").addEventListener("click", refreshDevices);
+
+            $("open-actions").addEventListener("click", () => {
+                renderActions();
+                actionsDialog.showModal();
+            });
+            $("close-actions").addEventListener("click", () => actionsDialog.close());
+
+            $("open-settings").addEventListener("click", () => {
+                refreshInput.value = String(refreshIntervalSeconds);
+                themeSelect.value = selectedTheme;
+                settingsDialog.showModal();
+            });
+
+            $("cancel-settings").addEventListener("click", () => settingsDialog.close());
+
+            $("settings-form").addEventListener("submit", (event) => {
+                event.preventDefault();
+                const value = Number(refreshInput.value);
+                if (!Number.isInteger(value) || value < MIN_REFRESH_SECONDS || value > MAX_REFRESH_SECONDS) {
+                    refreshInput.setCustomValidity(
+                        `Saisis une valeur entière comprise entre ${MIN_REFRESH_SECONDS} et ${MAX_REFRESH_SECONDS} secondes.`
+                    );
+                    refreshInput.reportValidity();
+                    return;
+                }
+
+                refreshInput.setCustomValidity("");
+                refreshIntervalSeconds = value;
+                selectedTheme = AVAILABLE_THEMES.includes(themeSelect.value)
+                    ? themeSelect.value
+                    : "auto";
+                applyTheme(selectedTheme);
+                try {
+                    localStorage.setItem(REFRESH_STORAGE_KEY, String(value));
+                    localStorage.setItem(THEME_STORAGE_KEY, selectedTheme);
+                } catch (error) {
+                    // Les réglages s'appliquent à cette session même si leur mémorisation échoue.
+                }
+                startAutoRefresh();
+                settingsDialog.close();
+            });
+
+            refreshInput.addEventListener("input", () => refreshInput.setCustomValidity(""));
+
+            applyTheme(selectedTheme);
+            initializeDashboard();
+        })();
+    </script>
+</body>
+</html>
