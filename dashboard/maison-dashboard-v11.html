@@ -662,7 +662,14 @@
                             const raw = range === "day" ? (entry.te ?? entry.v) : (entry.ta ?? entry.te ?? entry.v);
                             const value = Number(raw);
                             if (!entry.d || !Number.isFinite(value)) return null;
-                            return { date: entry.d, value, dateLabel: String(entry.d).slice(range === "day" ? 11 : 5, range === "day" ? 16 : 10) };
+                            const minValue = Number(entry.tm);
+                            const maxValue = Number(entry.te);
+                            return {
+                                date: entry.d, value,
+                                min: Number.isFinite(minValue) ? minValue : value,
+                                max: Number.isFinite(maxValue) ? maxValue : value,
+                                dateLabel: String(entry.d).slice(range === "day" ? 11 : 5, range === "day" ? 16 : 10)
+                            };
                         }).filter(Boolean);
                         if (!points.length) throw new Error("Aucune mesure disponible pour cette période.");
                         state.historyCache.set(cacheKey, points);
@@ -670,7 +677,9 @@
                     drawTemperatureChart(points, chart);
                     const values = points.map((p) => p.value);
                     const average = values.reduce((sum, value) => sum + value, 0) / values.length;
-                    for (const label of [`Min. ${Math.min(...values).toFixed(1)} °C`, `Moy. ${average.toFixed(1)} °C`, `Max. ${Math.max(...values).toFixed(1)} °C`]) {
+                    const minimum = Math.min(...points.map((p) => p.min));
+                    const maximum = Math.max(...points.map((p) => p.max));
+                    for (const label of [`Min. ${minimum.toFixed(1)} °C`, `Moy. ${average.toFixed(1)} °C`, `Max. ${maximum.toFixed(1)} °C`]) {
                         const item = document.createElement("span");
                         item.textContent = label;
                         stats.append(item);
