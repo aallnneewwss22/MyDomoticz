@@ -5,6 +5,11 @@ Ce fichier retrace les évolutions notables de MyDomoticz, de la plus récente �
 ## [Non publié]
 
 ### Modifié
+- La troisième colonne de `IDX2.xlsx` / `IDX2.XLS` utilise désormais des marqueurs explicites : `main` affiche l'équipement dans la grille et `VirtualSensorSlot` crée un bouton dans « Action... ».
+- Les lignes entièrement vides conservent leur rôle de séparateurs de rangée ; les cellules contenant une autre valeur ne sont pas traitées.
+- Création de `maison-dashboard-v10.html` pour cette évolution.
+
+### Modifié
 - Les lignes entièrement vides de `IDX2.xlsx` / `IDX2.XLS` créent un début de nouvelle rangée dans la grille des équipements et dans la boîte « Action... ».
 - Création de `maison-dashboard-v9.html` pour cette évolution.
 
