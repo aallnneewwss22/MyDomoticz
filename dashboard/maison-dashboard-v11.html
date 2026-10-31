@@ -651,7 +651,10 @@
                 try {
                     let points = state.historyCache.get(cacheKey);
                     if (!points) {
-                        const params = new URLSearchParams({ type: "command", param: "graph", sensor: "temp", idx: String(idx), range });
+                        // L'API Domoticz historique ne propose range=week que dans les versions récentes.
+                        // Pour rester compatible, on récupère le mois puis on conserve les 7 derniers jours.
+                        const apiRange = range === "week" ? "month" : range;
+                        const params = new URLSearchParams({ type: "command", param: "graph", sensor: "temp", idx: String(idx), range: apiRange });
                         const response = await fetch(`/json.htm?${params.toString()}`, { credentials: "same-origin", cache: "no-store" });
                         if (!response.ok) throw new Error(`Erreur HTTP ${response.status}`);
                         const data = await response.json();
@@ -671,6 +674,15 @@
                                 dateLabel: String(entry.d).slice(range === "day" ? 11 : 5, range === "day" ? 16 : 10)
                             };
                         }).filter(Boolean);
+                        if (range === "week") {
+                            const cutoff = new Date();
+                            cutoff.setHours(0, 0, 0, 0);
+                            cutoff.setDate(cutoff.getDate() - 6);
+                            points = points.filter((point) => {
+                                const date = new Date(`${point.date.slice(0, 10)}T00:00:00`);
+                                return !Number.isNaN(date.getTime()) && date >= cutoff;
+                            });
+                        }
                         if (!points.length) throw new Error("Aucune mesure disponible pour cette période.");
                         state.historyCache.set(cacheKey, points);
                     }
