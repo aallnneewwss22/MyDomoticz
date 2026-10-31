@@ -569,7 +569,7 @@
                     hasRenderedItem = true;
                 }
                 grid.replaceChildren(...items);
-                $("empty").classList.toggle("hidden", items.length === 0);
+                $("empty").classList.toggle("hidden", items.length > 0);
             }
 
             function createHistoryCard(device, configuredLabel) {
