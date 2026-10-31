@@ -152,6 +152,11 @@
             background: #0008;
         }
 
+        /* La boîte des actions doit laisser la place aux trois colonnes de boutons. */
+        #actions-dialog {
+            width: min(calc(100vw - 32px), 1100px);
+        }
+
         .settings-form {
             display: grid;
             gap: 16px;
