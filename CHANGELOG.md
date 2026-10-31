@@ -4,6 +4,12 @@ Ce fichier retrace les évolutions notables de MyDomoticz, de la plus récente �
 
 ## [Non publié]
 
+### Ajouté
+- Les lignes dont la troisième colonne de `IDX2.xlsx` / `IDX2.XLS` contient `historique` affichent une carte intégrée avec température actuelle, courbe et statistiques min./moy./max.
+- Choix de période : 24 heures, 7 jours, 30 jours ou 1 an, via l'API historique Domoticz.
+- Reconnaissance de `historique` insensible à la casse et aux espaces superflus.
+- Création de `maison-dashboard-v11.html`.
+
 ### Modifié
 - La troisième colonne de `IDX2.xlsx` / `IDX2.XLS` utilise désormais des marqueurs explicites : `main` affiche l'équipement dans la grille et `VirtualSensorSlot` crée un bouton dans « Action... ».
 - Les lignes entièrement vides conservent leur rôle de séparateurs de rangée ; les cellules contenant une autre valeur ne sont pas traitées.
