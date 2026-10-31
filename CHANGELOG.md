@@ -5,6 +5,10 @@ Ce fichier retrace les évolutions notables de MyDomoticz, de la plus récente �
 ## [Non publié]
 
 ### Modifié
+- Les lignes entièrement vides de `IDX2.xlsx` / `IDX2.XLS` créent un début de nouvelle rangée dans la grille des équipements et dans la boîte « Action... ».
+- Création de `maison-dashboard-v9.html` pour cette évolution.
+
+### Modifié
 - Les équipements de la fenêtre principale et les boutons de la boîte « Action... » suivent explicitement l'ordre des lignes du classeur `IDX2.xlsx` / `IDX2.XLS`.
 - Création de `maison-dashboard-v8.html` pour cette évolution.
 
