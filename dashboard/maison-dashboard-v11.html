@@ -654,7 +654,7 @@
                         // L'API Domoticz historique ne propose range=week que dans les versions récentes.
                         // Pour rester compatible, on récupère le mois puis on conserve les 7 derniers jours.
                         const apiRange = range === "week" ? "month" : range;
-                        const params = new URLSearchParams({ type: "command", param: "graph", sensor: "temp", idx: String(idx), range: apiRange });
+                        const params = new URLSearchParams({ type: "graph", sensor: "temp", idx: String(idx), range: apiRange });
                         const response = await fetch(`/json.htm?${params.toString()}`, { credentials: "same-origin", cache: "no-store" });
                         if (!response.ok) throw new Error(`Erreur HTTP ${response.status}`);
                         const data = await response.json();
