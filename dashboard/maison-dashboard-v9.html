@@ -756,6 +756,15 @@
 
                 const orderedActions = [...state.actions].sort((a, b) => a.rowOrder - b.rowOrder);
 
+                const measureCanvas = document.createElement("canvas");
+                const measureContext = measureCanvas.getContext("2d");
+                measureContext.font = getComputedStyle(document.body).font;
+                const longestLabelWidth = Math.max(
+                    ...orderedActions.map((action) => measureContext.measureText(action.label).width)
+                );
+                // Même largeur pour tous les boutons, calculée à partir du libellé le plus long.
+                const actionButtonWidth = Math.ceil(longestLabelWidth + 26);
+
                 let hasRenderedAction = false;
 
                 for (const action of orderedActions) {
@@ -770,6 +779,7 @@
                     button.type = "button";
                     button.className = "action-button";
                     button.textContent = action.label;
+                    button.style.width = `${actionButtonWidth}px`;
                     button.addEventListener("click", () => activateDomoticzSwitch(action, button));
                     container.append(button);
                     hasRenderedAction = true;
