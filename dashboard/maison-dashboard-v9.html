@@ -159,14 +159,16 @@
 
         .actions-list {
             display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-columns: repeat(2, max-content);
             gap: 9px;
             max-height: min(60vh, 520px);
             overflow-y: auto;
         }
 
         .action-button {
-            width: 100%;
+            width: auto;
+            max-width: 100%;
+            white-space: nowrap;
             text-align: left;
         }
 
