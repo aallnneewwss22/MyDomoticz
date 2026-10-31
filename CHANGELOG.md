@@ -4,6 +4,10 @@ Ce fichier retrace les évolutions notables de MyDomoticz, de la plus récente �
 
 ## [Non publié]
 
+### Modifié
+- Les équipements de la fenêtre principale et les boutons de la boîte « Action... » suivent explicitement l'ordre des lignes du classeur `IDX2.xlsx` / `IDX2.XLS`.
+- Création de `maison-dashboard-v8.html` pour cette évolution.
+
 ### Ajouté
 - Choix du thème graphique depuis la boîte de dialogue « Paramètres... » : Automatique, Classique clair, Sombre, Nature et Bleu nuit.
 - Mémorisation du thème choisi dans le navigateur ; le mode Automatique suit la préférence clair/sombre du système.
