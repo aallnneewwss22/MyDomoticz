@@ -5,6 +5,11 @@ Ce fichier retrace les évolutions notables de MyDomoticz, de la plus récente �
 ## [Non publié]
 
 ### Amélioré
+- Marges supérieures réduites dans les cartes d'historique et espace sous les dates de l'axe horizontal diminué.
+- Création de `maison-dashboard-v16.html`.
+
+
+### Amélioré
 - Interlignes resserrés entre le nom, la valeur et le libellé des cartes d'historique.
 - Création de `maison-dashboard-v15.html`.
 
