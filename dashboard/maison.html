@@ -55,7 +55,7 @@
             Le tableau de bord s'ouvre dans un nouvel onglet.
             Si rien ne se passe, utilise le bouton ci-dessous.
         </p>
-        <a id="open-dashboard" href="/templates/maison-dashboard-v11.html" target="_blank" rel="noopener noreferrer">
+        <a id="open-dashboard" href="/templates/maison-dashboard-v12.html" target="_blank" rel="noopener noreferrer">
             Ouvrir le tableau de bord
         </a>
     </main>
@@ -67,7 +67,7 @@
         // L'ouverture automatique est tentée une fois ; le lien reste disponible
         // si le navigateur bloque les fenêtres ouvertes sans action utilisateur.
         // Le paramètre de cache-busting donne une URL différente à chaque ouverture.
-        const dashboardUrl = new URL("/templates/maison-dashboard-v11.html", window.location.origin);
+        const dashboardUrl = new URL("/templates/maison-dashboard-v12.html", window.location.origin);
         dashboardUrl.searchParams.set("_cb", Date.now().toString());
         const openLink = document.getElementById("open-dashboard");
         const status = document.getElementById("status");
