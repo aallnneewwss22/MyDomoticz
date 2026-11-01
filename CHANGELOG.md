@@ -5,6 +5,10 @@ Ce fichier retrace les évolutions notables de MyDomoticz, de la plus récente �
 ## [Non publié]
 
 ### Amélioré
+- Réduction de l'espace entre les libellés de dates de l'axe horizontal et le séparateur des statistiques dans les cartes d'historique ; la hauteur totale des cartes diminue de 6 px sans modifier le tracé.
+- Création de `maison-dashboard-v20.html`.
+
+### Amélioré
 - Remplacement des libellés du header par des icônes : actualisation, paramètres et actions. Les boutons conservent une taille uniforme et disposent d'intitulés accessibles et d'infobulles.
 - Création de `maison-dashboard-v19.html`.
 
