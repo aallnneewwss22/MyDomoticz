@@ -5,6 +5,11 @@ Ce fichier retrace les évolutions notables de MyDomoticz, de la plus récente �
 ## [Non publié]
 
 ### Amélioré
+- Taille des icônes réduite sur les cartes d'équipement sans courbe (34 px au lieu de 42 px).
+- Création de `maison-dashboard-v18.html`.
+
+
+### Amélioré
 - Cartes d'équipement classiques harmonisées avec les cartes d'historique : marges intérieures et interlignes resserrés, bordure renforcée.
 - Création de `maison-dashboard-v17.html`.
 
