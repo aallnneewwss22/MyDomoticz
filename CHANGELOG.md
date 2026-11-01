@@ -5,6 +5,11 @@ Ce fichier retrace les évolutions notables de MyDomoticz, de la plus récente �
 ## [Non publié]
 
 ### Amélioré
+- Cartes d'équipement classiques harmonisées avec les cartes d'historique : marges intérieures et interlignes resserrés, bordure renforcée.
+- Création de `maison-dashboard-v17.html`.
+
+
+### Amélioré
 - Marges supérieures réduites dans les cartes d'historique et espace sous les dates de l'axe horizontal diminué.
 - Création de `maison-dashboard-v16.html`.
 
