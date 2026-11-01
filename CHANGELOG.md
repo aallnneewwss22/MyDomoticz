@@ -5,6 +5,11 @@ Ce fichier retrace les évolutions notables de MyDomoticz, de la plus récente �
 ## [Non publié]
 
 ### Amélioré
+- Libellés des boutons de période raccourcis sur les cartes d'historique : `24 H`, `7 J`, `30 J` et `1 A`.
+- Création de `maison-dashboard-v14.html`.
+
+
+### Amélioré
 - Ajout d'un séparateur horizontal au-dessus des statistiques des cartes d'historique.
 - Réduction de l'espace entre l'axe horizontal et ses libellés de dates.
 - Création de `maison-dashboard-v13.html`.
