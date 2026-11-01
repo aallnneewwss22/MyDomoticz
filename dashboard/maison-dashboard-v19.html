@@ -17,6 +17,7 @@
             --good: #168653;
             --bad: #bf3434;
             --shadow: 0 3px 14px #14233712;
+            --button-bg: #e3eaf5; --button-text: #14243a; --button-border: #344b6b; --button-hover-bg: #cbd9ee; --button-selected-bg: #214f91;
         }
 
         :root[data-theme="nature"] {
@@ -29,6 +30,7 @@
             --good: #267447;
             --bad: #b33b3b;
             --shadow: 0 3px 14px #203b2512;
+            --button-bg: #dfebdf; --button-text: #193d27; --button-border: #356342; --button-hover-bg: #c8dfca; --button-selected-bg: #285c38;
         }
 
         :root[data-theme="midnight"] {
@@ -41,6 +43,7 @@
             --good: #70d6aa;
             --bad: #ff9292;
             --shadow: 0 3px 14px #0004;
+            --button-bg: #29466c; --button-text: #ffffff; --button-border: #a9c8f2; --button-hover-bg: #365b89; --button-selected-bg: #244b7b;
         }
 
         :root[data-theme="dark"] {
@@ -53,6 +56,7 @@
             --good: #66d6a0;
             --bad: #ff8585;
             --shadow: 0 3px 14px #0003;
+            --button-bg: #303d50; --button-text: #ffffff; --button-border: #aebed2; --button-hover-bg: #40516a; --button-selected-bg: #294f7e;
         }
 
         @media (prefers-color-scheme: dark) {
@@ -66,6 +70,7 @@
                 --good: #66d6a0;
                 --bad: #ff8585;
                 --shadow: 0 3px 14px #0003;
+                --button-bg: #303d50; --button-text: #ffffff; --button-border: #aebed2; --button-hover-bg: #40516a; --button-selected-bg: #294f7e;
             }
         }
 
@@ -119,24 +124,53 @@
             align-items: center;
             flex-wrap: wrap;
             gap: 8px;
-            width: min(100%, 620px);
+            width: auto;
+        }
+
+        .toolbar-button {
+            display: inline-grid;
+            flex: 0 0 42px;
+            place-items: center;
+            width: 42px;
+            height: 42px;
+            min-height: 42px;
+            padding: 8px;
+        }
+
+        .toolbar-button svg {
+            display: block;
+            width: 20px;
+            height: 20px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 1.8;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .visually-hidden {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
         }
 
         button {
-            min-height: 42px;
-            padding: 10px 12px;
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            background: var(--panel);
-            color: var(--text);
-            font: inherit;
-            cursor: pointer;
+            min-height: 42px; padding: 10px 12px;
+            border: 2px solid var(--button-border); border-radius: 10px;
+            background: var(--button-bg); color: var(--button-text);
+            font: inherit; font-weight: 650; cursor: pointer;
+            transition: background-color 120ms ease, border-color 120ms ease;
         }
-
-        button:disabled {
-            cursor: wait;
-            opacity: 0.6;
-        }
+        button:hover:not(:disabled) { background: var(--button-hover-bg); border-color: var(--button-text); }
+        button:active:not(:disabled) { filter: brightness(0.92); }
+        button:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+        button:disabled { cursor: wait; opacity: 0.58; }
 
         dialog {
             width: min(100% - 32px, 560px);
@@ -152,6 +186,11 @@
             background: #0008;
         }
 
+        /* La boîte des actions doit laisser la place aux trois colonnes de boutons. */
+        #actions-dialog {
+            width: min(calc(100vw - 32px), 1100px);
+        }
+
         .settings-form {
             display: grid;
             gap: 16px;
@@ -159,14 +198,17 @@
 
         .actions-list {
             display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-columns: repeat(3, max-content);
+            justify-content: center;
             gap: 9px;
             max-height: min(60vh, 520px);
             overflow-y: auto;
         }
 
         .action-button {
-            width: 100%;
+            width: auto;
+            max-width: 100%;
+            white-space: nowrap;
             text-align: left;
         }
 
@@ -227,10 +269,31 @@
             gap: 12px;
         }
 
+        .grid-row-break {
+            grid-column: 1 / -1;
+            height: 0;
+        }
+
+        .history-card {
+            min-width: 0; padding: 9px 15px 10px; border: 2px solid var(--text);
+            border-radius: 14px; background: var(--panel); box-shadow: var(--shadow);
+        }
+        .history-card .device-name,
+        .history-card .device-value,
+        .history-card .device-meta { line-height: 1.2; }
+        .history-card .device-value { margin-top: 4px; }
+        .history-card .device-meta { margin-top: 2px; }
+        .history-controls { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+        .history-controls button { min-height: 34px; padding: 5px 9px; font-size: .85rem; }
+        .history-controls button[aria-pressed="true"] { border-color: var(--button-selected-bg); background: var(--button-selected-bg); color: #fff; }
+        .history-chart { width: 100%; height: 170px; margin-top: 5px; overflow: visible; }
+        .history-status { min-height: 1.3em; margin: 5px 0 0; color: var(--muted); font-size: .8rem; }
+        .history-stats { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 0; padding-top: 9px; border-top: 1px solid var(--border); color: var(--muted); font-size: .8rem; }
+
         .device-card {
             min-width: 0;
-            padding: 15px;
-            border: 1px solid var(--border);
+            padding: 9px 15px 10px;
+            border: 2px solid var(--text);
             border-radius: 14px;
             background: var(--panel);
             box-shadow: var(--shadow);
@@ -244,18 +307,19 @@
 
         .device-icon {
             display: grid;
-            flex: 0 0 42px;
+            flex: 0 0 34px;
             place-items: center;
-            width: 42px;
-            height: 42px;
-            border-radius: 12px;
+            width: 34px;
+            height: 34px;
+            border-radius: 9px;
             background: var(--bg);
-            font-size: 1.35rem;
+            font-size: 1.1rem;
         }
 
         .device-name {
             overflow-wrap: anywhere;
             font-weight: 700;
+            line-height: 1.2;
         }
 
         .device-type {
@@ -265,16 +329,18 @@
         }
 
         .device-value {
-            margin-top: 16px;
+            margin-top: 4px;
             overflow-wrap: anywhere;
             font-size: 1.12rem;
             font-weight: 650;
+            line-height: 1.2;
         }
 
         .device-meta {
-            margin-top: 7px;
+            margin-top: 2px;
             color: var(--muted);
             font-size: 0.78rem;
+            line-height: 1.2;
         }
 
         .empty {
@@ -315,9 +381,36 @@
             <div class="statusbar" id="updated">Aucune actualisation effectuée</div>
 
             <div class="toolbar">
-                <button id="refresh" type="button">Actualiser</button>
-                <button id="open-settings" type="button">Paramètres...</button>
-                <button id="open-actions" type="button">Action...</button>
+                <button id="refresh" class="toolbar-button" type="button"
+                        aria-label="Actualiser" title="Actualiser">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M20 7v5h-5"></path>
+                        <path d="M4 17v-5h5"></path>
+                        <path d="M5.64 5.64A9 9 0 0 1 20 12"></path>
+                        <path d="M4 12a9 9 0 0 0 14.36 6.36"></path>
+                    </svg>
+                    <span class="visually-hidden">Actualiser</span>
+                </button>
+                <button id="open-settings" class="toolbar-button" type="button"
+                        aria-label="Paramètres" title="Paramètres">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"></path>
+                        <path d="m19.4 15 .1.1a1.8 1.8 0 0 1-2.5 2.5l-.1-.1a1.8 1.8 0 0 0-3.1 1.3v.2a1.8 1.8 0 0 1-3.6 0v-.2a1.8 1.8 0 0 0-3.1-1.3l-.1.1a1.8 1.8 0 0 1-2.5-2.5l.1-.1a1.8 1.8 0 0 0-1.3-3.1h-.2a1.8 1.8 0 0 1 0-3.6h.2a1.8 1.8 0 0 0 1.3-3.1l-.1-.1a1.8 1.8 0 0 1 2.5-2.5l.1.1a1.8 1.8 0 0 0 3.1-1.3v-.2a1.8 1.8 0 0 1 3.6 0v.2a1.8 1.8 0 0 0 3.1 1.3l.1-.1a1.8 1.8 0 0 1 2.5 2.5l-.1.1a1.8 1.8 0 0 0 1.3 3.1h.2a1.8 1.8 0 0 1 0 3.6h-.2a1.8 1.8 0 0 0-1.3 3.1Z"></path>
+                    </svg>
+                    <span class="visually-hidden">Paramètres</span>
+                </button>
+                <button id="open-actions" class="toolbar-button" type="button"
+                        aria-label="Actions" title="Actions">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <rect x="3" y="3" width="6" height="6" rx="1"></rect>
+                        <rect x="15" y="15" width="6" height="6" rx="1"></rect>
+                        <path d="M6 9v3a3 3 0 0 0 3 3h6"></path>
+                        <path d="M18 15v-3a3 3 0 0 0-3-3H9"></path>
+                        <path d="M15 6h6"></path>
+                        <path d="M18 3v6"></path>
+                    </svg>
+                    <span class="visually-hidden">Actions</span>
+                </button>
             </div>
         </header>
 
@@ -377,12 +470,18 @@
             const THEME_STORAGE_KEY = "mydomoticz.theme";
             const AVAILABLE_THEMES = ["auto", "classic", "dark", "nature", "midnight"];
             const IDX_FILE_CANDIDATES = ["IDX2.xlsx", "IDX2.XLS", "IDX2.xls", "IDX2.XLSX"];
+            const HISTORY_RANGES = { day: "24 heures", week: "7 jours", month: "30 jours", year: "1 an" };
+            const HISTORY_BUTTON_LABELS = { day: "24 H", week: "7 J", month: "30 J", year: "1 A" };
             let refreshIntervalSeconds = loadRefreshInterval();
             let selectedTheme = loadTheme();
             let refreshTimer = null;
             const state = {
                 devices: [],
                 displayedIdxs: new Set(),
+                displayedIdxOrder: [],
+                displayedBreakBefore: new Set(),
+                displayItems: [],
+                historyCache: new Map(),
                 actions: [],
                 idxFileName: ""
             };
@@ -522,9 +621,179 @@
             }
 
             function renderDevices() {
-                const visibleDevices = state.devices;
-                $("grid").replaceChildren(...visibleDevices.map(createDeviceCard));
-                $("empty").classList.toggle("hidden", visibleDevices.length > 0);
+                const grid = $("grid");
+                const items = [];
+                const devicesByIdx = new Map(state.devices.map((device) => [String(device.idx), device]));
+                let hasRenderedItem = false;
+                for (const item of state.displayItems) {
+                    if (item.breakBefore && hasRenderedItem) {
+                        const separator = document.createElement("div");
+                        separator.className = "grid-row-break";
+                        separator.setAttribute("aria-hidden", "true");
+                        items.push(separator);
+                    }
+                    const device = devicesByIdx.get(item.idx);
+                    if (!device) continue;
+                    items.push(item.type === "historique" ? createHistoryCard(device, item.label) : createDeviceCard(device));
+                    hasRenderedItem = true;
+                }
+                grid.replaceChildren(...items);
+                $("empty").classList.toggle("hidden", items.length > 0);
+            }
+
+            function createHistoryCard(device, configuredLabel) {
+                const card = document.createElement("article");
+                card.className = "history-card";
+                const title = document.createElement("div");
+                title.className = "device-name";
+                title.textContent = configuredLabel || valueOrFallback(device.Name, "Historique température");
+                const current = document.createElement("div");
+                current.className = "device-value";
+                current.textContent = valueOrFallback(device.Data, "Pas de valeur disponible");
+                const subtitle = document.createElement("div");
+                subtitle.className = "device-type";
+                subtitle.textContent = `Température · IDX ${device.idx}`;
+                const controls = document.createElement("div");
+                controls.className = "history-controls";
+                const chart = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+                chart.setAttribute("viewBox", "0 0 320 170");
+                chart.setAttribute("preserveAspectRatio", "none");
+                chart.classList.add("history-chart");
+                chart.setAttribute("role", "img");
+                chart.setAttribute("aria-label", `Historique de température de ${title.textContent}`);
+                const stats = document.createElement("div");
+                stats.className = "history-stats";
+                const status = document.createElement("p");
+                status.className = "history-status";
+                status.setAttribute("role", "status");
+                card.append(title, current, subtitle, controls, chart, stats, status);
+                const rangeStorageKey = `domoticz-history-range-${device.idx}`;
+                let selectedRange = "day";
+                try {
+                    const savedRange = localStorage.getItem(rangeStorageKey);
+                    if (Object.prototype.hasOwnProperty.call(HISTORY_RANGES, savedRange)) selectedRange = savedRange;
+                } catch (error) {
+                    // Le choix reste fonctionnel pendant la session si le stockage local est indisponible.
+                }
+                for (const [range, label] of Object.entries(HISTORY_RANGES)) {
+                    const button = document.createElement("button");
+                    button.type = "button";
+                    button.textContent = HISTORY_BUTTON_LABELS[range];
+                    button.setAttribute("aria-pressed", String(range === selectedRange));
+                    button.addEventListener("click", () => {
+                        selectedRange = range;
+                        for (const control of controls.children) control.setAttribute("aria-pressed", String(control === button));
+                        try {
+                            localStorage.setItem(rangeStorageKey, range);
+                        } catch (error) {
+                            // Le choix sera conservé jusqu'au prochain rechargement de la page.
+                        }
+                        loadTemperatureHistory(device.idx, range, chart, stats, status);
+                    });
+                    controls.append(button);
+                }
+                loadTemperatureHistory(device.idx, selectedRange, chart, stats, status);
+                return card;
+            }
+
+            function drawTemperatureChart(points, chart) {
+                chart.replaceChildren();
+                const ns = "http://www.w3.org/2000/svg";
+                const add = (tag, attrs) => {
+                    const node = document.createElementNS(ns, tag);
+                    for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, String(value));
+                    chart.append(node);
+                    return node;
+                };
+                const values = points.map((point) => point.value);
+                const min = Math.min(...values), max = Math.max(...values);
+                const padding = Math.max((max - min) * 0.12, 0.3);
+                const low = min - padding, high = max + padding;
+                const x = (i) => 34 + (points.length < 2 ? 126 : i * 252 / (points.length - 1));
+                const y = (v) => 12 + (high - v) * 104 / (high - low);
+                for (let i = 0; i < 4; i++) {
+                    const yy = 12 + i * 104 / 3;
+                    add("line", { x1: 34, y1: yy, x2: 286, y2: yy, stroke: "currentColor", opacity: 0.15, "stroke-dasharray": "3 3" });
+                    const label = add("text", { x: 29, y: yy + 3, "text-anchor": "end", "font-size": 9, fill: "currentColor" });
+                    label.textContent = (high - i * (high - low) / 3).toFixed(1) + "°";
+                }
+                const path = points.map((p, i) => `${i ? "L" : "M"} ${x(i).toFixed(1)} ${y(p.value).toFixed(1)}`).join(" ");
+                add("path", { d: path, fill: "none", stroke: "var(--accent)", "stroke-width": 2.5, "stroke-linecap": "round", "stroke-linejoin": "round" });
+                add("circle", { cx: x(points.length - 1), cy: y(points[points.length - 1].value), r: 3.5, fill: "var(--accent)" });
+
+                // Afficher jusqu'à neuf repères temporels répartis sur toute la période.
+                const tickCount = Math.min(9, points.length);
+                const tickIndexes = [...new Set(Array.from({ length: tickCount }, (_, i) =>
+                    Math.round(i * (points.length - 1) / Math.max(1, tickCount - 1))
+                ))];
+                for (const index of tickIndexes) {
+                    const xx = x(index);
+                    add("line", { x1: xx, y1: 116, x2: xx, y2: 121, stroke: "currentColor", opacity: 0.65 });
+                    const label = add("text", {
+                        x: xx, y: 130, "text-anchor": "end", "font-size": 9,
+                        fill: "currentColor", transform: `rotate(-45 ${xx} 130)`
+                    });
+                    label.textContent = points[index].dateLabel;
+                }
+            }
+
+            async function loadTemperatureHistory(idx, range, chart, stats, status) {
+                const cacheKey = `${idx}:${range}`;
+                status.textContent = "Chargement de l'historique…";
+                stats.replaceChildren();
+                chart.replaceChildren();
+                try {
+                    let points = state.historyCache.get(cacheKey);
+                    if (!points) {
+                        // L'API Domoticz historique ne propose range=week que dans les versions récentes.
+                        // Pour rester compatible, on récupère le mois puis on conserve les 7 derniers jours.
+                        const apiRange = range === "week" ? "month" : range;
+                        const params = new URLSearchParams({ type: "graph", sensor: "temp", idx: String(idx), range: apiRange });
+                        const response = await fetch(`/json.htm?${params.toString()}`, { credentials: "same-origin", cache: "no-store" });
+                        if (!response.ok) throw new Error(`Erreur HTTP ${response.status}`);
+                        const data = await response.json();
+                        if (data?.status && String(data.status).toUpperCase() !== "OK") throw new Error(data.message || "Domoticz n'a pas fourni l'historique.");
+                        if (!Array.isArray(data?.result)) throw new Error("Format de réponse Domoticz inattendu.");
+                        points = data.result.map((entry) => {
+                            // te représente les points de la journée ; ta est la moyenne des agrégats.
+                            const raw = range === "day" ? (entry.te ?? entry.v) : (entry.ta ?? entry.te ?? entry.v);
+                            const value = Number(raw);
+                            if (!entry.d || !Number.isFinite(value)) return null;
+                            const minValue = Number(entry.tm);
+                            const maxValue = Number(entry.te);
+                            return {
+                                date: entry.d, value,
+                                min: Number.isFinite(minValue) ? minValue : value,
+                                max: Number.isFinite(maxValue) ? maxValue : value,
+                                dateLabel: String(entry.d).slice(range === "day" ? 11 : 5, range === "day" ? 16 : 10)
+                            };
+                        }).filter(Boolean);
+                        if (range === "week") {
+                            const cutoff = new Date();
+                            cutoff.setHours(0, 0, 0, 0);
+                            cutoff.setDate(cutoff.getDate() - 6);
+                            points = points.filter((point) => {
+                                const date = new Date(`${point.date.slice(0, 10)}T00:00:00`);
+                                return !Number.isNaN(date.getTime()) && date >= cutoff;
+                            });
+                        }
+                        if (!points.length) throw new Error("Aucune mesure disponible pour cette période.");
+                        state.historyCache.set(cacheKey, points);
+                    }
+                    drawTemperatureChart(points, chart);
+                    const values = points.map((p) => p.value);
+                    const average = values.reduce((sum, value) => sum + value, 0) / values.length;
+                    const minimum = Math.min(...points.map((p) => p.min));
+                    const maximum = Math.max(...points.map((p) => p.max));
+                    for (const label of [`Min. ${minimum.toFixed(1)} °C`, `Moy. ${average.toFixed(1)} °C`, `Max. ${maximum.toFixed(1)} °C`]) {
+                        const item = document.createElement("span");
+                        item.textContent = label;
+                        stats.append(item);
+                    }
+                    status.textContent = `${points.length} mesure(s) · ${HISTORY_RANGES[range]}`;
+                } catch (error) {
+                    status.textContent = `Historique indisponible : ${error.message || "erreur inconnue"}`;
+                }
             }
 
             async function fetchDevices() {
@@ -553,12 +822,21 @@
                             Array.isArray(data.result) &&
                             (data.status === "OK" || data.status === undefined)
                         ) {
-                            return data.result.filter(
-                                (device) =>
-                                    device &&
-                                    device.idx !== undefined &&
-                                    state.displayedIdxs.has(String(device.idx))
+                            const orderByIdx = new Map(
+                                state.displayedIdxOrder.map((idx, index) => [idx, index])
                             );
+
+                            return data.result
+                                .filter(
+                                    (device) =>
+                                        device &&
+                                        device.idx !== undefined &&
+                                        state.displayedIdxs.has(String(device.idx))
+                                )
+                                .sort((a, b) =>
+                                    (orderByIdx.get(String(a.idx)) ?? Number.MAX_SAFE_INTEGER) -
+                                    (orderByIdx.get(String(b.idx)) ?? Number.MAX_SAFE_INTEGER)
+                                );
                         }
 
                         throw new Error(data?.message || "Réponse API inattendue");
@@ -610,27 +888,46 @@
                         const rows = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheetName], {
                             header: 1,
                             raw: true,
-                            defval: null
+                            defval: null,
+                            blankrows: true
                         });
-                        // Colonne C vide : équipement affiché dans la grille.
-                        // Colonne C renseignée : action proposée dans la boîte « Action... ».
+                        // Colonne C : main, VirtualSensorSlot ou historique.
+                        // Le marqueur historique ignore la casse et les espaces superflus.
                         const displayedIdxs = new Set();
+                        const displayedIdxOrder = [];
+                        const displayedBreakBefore = new Set();
+                        const displayItems = [];
                         const actions = [];
+                        let displayedBreakPending = false;
+                        let actionBreakPending = false;
 
-                        for (const row of rows) {
+                        for (const [rowOrder, row] of rows.entries()) {
+                            const isBlankRow = !Array.isArray(row) ||
+                                row.every((cell) =>
+                                    cell === null || cell === undefined || String(cell).trim() === ""
+                                );
+
+                            if (isBlankRow) {
+                                displayedBreakPending = true;
+                                actionBreakPending = true;
+                                continue;
+                            }
+
                             const idx = normalizeIdx(row?.[0]);
                             if (!idx) continue;
 
-                            const marker = row?.[2];
-                            const hasAction = marker !== null &&
-                                marker !== undefined &&
-                                String(marker).trim() !== "";
+                            const marker = String(row?.[2] ?? "").trim().toLocaleLowerCase("fr-FR");
 
-                            if (hasAction) {
+                            if (marker === "virtualsensorslot") {
                                 const label = String(row?.[1] ?? "").trim() || `Action ${idx}`;
-                                actions.push({ idx, label });
-                            } else {
+                                actions.push({ idx, label, rowOrder, breakBefore: actionBreakPending });
+                                actionBreakPending = false;
+                            } else if ((marker === "main" || marker === "historique") && !displayedIdxs.has(idx)) {
                                 displayedIdxs.add(idx);
+                                displayedIdxOrder.push(idx);
+                                displayItems.push({ idx, type: marker, label: String(row?.[1] ?? "").trim(), breakBefore: displayedBreakPending });
+                                if (displayedBreakPending) displayedBreakBefore.add(idx);
+                                displayedBreakPending = false;
                             }
                         }
 
@@ -639,6 +936,9 @@
                         }
 
                         state.displayedIdxs = displayedIdxs;
+                        state.displayedIdxOrder = displayedIdxOrder;
+                        state.displayedBreakBefore = displayedBreakBefore;
+                        state.displayItems = displayItems;
                         state.actions = actions;
                         state.idxFileName = fileName;
                         renderActions();
@@ -700,13 +1000,35 @@
                     return;
                 }
 
-                for (const action of state.actions) {
+                const orderedActions = [...state.actions].sort((a, b) => a.rowOrder - b.rowOrder);
+
+                const measureCanvas = document.createElement("canvas");
+                const measureContext = measureCanvas.getContext("2d");
+                measureContext.font = getComputedStyle(document.body).font;
+                const longestLabelWidth = Math.max(
+                    ...orderedActions.map((action) => measureContext.measureText(action.label).width)
+                );
+                // Même largeur pour tous les boutons, calculée à partir du libellé le plus long.
+                const actionButtonWidth = Math.ceil(longestLabelWidth + 26);
+
+                let hasRenderedAction = false;
+
+                for (const action of orderedActions) {
+                    if (action.breakBefore && hasRenderedAction) {
+                        const separator = document.createElement("div");
+                        separator.className = "grid-row-break";
+                        separator.setAttribute("aria-hidden", "true");
+                        container.append(separator);
+                    }
+
                     const button = document.createElement("button");
                     button.type = "button";
                     button.className = "action-button";
                     button.textContent = action.label;
+                    button.style.width = `${actionButtonWidth}px`;
                     button.addEventListener("click", () => activateDomoticzSwitch(action, button));
                     container.append(button);
+                    hasRenderedAction = true;
                 }
             }
 

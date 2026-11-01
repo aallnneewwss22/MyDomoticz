@@ -4,6 +4,59 @@ Ce fichier retrace les évolutions notables de MyDomoticz, de la plus récente �
 
 ## [Non publié]
 
+### Amélioré
+- Resserrement supplémentaire de l'espace entre les dates de l'axe horizontal et le séparateur des statistiques : marge portée de -6 à -12 px, soit 6 px supplémentaires gagnés sur la hauteur de la carte.
+- Création de `maison-dashboard-v21.html`.
+
+### Amélioré
+- Réduction de l'espace entre les libellés de dates de l'axe horizontal et le séparateur des statistiques dans les cartes d'historique ; la hauteur totale des cartes diminue de 6 px sans modifier le tracé.
+- Création de `maison-dashboard-v20.html`.
+
+### Amélioré
+- Remplacement des libellés du header par des icônes : actualisation, paramètres et actions. Les boutons conservent une taille uniforme et disposent d'intitulés accessibles et d'infobulles.
+- Création de `maison-dashboard-v19.html`.
+
+
+### Amélioré
+- Taille des icônes réduite sur les cartes d'équipement sans courbe (34 px au lieu de 42 px).
+- Création de `maison-dashboard-v18.html`.
+
+
+### Amélioré
+- Cartes d'équipement classiques harmonisées avec les cartes d'historique : marges intérieures et interlignes resserrés, bordure renforcée.
+- Création de `maison-dashboard-v17.html`.
+
+
+### Amélioré
+- Marges supérieures réduites dans les cartes d'historique et espace sous les dates de l'axe horizontal diminué.
+- Création de `maison-dashboard-v16.html`.
+
+
+### Amélioré
+- Interlignes resserrés entre le nom, la valeur et le libellé des cartes d'historique.
+- Création de `maison-dashboard-v15.html`.
+
+
+### Amélioré
+- Libellés des boutons de période raccourcis sur les cartes d'historique : `24 H`, `7 J`, `30 J` et `1 A`.
+- Création de `maison-dashboard-v14.html`.
+
+
+### Amélioré
+- Ajout d'un séparateur horizontal au-dessus des statistiques des cartes d'historique.
+- Réduction de l'espace entre l'axe horizontal et ses libellés de dates.
+- Création de `maison-dashboard-v13.html`.
+
+### Amélioré
+- Contraste renforcé pour tous les boutons : bordures plus épaisses, fonds et textes différenciés selon le thème, états de survol, de sélection, de focus et de désactivation mieux marqués.
+- Création de `maison-dashboard-v12.html`.
+
+### Ajouté
+- Les lignes dont la troisième colonne de `IDX2.xlsx` / `IDX2.XLS` contient `historique` affichent une carte intégrée avec température actuelle, courbe et statistiques min./moy./max.
+- Choix de période : 24 heures, 7 jours, 30 jours ou 1 an, via l'API historique Domoticz.
+- Reconnaissance de `historique` insensible à la casse et aux espaces superflus.
+- Création de `maison-dashboard-v11.html`.
+
 ### Modifié
 - La troisième colonne de `IDX2.xlsx` / `IDX2.XLS` utilise désormais des marqueurs explicites : `main` affiche l'équipement dans la grille et `VirtualSensorSlot` crée un bouton dans « Action... ».
 - Les lignes entièrement vides conservent leur rôle de séparateurs de rangée ; les cellules contenant une autre valeur ne sont pas traitées.
