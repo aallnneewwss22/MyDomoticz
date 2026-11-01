@@ -241,7 +241,7 @@
         }
 
         .history-card {
-            min-width: 0; padding: 15px; border: 1px solid var(--border);
+            min-width: 0; padding: 15px; border: 2px solid var(--text);
             border-radius: 14px; background: var(--panel); box-shadow: var(--shadow);
         }
         .history-card .device-value { margin-top: 10px; }
@@ -661,8 +661,8 @@
                     const xx = x(index);
                     add("line", { x1: xx, y1: 116, x2: xx, y2: 121, stroke: "currentColor", opacity: 0.65 });
                     const label = add("text", {
-                        x: xx, y: 178, "text-anchor": "end", "font-size": 9,
-                        fill: "currentColor", transform: `rotate(-90 ${xx} 178)`
+                        x: xx, y: 140, "text-anchor": "end", "font-size": 9,
+                        fill: "currentColor", transform: `rotate(-45 ${xx} 140)`
                     });
                     label.textContent = points[index].dateLabel;
                 }
