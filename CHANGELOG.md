@@ -5,6 +5,11 @@ Ce fichier retrace les évolutions notables de MyDomoticz, de la plus récente �
 ## [Non publié]
 
 ### Amélioré
+- Ajout d'un séparateur horizontal au-dessus des statistiques des cartes d'historique.
+- Réduction de l'espace entre l'axe horizontal et ses libellés de dates.
+- Création de `maison-dashboard-v13.html`.
+
+### Amélioré
 - Contraste renforcé pour tous les boutons : bordures plus épaisses, fonds et textes différenciés selon le thème, états de survol, de sélection, de focus et de désactivation mieux marqués.
 - Création de `maison-dashboard-v12.html`.
 
