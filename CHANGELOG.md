@@ -4,6 +4,10 @@ Ce fichier retrace les évolutions notables de MyDomoticz, de la plus récente �
 
 ## [Non publié]
 
+### Amélioré
+- Contraste renforcé pour tous les boutons : bordures plus épaisses, fonds et textes différenciés selon le thème, états de survol, de sélection, de focus et de désactivation mieux marqués.
+- Création de `maison-dashboard-v12.html`.
+
 ### Ajouté
 - Les lignes dont la troisième colonne de `IDX2.xlsx` / `IDX2.XLS` contient `historique` affichent une carte intégrée avec température actuelle, courbe et statistiques min./moy./max.
 - Choix de période : 24 heures, 7 jours, 30 jours ou 1 an, via l'API historique Domoticz.
