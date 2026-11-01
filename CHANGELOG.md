@@ -5,6 +5,11 @@ Ce fichier retrace les évolutions notables de MyDomoticz, de la plus récente �
 ## [Non publié]
 
 ### Amélioré
+- Remplacement des libellés du header par des icônes : actualisation, paramètres et actions. Les boutons conservent une taille uniforme et disposent d'intitulés accessibles et d'infobulles.
+- Création de `maison-dashboard-v19.html`.
+
+
+### Amélioré
 - Taille des icônes réduite sur les cartes d'équipement sans courbe (34 px au lieu de 42 px).
 - Création de `maison-dashboard-v18.html`.
 
