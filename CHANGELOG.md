@@ -5,6 +5,10 @@ Ce fichier retrace les évolutions notables de MyDomoticz, de la plus récente �
 ## [Non publié]
 
 ### Amélioré
+- Resserrement supplémentaire de l'espace entre les dates de l'axe horizontal et le séparateur des statistiques : marge portée de -6 à -12 px, soit 6 px supplémentaires gagnés sur la hauteur de la carte.
+- Création de `maison-dashboard-v21.html`.
+
+### Amélioré
 - Réduction de l'espace entre les libellés de dates de l'axe horizontal et le séparateur des statistiques dans les cartes d'historique ; la hauteur totale des cartes diminue de 6 px sans modifier le tracé.
 - Création de `maison-dashboard-v20.html`.
 
