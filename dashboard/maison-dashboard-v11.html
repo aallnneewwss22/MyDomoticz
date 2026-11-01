@@ -248,7 +248,7 @@
         .history-controls { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
         .history-controls button { min-height: 34px; padding: 5px 9px; font-size: .85rem; }
         .history-controls button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent); color: white; }
-        .history-chart { width: 100%; height: 150px; margin-top: 8px; overflow: visible; }
+        .history-chart { width: 100%; height: 190px; margin-top: 8px; overflow: visible; }
         .history-status { min-height: 1.3em; margin: 5px 0 0; color: var(--muted); font-size: .8rem; }
         .history-stats { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 7px; color: var(--muted); font-size: .8rem; }
 
@@ -587,7 +587,7 @@
                 const controls = document.createElement("div");
                 controls.className = "history-controls";
                 const chart = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-                chart.setAttribute("viewBox", "0 0 320 150");
+                chart.setAttribute("viewBox", "0 0 320 190");
                 chart.setAttribute("preserveAspectRatio", "none");
                 chart.classList.add("history-chart");
                 chart.setAttribute("role", "img");
@@ -598,18 +598,32 @@
                 status.className = "history-status";
                 status.setAttribute("role", "status");
                 card.append(title, current, subtitle, controls, chart, stats, status);
+                const rangeStorageKey = `domoticz-history-range-${device.idx}`;
+                let selectedRange = "day";
+                try {
+                    const savedRange = localStorage.getItem(rangeStorageKey);
+                    if (Object.prototype.hasOwnProperty.call(HISTORY_RANGES, savedRange)) selectedRange = savedRange;
+                } catch (error) {
+                    // Le choix reste fonctionnel pendant la session si le stockage local est indisponible.
+                }
                 for (const [range, label] of Object.entries(HISTORY_RANGES)) {
                     const button = document.createElement("button");
                     button.type = "button";
                     button.textContent = label;
-                    button.setAttribute("aria-pressed", String(range === "day"));
+                    button.setAttribute("aria-pressed", String(range === selectedRange));
                     button.addEventListener("click", () => {
+                        selectedRange = range;
                         for (const control of controls.children) control.setAttribute("aria-pressed", String(control === button));
+                        try {
+                            localStorage.setItem(rangeStorageKey, range);
+                        } catch (error) {
+                            // Le choix sera conservé jusqu'au prochain rechargement de la page.
+                        }
                         loadTemperatureHistory(device.idx, range, chart, stats, status);
                     });
                     controls.append(button);
                 }
-                loadTemperatureHistory(device.idx, "day", chart, stats, status);
+                loadTemperatureHistory(device.idx, selectedRange, chart, stats, status);
                 return card;
             }
 
@@ -637,10 +651,21 @@
                 const path = points.map((p, i) => `${i ? "L" : "M"} ${x(i).toFixed(1)} ${y(p.value).toFixed(1)}`).join(" ");
                 add("path", { d: path, fill: "none", stroke: "var(--accent)", "stroke-width": 2.5, "stroke-linecap": "round", "stroke-linejoin": "round" });
                 add("circle", { cx: x(points.length - 1), cy: y(points[points.length - 1].value), r: 3.5, fill: "var(--accent)" });
-                const first = add("text", { x: 34, y: 139, "font-size": 9, fill: "currentColor" });
-                first.textContent = points[0].dateLabel;
-                const last = add("text", { x: 286, y: 139, "text-anchor": "end", "font-size": 9, fill: "currentColor" });
-                last.textContent = points[points.length - 1].dateLabel;
+
+                // Afficher jusqu'à neuf repères temporels répartis sur toute la période.
+                const tickCount = Math.min(9, points.length);
+                const tickIndexes = [...new Set(Array.from({ length: tickCount }, (_, i) =>
+                    Math.round(i * (points.length - 1) / Math.max(1, tickCount - 1))
+                ))];
+                for (const index of tickIndexes) {
+                    const xx = x(index);
+                    add("line", { x1: xx, y1: 116, x2: xx, y2: 121, stroke: "currentColor", opacity: 0.65 });
+                    const label = add("text", {
+                        x: xx, y: 178, "text-anchor": "end", "font-size": 9,
+                        fill: "currentColor", transform: `rotate(-90 ${xx} 178)`
+                    });
+                    label.textContent = points[index].dateLabel;
+                }
             }
 
             async function loadTemperatureHistory(idx, range, chart, stats, status) {
