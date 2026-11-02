@@ -7,6 +7,7 @@ Ce fichier retrace les évolutions notables de MyDomoticz, de la plus récente �
 ### Ajouté
 - Reconnaissance du marqueur `counter` en troisième colonne de `IDX2.xlsx`, avec affichage de la valeur et consultation de l'historique comme pour `temp`.
 - Utilisation de l'API Domoticz `type=command&param=graph&sensor=counter` pour les historiques de compteurs ; les équipements `temp` conservent `sensor=temp`.
+- Lecture des valeurs de compteurs dans les champs `v1`, `v2` et `v3` renvoyés par Domoticz, avec cumul des phases disponibles ; les données de température conservent leur traitement spécifique.
 - Création de `maison-dashboard-v26.html`.
 
 ### Amélioré
