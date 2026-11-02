@@ -194,7 +194,9 @@
         /* La boîte des actions doit laisser la place aux trois colonnes de boutons. */
         #actions-dialog {
             width: min(calc(100vw - 32px), 1100px);
-            border: 2px solid var(--text);
+            border: 4px solid var(--accent);
+            outline: 1px solid var(--text);
+            box-shadow: 0 0 0 4px var(--panel), 0 8px 28px #0006;
         }
 
         .settings-form {
