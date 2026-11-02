@@ -812,7 +812,7 @@
             }
 
             async function loadDeviceHistory(idx, sensor, range, chart, stats, status) {
-                const cacheKey = `${idx}:${range}`;
+                const cacheKey = `${sensor}:${idx}:${range}`;
                 status.textContent = "Chargement de l'historique…";
                 stats.replaceChildren();
                 chart.replaceChildren();
@@ -829,12 +829,23 @@
                         if (data?.status && String(data.status).toUpperCase() !== "OK") throw new Error(data.message || "Domoticz n'a pas fourni l'historique.");
                         if (!Array.isArray(data?.result)) throw new Error("Format de réponse Domoticz inattendu.");
                         points = data.result.map((entry) => {
-                            // te représente les points de la journée ; ta est la moyenne des agrégats.
-                            const raw = range === "day" ? (entry.te ?? entry.v) : (entry.ta ?? entry.te ?? entry.v);
+                            // Les graphes de température utilisent te/ta/tm.
+                            // Les compteurs électriques peuvent renvoyer v1/v2/v3 (une valeur par phase).
+                            let raw;
+                            if (sensor === "counter") {
+                                const phases = ["v1", "v2", "v3"]
+                                    .map((key) => Number(entry[key]))
+                                    .filter(Number.isFinite);
+                                raw = phases.length
+                                    ? phases.reduce((sum, value) => sum + value, 0)
+                                    : entry.v;
+                            } else {
+                                raw = range === "day" ? (entry.te ?? entry.v) : (entry.ta ?? entry.te ?? entry.v);
+                            }
                             const value = Number(raw);
                             if (!entry.d || !Number.isFinite(value)) return null;
-                            const minValue = Number(entry.tm);
-                            const maxValue = Number(entry.te);
+                            const minValue = sensor === "temp" ? Number(entry.tm) : NaN;
+                            const maxValue = sensor === "temp" ? Number(entry.te) : NaN;
                             return {
                                 date: entry.d, value,
                                 min: Number.isFinite(minValue) ? minValue : value,
