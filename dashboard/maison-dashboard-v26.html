@@ -765,7 +765,7 @@
                 }
                 if (selectedView === "history") {
                     historyLoaded = true;
-                    loadTemperatureHistory(device.idx, selectedRange, chart, stats, status);
+                    loadDeviceHistory(device.idx, sensor, selectedRange, chart, stats, status);
                 }
                 return card;
             }
