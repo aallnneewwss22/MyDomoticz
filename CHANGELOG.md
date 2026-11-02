@@ -4,6 +4,13 @@ Ce fichier retrace les évolutions notables de MyDomoticz, de la plus récente �
 
 ## [Non publié]
 
+## [Non publié]
+
+### Ajouté
+- Reconnaissance du marqueur `counter` en troisième colonne de `IDX2.xlsx`, avec affichage de la valeur et consultation de l'historique comme pour `temp`.
+- Utilisation de l'API Domoticz `type=command&param=graph&sensor=counter` pour les historiques de compteurs ; les équipements `temp` conservent `sensor=temp`.
+- Création de `maison-dashboard-v26.html`.
+
 ### Amélioré
 - Resserrement supplémentaire de l'espace entre les dates de l'axe horizontal et le séparateur des statistiques : marge portée de -6 à -12 px, soit 6 px supplémentaires gagnés sur la hauteur de la carte.
 - Création de `maison-dashboard-v21.html`.
