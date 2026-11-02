@@ -7,8 +7,9 @@ Ce fichier retrace les évolutions notables de MyDomoticz, de la plus récente �
 ### Ajouté
 - Reconnaissance du marqueur `counter` en troisième colonne de `IDX2.xlsx`, avec affichage de la valeur et consultation de l'historique comme pour `temp`.
 - Utilisation de l'API Domoticz `type=command&param=graph&sensor=counter` pour les historiques de compteurs ; les équipements `temp` conservent `sensor=temp`.
-- Lecture des valeurs de compteurs dans les champs `v1`, `v2` et `v3` renvoyés par Domoticz, avec cumul des phases disponibles ; les données de température conservent leur traitement spécifique.
-- Création de `maison-dashboard-v26.html`.
+- Activation de `method=1` pour l'historique journalier des compteurs afin de récupérer les mesures de consommation instantanée ; les périodes longues restent en mode agrégé.
+- Lecture robuste des champs `v1`, `v2` et `v3` lorsqu'ils sont présents et non vides, avec cumul des phases disponibles ; recours à `v` pour les compteurs qui ne fournissent pas ces champs.
+- Création de `maison-dashboard-v27.html`.
 
 ### Amélioré
 - Resserrement supplémentaire de l'espace entre les dates de l'axe horizontal et le séparateur des statistiques : marge portée de -6 à -12 px, soit 6 px supplémentaires gagnés sur la hauteur de la carte.
