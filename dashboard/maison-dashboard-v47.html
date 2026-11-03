@@ -304,7 +304,7 @@
         .history-card .device-meta { line-height: 1.2; }
         /* Écart strict de 6 px entre la boîte du nom et la valeur instantanée. */
         .history-card .history-card-header .device-name { line-height: 1; }
-        .history-card .device-value { margin-top: -2px; line-height: 1.2; }
+        .history-card .device-value { margin-top: -1px; line-height: 1.2; }
         .history-card .device-meta { margin-top: 2px; }
         .history-controls { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
         .history-controls button { min-height: 34px; padding: 5px 9px; font-size: .85rem; }
@@ -735,7 +735,7 @@
                 chart.setAttribute("preserveAspectRatio", "none");
                 chart.classList.add("history-chart");
                 chart.setAttribute("role", "img");
-                chart.setAttribute("aria-label", `Historique de ${sensor === "counter" ? "compteur" : "température"} de ${title.textContent}`);
+                chart.setAttribute("aria-label", `Historique de ${sensor === "counter" ? "compteur" : "température et humidité si disponible"} de ${title.textContent}`);
                 const stats = document.createElement("div");
                 stats.className = "history-stats";
                 const status = document.createElement("p");
@@ -786,21 +786,50 @@
                     chart.append(node);
                     return node;
                 };
-                const values = points.map((point) => point.value);
-                const min = Math.min(...values), max = Math.max(...values);
+                const temperatureValues = points.map((point) => point.value);
+                const min = Math.min(...temperatureValues), max = Math.max(...temperatureValues);
                 const padding = Math.max((max - min) * 0.12, 0.3);
                 const low = min - padding, high = max + padding;
-                const x = (i) => 34 + (points.length < 2 ? 126 : i * 252 / (points.length - 1));
-                const y = (v) => 12 + (high - v) * 104 / (high - low);
+                const humidityPoints = sensor === "temp"
+                    ? points.filter((point) => Number.isFinite(point.humidity))
+                    : [];
+                const hasHumidity = humidityPoints.length > 0;
+                const humidityValues = humidityPoints.map((point) => point.humidity);
+                const humidityMin = hasHumidity ? Math.min(...humidityValues) : 0;
+                const humidityMax = hasHumidity ? Math.max(...humidityValues) : 0;
+                const humidityPadding = hasHumidity ? Math.max((humidityMax - humidityMin) * 0.12, 2) : 0;
+                const humidityLow = humidityMin - humidityPadding;
+                const humidityHigh = humidityMax + humidityPadding;
+                const x = (i) => 42 + (points.length < 2 ? 118 : i * 236 / (points.length - 1));
+                const yTemperature = (v) => 12 + (high - v) * 104 / (high - low);
+                const yHumidity = (v) => 12 + (humidityHigh - v) * 104 / (humidityHigh - humidityLow);
+
                 for (let i = 0; i < 4; i++) {
                     const yy = 12 + i * 104 / 3;
-                    add("line", { x1: 34, y1: yy, x2: 286, y2: yy, stroke: "currentColor", opacity: 0.15, "stroke-dasharray": "3 3" });
-                    const label = add("text", { x: 29, y: yy + 3, "text-anchor": "end", "font-family": "Atkinson Hyperlegible, sans-serif", "font-size": 13, "font-weight": 500, fill: "currentColor" });
-                    label.textContent = (high - i * (high - low) / 3).toFixed(1) + (sensor === "temp" ? "°" : "");
+                    add("line", { x1: 42, y1: yy, x2: 278, y2: yy, stroke: "currentColor", opacity: 0.15, "stroke-dasharray": "3 3" });
+                    const temperatureLabel = add("text", { x: 37, y: yy + 3, "text-anchor": "end", "font-family": "Atkinson Hyperlegible, sans-serif", "font-size": 13, "font-weight": 500, fill: "currentColor" });
+                    temperatureLabel.textContent = (high - i * (high - low) / 3).toFixed(1) + "°";
+                    if (hasHumidity) {
+                        const humidityLabel = add("text", { x: 283, y: yy + 3, "text-anchor": "start", "font-family": "Atkinson Hyperlegible, sans-serif", "font-size": 13, "font-weight": 500, fill: "#2684c7" });
+                        humidityLabel.textContent = (humidityHigh - i * (humidityHigh - humidityLow) / 3).toFixed(0) + "%";
+                    }
                 }
-                const path = points.map((p, i) => `${i ? "L" : "M"} ${x(i).toFixed(1)} ${y(p.value).toFixed(1)}`).join(" ");
-                add("path", { d: path, fill: "none", stroke: "var(--accent)", "stroke-width": 2.5, "stroke-linecap": "round", "stroke-linejoin": "round" });
-                add("circle", { cx: x(points.length - 1), cy: y(points[points.length - 1].value), r: 3.5, fill: "var(--accent)" });
+
+                const temperaturePath = points.map((point, i) =>
+                    `${i ? "L" : "M"} ${x(i).toFixed(1)} ${yTemperature(point.value).toFixed(1)}`
+                ).join(" ");
+                add("path", { d: temperaturePath, fill: "none", stroke: "var(--accent)", "stroke-width": 2.5, "stroke-linecap": "round", "stroke-linejoin": "round" });
+                add("circle", { cx: x(points.length - 1), cy: yTemperature(points[points.length - 1].value), r: 3.5, fill: "var(--accent)" });
+
+                if (hasHumidity) {
+                    const humidityPath = humidityPoints.map((point, i) => {
+                        const pointIndex = points.indexOf(point);
+                        return `${i ? "L" : "M"} ${x(pointIndex).toFixed(1)} ${yHumidity(point.humidity).toFixed(1)}`;
+                    }).join(" ");
+                    add("path", { d: humidityPath, fill: "none", stroke: "#2684c7", "stroke-width": 2.5, "stroke-linecap": "round", "stroke-linejoin": "round", "stroke-dasharray": "5 3" });
+                    const lastHumidityPoint = humidityPoints[humidityPoints.length - 1];
+                    add("circle", { cx: x(points.indexOf(lastHumidityPoint)), cy: yHumidity(lastHumidityPoint.humidity), r: 3.5, fill: "#2684c7" });
+                }
 
                 // Afficher jusqu'à neuf repères temporels répartis sur toute la période.
                 const tickCount = Math.min(9, points.length);
@@ -864,8 +893,13 @@
                             if (!entry.d || !Number.isFinite(value)) return null;
                             const minValue = sensor === "temp" ? Number(entry.tm) : NaN;
                             const maxValue = sensor === "temp" ? Number(entry.te) : NaN;
+                            const rawHumidity = sensor === "temp" ? (entry.hu ?? entry.hum) : undefined;
+                            const humidityValue = rawHumidity === null || rawHumidity === undefined || String(rawHumidity).trim() === ""
+                                ? NaN
+                                : Number(rawHumidity);
                             return {
                                 date: entry.d, value,
+                                humidity: Number.isFinite(humidityValue) ? humidityValue : null,
                                 min: Number.isFinite(minValue) ? minValue : value,
                                 max: Number.isFinite(maxValue) ? maxValue : value,
                                 dateLabel: String(entry.d).slice(range === "day" ? 11 : 5, range === "day" ? 16 : 10)
