@@ -373,6 +373,12 @@
             font-size: 1.1rem;
         }
 
+        .device-icon svg {
+            width: 20px;
+            height: 20px;
+            stroke-width: 1.9;
+        }
+
         .device-name {
             overflow-wrap: anywhere;
             font-weight: 700;
@@ -565,6 +571,7 @@
 
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <script>
         (() => {
             "use strict";
@@ -652,21 +659,35 @@
                 return "Autres";
             }
 
-            const CONFIGURED_ICONS = {
-                thermometer: "🌡️", humidity: "💧", light: "💡", door: "🚪", garage: "🏠",
-                motion: "🚶", pump: "🌊", shutter: "🪟", fan: "🌀", lock: "🔒",
-                bell: "🔔", generic: "📟", energy: "⚡", temperature: "🌡️",
-                water: "💧", window: "🪟", smoke: "🚨", camera: "📷", plug: "🔌"
-            };
-
+            // La colonne E contient directement un nom Lucide officiel (kebab-case).
+            // Les noms inconnus ou absents retombent sur une icône Lucide générique.
             function getIcon(device, configuredIcon = "") {
                 const key = String(configuredIcon || "").trim().toLowerCase();
-                if (key) return CONFIGURED_ICONS[key] || CONFIGURED_ICONS.generic;
+                if (key) return key;
                 const icons = {
-                    "Climat": "🌡️", "Énergie": "⚡",
-                    "Commandes et sécurité": "💡", "Autres": "📟"
+                    "Climat": "thermometer",
+                    "Énergie": "zap",
+                    "Commandes et sécurité": "lightbulb",
+                    "Autres": "activity"
                 };
-                return icons[getCategory(device)];
+                return icons[getCategory(device)] || "house";
+            }
+
+            function createLucideIcon(name) {
+                const icon = document.createElement("i");
+                icon.setAttribute("data-lucide", name || "house");
+                icon.setAttribute("aria-hidden", "true");
+                return icon;
+            }
+
+            function renderLucideIcons() {
+                if (!window.lucide || typeof window.lucide.createIcons !== "function") return;
+                window.lucide.createIcons();
+                // Un nom non reconnu par la version chargée est remplacé par une icône sûre.
+                document.querySelectorAll("[data-lucide]:not(svg)").forEach((element) => {
+                    if (!element.querySelector("svg")) element.setAttribute("data-lucide", "house");
+                });
+                window.lucide.createIcons();
             }
 
             function isBinaryOn(device) {
@@ -691,7 +712,7 @@
                 const icon = document.createElement("div");
                 icon.className = "device-icon";
                 icon.setAttribute("aria-hidden", "true");
-                icon.textContent = getIcon(device, config.icon);
+                icon.append(createLucideIcon(getIcon(device, config.icon)));
 
                 const heading = document.createElement("div");
                 heading.style.minWidth = "0";
@@ -771,6 +792,7 @@
                     hasRenderedItem = true;
                 }
                 grid.replaceChildren(...items);
+                renderLucideIcons();
                 $("empty").classList.toggle("hidden", items.length > 0);
             }
 
