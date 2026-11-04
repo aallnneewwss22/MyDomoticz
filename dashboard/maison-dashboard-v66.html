@@ -769,7 +769,7 @@
                     if (item.type === "switchv" || item.type === "switcht") {
                         items.push(createBinarySwitchCard(device, item));
                     } else if (item.type === "temp" || item.type === "counter") {
-                        items.push(createHistoryCard(device, item.label, item.defaultView, item.type));
+                        items.push(createHistoryCard(device, item.label, item.defaultView, item.type, item.icon));
                     } else {
                         items.push(createDeviceCard(device, item));
                     }
@@ -779,7 +779,7 @@
                 $("empty").classList.toggle("hidden", items.length > 0);
             }
 
-            function createHistoryCard(device, configuredLabel, configuredDefaultView = "value", sensor = "temp") {
+            function createHistoryCard(device, configuredLabel, configuredDefaultView = "value", sensor = "temp", configuredIcon = "") {
                 const card = document.createElement("article");
                 card.className = "history-card";
                 const viewStorageKey = `domoticz-history-view-${device.idx}`;
@@ -796,7 +796,7 @@
                 header.className = "history-card-header";
                 const title = document.createElement("div");
                 title.className = "device-name";
-                title.textContent = configuredLabel || valueOrFallback(device.Name, sensor === "counter" ? "Historique compteur" : "Historique température");
+                title.textContent = getConfiguredIcon(configuredIcon, device) + " " + (configuredLabel || valueOrFallback(device.Name, sensor === "counter" ? "Historique compteur" : "Historique température"));
 
                 const toggle = document.createElement("div");
                 toggle.className = "history-view-toggle";
