@@ -5,6 +5,14 @@ Ce fichier retrace les évolutions notables de MyDomoticz, de la plus récente �
 ## [Non publié]
 
 ### Ajouté
+- Prise en charge des équipements `switchV` (état binaire en lecture seule) et `switchT` (bouton ON/OFF commandable) déclarés en troisième colonne de `IDX2.xlsx`.
+- Lecture des états binaires depuis les données des équipements Domoticz ; après une commande `switchT`, relecture de l'état pour confirmer la mise à jour.
+- Colonne E facultative : nom officiel d'une icône Lucide en `kebab-case` (par exemple `lightbulb`, `door-open`, `car-front`, `footprints`, `droplets` ou `thermometer`) ; une valeur vide utilise une icône automatique et un nom inconnu retombe sur `house`.
+- Chargement de la bibliothèque Lucide et rendu réel des SVG sur les cartes classiques, `switchV` et `switchT` ; suppression de la table de conversion en emojis.
+- Boutons `switchT` arrondis, colorés et légèrement en relief.
+- Création de `maison-dashboard-v66.html`.
+
+### Ajouté
 - Reconnaissance du marqueur `counter` en troisième colonne de `IDX2.xlsx`, avec affichage de la valeur et consultation de l'historique comme pour `temp`.
 - Utilisation de l'API Domoticz `type=command&param=graph&sensor=counter` pour les historiques de compteurs ; les équipements `temp` conservent `sensor=temp`.
 - Activation de `method=1` pour l'historique journalier des compteurs afin de récupérer les mesures de consommation instantanée ; les périodes longues restent en mode agrégé.
