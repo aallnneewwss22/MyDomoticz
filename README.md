@@ -14,7 +14,9 @@ Le suffixe `-vN` du tableau de bord fait partie de la stratégie de cache : chaq
 Fonctions du tableau de bord :
 
 - interface responsive pour PC, tablette et smartphone ;
-- consultation en lecture seule des équipements Domoticz ;
+- consultation des équipements Domoticz, avec états binaires `switchV` en lecture seule et commandes ON/OFF `switchT` ;
+- boutons `switchT` arrondis, colorés et en relief, dont l'état est confirmé par une nouvelle lecture de l'API après chaque commande ;
+- colonne E facultative dans `IDX2.xlsx` pour personnaliser l'icône des équipements (mots-clés ou emoji) ;
 - affichage des équipements dont la troisième colonne de `IDX2.xlsx` ou `IDX2.XLS` contient `main`, dans le même ordre que leurs lignes dans le classeur ;
 - cartes d'historique de température pour les lignes dont la troisième colonne contient `historique` (sans distinction de casse ni d'espaces superflus), avec périodes 24 heures, 7 jours, 30 jours et 1 an ;
 - boîte de dialogue « Action... » : une ligne dont la troisième colonne contient `VirtualSensorSlot` crée un bouton portant le libellé de la deuxième colonne ; les boutons suivent l'ordre des lignes du classeur, les lignes entièrement vides créent un passage à la rangée suivante, et ils envoient à Domoticz la commande d'activation (`switchcmd=On`) de l'IDX de la première colonne ;
