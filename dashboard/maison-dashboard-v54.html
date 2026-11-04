@@ -288,20 +288,16 @@
             border-radius: 14px; background: var(--panel); box-shadow: var(--shadow);
         }
 
-        .history-card-body {
-            position: relative;
-        }
-
-        .history-body-overlay {
-            position: absolute;
+        /* Conteneur vide superposé à toute la zone visible du body HTML. */
+        .page-body-overlay {
+            position: fixed;
             inset: 0;
-            z-index: 2;
+            z-index: 1000;
             display: none;
-            border-radius: 8px;
-            background: var(--panel);
+            background: var(--bg);
         }
 
-        .history-card-body.is-overlay-open .history-body-overlay {
+        .page-body-overlay.is-open {
             display: block;
         }
         .history-card-header { position: relative; display: block; min-height: 0; height: auto; margin: 0; padding: 0 72px 0 0; line-height: 1; }
@@ -495,6 +491,7 @@
         <div id="empty" class="empty hidden">
             Aucun équipement à afficher.
         </div>
+        <div id="page-body-overlay" class="page-body-overlay" aria-hidden="true"></div>
 
     </main>
 
@@ -758,20 +755,14 @@
                 const status = document.createElement("p");
                 status.className = "history-status";
                 status.setAttribute("role", "status");
-                const body = document.createElement("div");
-                body.className = "history-card-body";
-                const overlay = document.createElement("div");
-                overlay.className = "history-body-overlay";
-                overlay.setAttribute("aria-hidden", "true");
-                body.append(current, subtitle, controls, chart, stats, status, overlay);
-                card.append(header, body);
+                card.append(header, current, subtitle, controls, chart, stats, status);
 
-                const toggleBodyOverlay = () => {
-                    body.classList.toggle("is-overlay-open");
+                const togglePageOverlay = () => {
+                    $("page-body-overlay").classList.toggle("is-open");
                 };
                 card.addEventListener("dblclick", (event) => {
                     if (event.target.closest("button")) return;
-                    toggleBodyOverlay();
+                    togglePageOverlay();
                 });
 
                 // Sur écran tactile, deux tapotements rapprochés reproduisent le double-clic.
@@ -786,7 +777,7 @@
                     if (now - lastTapTime < 350 && closeEnough) {
                         event.preventDefault();
                         lastTapTime = 0;
-                        toggleBodyOverlay();
+                        togglePageOverlay();
                     } else {
                         lastTapTime = now;
                         lastTapX = touch.clientX;
