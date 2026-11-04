@@ -2,7 +2,7 @@
 
 Pages web personnalisées pour Domoticz, développées progressivement et versionnées avec Git.
 
-## Tableau de bord — v1.0
+## Tableau de bord — version courante v66
 
 Le tableau de bord est fourni sous deux fichiers :
 
@@ -24,6 +24,21 @@ Fonctions du tableau de bord :
 - mise en page qui utilise toute la largeur disponible de l'onglet autonome.
 
 Les commandes d'activation sont limitées aux IDX déclarés dans les lignes d'action du classeur. Cette première version suppose que l'API JSON Domoticz est accessible sans authentification depuis le navigateur, sur la même origine que le tableau de bord.
+
+
+
+### Types d'équipements et icônes dans IDX2.xlsx
+
+Le classeur utilise les colonnes suivantes : A = IDX Domoticz, B = libellé affiché, C = type, D = vue initiale (pour les historiques), E = icône facultative.
+
+Valeurs reconnues en colonne C :
+- `scalaire` : carte de valeur classique ;
+- `temp` et `counter` : cartes avec valeur et historique ;
+- `switchV` : état binaire en lecture seule, affiché avec un voyant et le texte ON/OFF ;
+- `switchT` : bouton ON/OFF commandable ; la commande est envoyée à Domoticz puis l'état est relu ;
+- `VirtualSensorSlot` : bouton d'action dans la boîte « Actions Domoticz ».
+
+La colonne E accepte notamment les clés `thermometer`, `humidity`, `light`, `door`, `garage`, `motion`, `pump`, `shutter`, `fan`, `lock`, `bell`, `energy`, `water`, `window`, `smoke`, `camera` et `plug`. Elle peut rester vide ; une clé inconnue utilise une icône générique. La clé d'icône est indépendante du type d'équipement.
 
 ## Installation
 
