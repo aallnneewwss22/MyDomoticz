@@ -196,7 +196,8 @@
 
         /* La boîte des actions doit laisser la place aux trois colonnes de boutons. */
         #actions-dialog {
-            width: min(calc(100vw - 32px), 1100px);
+            width: min(calc(100vw - 12px), 1100px);
+            padding: 6px;
             border: 4px solid var(--accent);
             outline: 1px solid var(--text);
             box-shadow: 0 0 0 4px var(--panel), 0 8px 28px #0006;
@@ -210,8 +211,10 @@
         .actions-list {
             display: grid;
             grid-template-columns: repeat(3, max-content);
-            justify-content: center;
-            gap: 9px;
+            justify-content: space-between;
+            column-gap: 2px;
+            row-gap: 3px;
+            width: 100%;
             max-height: min(60vh, 520px);
             overflow-y: auto;
         }
@@ -221,6 +224,8 @@
             max-width: 100%;
             white-space: nowrap;
             text-align: left;
+            padding-left: 6px;
+            padding-right: 6px;
         }
 
         .action-status {
@@ -287,6 +292,33 @@
             min-width: 0; padding: 9px 15px 10px; border: 2px solid var(--text);
             border-radius: 14px; background: var(--panel); box-shadow: var(--shadow);
         }
+
+        /* Conteneur superposé sous le header, avec un encadrement visible. */
+        .page-body-overlay {
+            position: fixed;
+            top: var(--page-overlay-top, 0px);
+            right: 12px;
+            bottom: 12px;
+            left: 12px;
+            z-index: 1000;
+            display: none;
+            border: 4px solid var(--accent);
+            border-radius: 18px;
+            background: var(--panel);
+            box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 22%, transparent),
+                        0 10px 32px #0004;
+        }
+
+        .page-body-overlay.is-open {
+            display: block;
+        }
+        .page-overlay-content { height: 100%; display: flex; flex-direction: column; gap: 12px; padding: 4px 0; color: var(--text); }
+        .page-overlay-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+        .page-overlay-title { margin: 0; padding-left: 5px; font-size: clamp(1.1rem, 2.2vw, 1.6rem); }
+        .page-overlay-controls { display: flex; flex-wrap: wrap; gap: 8px; padding-right: 5px; }
+        .page-overlay-controls button[aria-pressed="true"] { background: var(--button-selected-bg); color: #fff; }
+        .page-overlay-chart { flex: 1 1 auto; min-height: 220px; width: 100%; }
+        .page-overlay-status { margin: 0; padding-left: 5px; color: var(--muted); font-size: .9rem; }
         .history-card-header { position: relative; display: block; min-height: 0; height: auto; margin: 0; padding: 0 72px 0 0; line-height: 1; }
         .history-card-header .device-name { display: block; margin: 0; padding: 0; line-height: 1; }
         .history-view-toggle { position: absolute; top: 0; right: 0; display: inline-flex; flex: 0 0 auto; overflow: hidden; border: 1px solid var(--border); border-radius: 9px; }
@@ -309,8 +341,8 @@
         .history-controls { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
         .history-controls button { min-height: 34px; padding: 5px 9px; font-size: .85rem; }
         .history-controls button[aria-pressed="true"] { border-color: var(--button-selected-bg); background: var(--button-selected-bg); color: #fff; }
-        .history-chart { width: 100%; height: 170px; margin-top: 5px; overflow: visible; }
-        .history-status { min-height: 1.3em; margin: 5px 0 0; color: var(--muted); font-size: .8rem; }
+        .history-chart { width: 100%; height: 170px; margin-top: 5px; overflow: visible; border: 0; box-shadow: inset 1px 0 #000, inset -1px 0 #000, inset 0 1px #000; background-color: color-mix(in srgb, var(--panel) 96%, #000); background-image: linear-gradient(#000, #000); background-repeat: no-repeat; background-size: 100% 1px; background-position: left calc(100% - 5px); }
+        .history-status { min-height: 1.3em; margin: 0; color: var(--muted); font-size: .8rem; }
         .history-stats { display: flex; flex-wrap: wrap; gap: 12px; margin-top: -22px; padding-top: 9px; border-top: 1px solid var(--border); color: var(--muted); font-size: .8rem; }
 
         .device-card {
@@ -478,10 +510,12 @@
         <div id="empty" class="empty hidden">
             Aucun équipement à afficher.
         </div>
+        <div id="page-body-overlay" class="page-body-overlay" aria-hidden="true"></div>
 
     </main>
 
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
     <script>
         (() => {
             "use strict";
@@ -742,6 +776,44 @@
                 status.className = "history-status";
                 status.setAttribute("role", "status");
                 card.append(header, current, subtitle, controls, chart, stats, status);
+
+                const togglePageOverlay = () => {
+                    const overlay = $("page-body-overlay");
+                    const opening = !overlay.classList.contains("is-open");
+                    if (opening) {
+                        const headerBottom = document.querySelector("main > header").getBoundingClientRect().bottom;
+                        overlay.style.setProperty("--page-overlay-top", `${Math.ceil(headerBottom + 12)}px`);
+                        showPageOverlayHistory(device, sensor, title.textContent);
+                    } else {
+                        closePageOverlayHistory();
+                    }
+                    overlay.classList.toggle("is-open", opening);
+                    overlay.setAttribute("aria-hidden", String(!opening));
+                };
+                card.addEventListener("dblclick", (event) => {
+                    if (event.target.closest("button")) return;
+                    togglePageOverlay();
+                });
+
+                // Sur écran tactile, deux tapotements rapprochés reproduisent le double-clic.
+                let lastTapTime = 0;
+                let lastTapX = 0;
+                let lastTapY = 0;
+                card.addEventListener("touchend", (event) => {
+                    if (event.target.closest("button") || event.changedTouches.length !== 1) return;
+                    const touch = event.changedTouches[0];
+                    const now = Date.now();
+                    const closeEnough = Math.hypot(touch.clientX - lastTapX, touch.clientY - lastTapY) < 28;
+                    if (now - lastTapTime < 350 && closeEnough) {
+                        event.preventDefault();
+                        lastTapTime = 0;
+                        togglePageOverlay();
+                    } else {
+                        lastTapTime = now;
+                        lastTapX = touch.clientX;
+                        lastTapY = touch.clientY;
+                    }
+                }, { passive: false });
 
                 const rangeStorageKey = `domoticz-history-range-${device.idx}`;
                 let selectedRange = "day";                let historyLoaded = false;
@@ -1230,6 +1302,147 @@
             const refreshInput = $("refresh-interval");
             const themeSelect = $("theme-select");
             const actionsDialog = $("actions-dialog");
+            const pageOverlay = $("page-body-overlay");
+            let overlayChart = null;
+            let overlayResizeObserver = null;
+            let overlayRange = "day";
+            let overlayRequestToken = 0;
+
+            function closePageOverlayHistory() {
+                overlayRequestToken++;
+                if (overlayChart) { overlayChart.dispose(); overlayChart = null; }
+                if (overlayResizeObserver) { overlayResizeObserver.disconnect(); overlayResizeObserver = null; }
+                pageOverlay.replaceChildren();
+            }
+
+            function showPageOverlayHistory(device, sensor, label) {
+                closePageOverlayHistory();
+                overlayRange = "day";
+                const content = document.createElement("div");
+                content.className = "page-overlay-content";
+                const heading = document.createElement("div");
+                heading.className = "page-overlay-heading";
+                const title = document.createElement("h2");
+                title.className = "page-overlay-title";
+                title.textContent = label;
+                const controls = document.createElement("div");
+                controls.className = "page-overlay-controls";
+                const resetZoomButton = document.createElement("button");
+                resetZoomButton.type = "button";
+                resetZoomButton.textContent = "Réinitialiser le zoom";
+                resetZoomButton.title = "Afficher à nouveau toute la période";
+                resetZoomButton.addEventListener("click", () => {
+                    if (overlayChart) overlayChart.dispatchAction({ type: "dataZoom", start: 0, end: 100 });
+                });
+                controls.append(resetZoomButton);
+                const chartNode = document.createElement("div");
+                chartNode.className = "page-overlay-chart";
+                const status = document.createElement("p");
+                status.className = "page-overlay-status";
+                heading.append(title, controls);
+                content.append(heading, chartNode, status);
+                pageOverlay.replaceChildren(content);
+                const ranges = [["day", "24 H"], ["week", "7 J"], ["month", "30 J"], ["year", "1 A"]];
+                const buttons = new Map();
+                for (const [range, caption] of ranges) {
+                    const button = document.createElement("button");
+                    button.type = "button";
+                    button.textContent = caption;
+                    button.setAttribute("aria-pressed", String(range === overlayRange));
+                    button.addEventListener("click", () => {
+                        overlayRange = range;
+                        for (const [key, item] of buttons) item.setAttribute("aria-pressed", String(key === range));
+                        loadOverlayHistory(device, sensor, range, chartNode, status);
+                    });
+                    buttons.set(range, button);
+                    controls.append(button);
+                }
+                if (!window.echarts) {
+                    status.textContent = "Apache ECharts n'a pas pu être chargé. Vérifie l'accès au CDN.";
+                    return;
+                }
+                overlayChart = echarts.init(chartNode);
+                overlayResizeObserver = new ResizeObserver(() => overlayChart?.resize());
+                overlayResizeObserver.observe(chartNode);
+                loadOverlayHistory(device, sensor, overlayRange, chartNode, status);
+            }
+
+            async function loadOverlayHistory(device, sensor, range, chartNode, status) {
+                const token = ++overlayRequestToken;
+                status.textContent = "Chargement de l'historique…";
+                if (!window.echarts || !overlayChart) return;
+                const apiRange = range === "week" ? "day" : range;
+                try {
+                    const params = new URLSearchParams({ type: "graph", sensor: sensor === "counter" ? "counter" : "temp", idx: String(device.idx), range: apiRange });
+                    const response = await fetch(`/json.htm?${params.toString()}`, { credentials: "same-origin", cache: "no-store" });
+                    if (!response.ok) throw new Error(`Erreur HTTP ${response.status}`);
+                    const data = await response.json();
+                    if (data?.status && String(data.status).toUpperCase() !== "OK") throw new Error(data.message || "Domoticz n'a pas fourni l'historique.");
+                    if (!Array.isArray(data?.result)) throw new Error("Format de réponse Domoticz inattendu.");
+                    let points = data.result.map(entry => {
+                        let raw;
+                        if (sensor === "counter") {
+                            const phases = ["v1", "v2", "v3"].map(k => entry[k]).filter(v => v != null && String(v).trim() !== "").map(Number).filter(Number.isFinite);
+                            raw = phases.length ? phases.reduce((a,b) => a+b, 0) : entry.v;
+                        } else {
+                            raw = apiRange === "day" ? (entry.te ?? entry.v) : (entry.ta ?? entry.te ?? entry.v);
+                        }
+                        const value = Number(raw);
+                        const humidityRaw = entry.hu ?? entry.hum;
+                        const humidity = Number(humidityRaw);
+                        return entry.d && Number.isFinite(value) ? { date: entry.d, value, humidity: humidityRaw != null && Number.isFinite(humidity) ? humidity : null } : null;
+                    }).filter(Boolean);
+                    const now = new Date();
+                    const duration = ({day:1, week:7, month:30, year:365})[range] * 86400000;
+                    points = points.filter(p => { const d = new Date(p.date.replace(" ", "T")); return !Number.isNaN(d.getTime()) && d >= new Date(now-duration) && d <= now; });
+                    if (!points.length) throw new Error("Aucune mesure disponible pour cette période.");
+                    if (token !== overlayRequestToken || !overlayChart) return;
+                    const axisLabel = range === "day" ? "{HH}:{mm}" : "{dd}/{MM}";
+                    const series = [{ name: sensor === "counter" ? "Compteur" : "Température", type: "line", smooth: true, showSymbol: false, data: points.map(p => [p.date.replace(" ", "T"), p.value]), yAxisIndex: 0 }];
+                    const yAxis = [{ type: "value", name: sensor === "counter" ? "Valeur" : "°C", scale: true }];
+                    if (sensor === "temp" && points.some(p => p.humidity !== null)) {
+                        series.push({ name: "Humidité", type: "line", smooth: true, showSymbol: false, data: points.filter(p => p.humidity !== null).map(p => [p.date.replace(" ", "T"), p.humidity]), yAxisIndex: 1 });
+                        yAxis.push({ type: "value", name: "%", min: 0, max: 100, position: "right" });
+                    }
+                    overlayChart.setOption({ animation: false, tooltip: { trigger: "axis" }, legend: { top: 0, textStyle: { color: getComputedStyle(document.body).color } }, grid: { left: 8, right: yAxis.length > 1 ? 8 : 4, top: 38, bottom: 92, containLabel: true },
+                        xAxis: { type: "time", splitNumber: 12, minorTick: { show: true, splitNumber: 2 }, minorSplitLine: { show: true, lineStyle: { color: "rgba(110, 125, 145, 0.22)", type: "dotted", width: 1 } }, axisLabel: { formatter: axisLabel, rotate: 45, hideOverlap: true }, splitLine: { show: true, lineStyle: { color: "rgba(110, 125, 145, 0.48)", type: "dashed", width: 1.2 } } },
+                        yAxis: yAxis.map(axis => ({ ...axis, splitNumber: 10, minorTick: { show: true, splitNumber: 2 }, minorSplitLine: { show: axis.position !== "right", lineStyle: { color: "rgba(110, 125, 145, 0.22)", type: "dotted", width: 1 } }, splitLine: { show: axis.position !== "right", lineStyle: { color: "rgba(110, 125, 145, 0.48)", type: "dashed", width: 1.2 } } })),
+                        dataZoom: [
+                            { type: "inside", xAxisIndex: 0, filterMode: "none", zoomOnMouseWheel: true, moveOnMouseMove: true, moveOnMouseWheel: false, preventDefaultMouseMove: true, throttle: 50 },
+                            { type: "slider", xAxisIndex: 0, filterMode: "none", height: 44, bottom: 8, showDetail: false, brushSelect: false }
+                        ],
+                        series });
+                    status.textContent = `${points.length} mesure(s) · ${HISTORY_RANGES[range]}`;
+                } catch (error) {
+                    if (token === overlayRequestToken) status.textContent = `Historique indisponible : ${error.message || "erreur inconnue"}`;
+                }
+            }
+
+            // Un double-clic (ou double-tap) dans le conteneur le ferme et
+            // restitue intégralement le tableau de bord initial.
+            pageOverlay.addEventListener("dblclick", () => {
+                pageOverlay.classList.remove("is-open");
+                pageOverlay.setAttribute("aria-hidden", "true");
+            });
+            let overlayLastTapTime = 0;
+            let overlayLastTapX = 0;
+            let overlayLastTapY = 0;
+            pageOverlay.addEventListener("touchend", (event) => {
+                if (event.changedTouches.length !== 1) return;
+                const touch = event.changedTouches[0];
+                const now = Date.now();
+                const closeEnough = Math.hypot(touch.clientX - overlayLastTapX, touch.clientY - overlayLastTapY) < 28;
+                if (now - overlayLastTapTime < 350 && closeEnough) {
+                    event.preventDefault();
+                    overlayLastTapTime = 0;
+                    pageOverlay.classList.remove("is-open");
+                    pageOverlay.setAttribute("aria-hidden", "true");
+                } else {
+                    overlayLastTapTime = now;
+                    overlayLastTapX = touch.clientX;
+                    overlayLastTapY = touch.clientY;
+                }
+            }, { passive: false });
 
             $("refresh").addEventListener("click", refreshDevices);
 
