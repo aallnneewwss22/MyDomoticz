@@ -7,7 +7,7 @@ Pages web personnalisées pour Domoticz, développées progressivement et versio
 Le tableau de bord est fourni sous deux fichiers :
 
 - `dashboard/maison.html` : page d'entrée à installer dans le menu **Custom** de Domoticz ;
-- `dashboard/maison-dashboard-v21.html` : version actuelle du tableau de bord autonome, destinée à s'ouvrir dans son propre onglet.
+- `dashboard/maison-dashboard-v66.html` : version actuelle du tableau de bord autonome, destinée à s'ouvrir dans son propre onglet.
 
 Le suffixe `-vN` du tableau de bord fait partie de la stratégie de cache : chaque évolution du tableau de bord crée un nouveau fichier numéroté afin que le navigateur demande une URL différente.
 
@@ -38,13 +38,13 @@ Valeurs reconnues en colonne C :
 - `switchT` : bouton ON/OFF commandable ; la commande est envoyée à Domoticz puis l'état est relu ;
 - `VirtualSensorSlot` : bouton d'action dans la boîte « Actions Domoticz ».
 
-La colonne E accepte notamment les clés `thermometer`, `humidity`, `light`, `door`, `garage`, `motion`, `pump`, `shutter`, `fan`, `lock`, `bell`, `energy`, `water`, `window`, `smoke`, `camera` et `plug`. Elle peut rester vide ; une clé inconnue utilise une icône générique. La clé d'icône est indépendante du type d'équipement.
+La colonne E contient directement le nom officiel d'une icône de la bibliothèque **Lucide**, en minuscules et au format `kebab-case` (sans préfixe ni emoji). Exemples : `thermometer`, `droplets`, `lightbulb`, `door-open`, `car-front`, `footprints`, `lock`, `bell-ring`, `zap`, `camera`, `plug` ou `house`. La colonne peut rester vide : une icône est alors choisie automatiquement selon la catégorie de l'équipement. Si le nom indiqué n'existe pas dans la version Lucide chargée, une icône générique (`house`) est utilisée. La même convention s'applique aux cartes classiques, `switchV` et `switchT`.
 
 ## Installation
 
 1. Sauvegarder le répertoire `www/templates` de Domoticz.
 2. Copier `dashboard/maison.html` vers `www/templates/maison.html`.
-3. Copier le dernier fichier numéroté du tableau de bord — actuellement `dashboard/maison-dashboard-v21.html` — vers `www/templates/maison-dashboard-v21.html`, dans le même répertoire.
+3. Copier le dernier fichier numéroté du tableau de bord — actuellement `dashboard/maison-dashboard-v66.html` — vers `www/templates/maison-dashboard-v21.html`, dans le même répertoire.
 4. Activer le menu **Custom** dans les paramètres Domoticz si cette option est disponible dans la version installée.
 5. Recharger l'interface Domoticz puis ouvrir **Custom → maison**.
 
@@ -57,7 +57,7 @@ Le fichier autonome doit rester à côté du lanceur dans `www/templates`, car l
 Lorsqu'une Pull Request modifie le tableau de bord, GitHub Actions construit l'artefact `maison-dashboard-raspberry-pi`. Il contient à la racine du ZIP :
 
 - `maison.html` ;
-- le fichier versionné actuellement référencé par le lanceur, par exemple `maison-dashboard-v21.html` ;
+- le fichier versionné actuellement référencé par le lanceur, par exemple `maison-dashboard-v66.html` ;
 - `LISEZ-MOI.txt`, qui rappelle le chemin de destination et les fichiers à copier.
 
 Pour le récupérer, ouvrir la Pull Request, suivre son exécution dans **Checks** ou **Actions**, puis télécharger l'artefact `maison-dashboard-raspberry-pi` depuis le détail de l'exécution réussie. Décompresser le ZIP et copier les deux fichiers HTML dans `/home/pi/domoticz/www/templates` sur le Raspberry Pi. Le classeur `IDX2.xlsx` ou `IDX2.XLS` n'est pas inclus : il reste à gérer séparément et doit être conservé dans le répertoire s'il est utilisé par l'installation.
