@@ -7,7 +7,8 @@ Ce fichier retrace les évolutions notables de MyDomoticz, de la plus récente �
 ### Ajouté
 - Prise en charge des équipements `switchV` (état binaire en lecture seule) et `switchT` (bouton ON/OFF commandable) déclarés en troisième colonne de `IDX2.xlsx`.
 - Lecture des états binaires depuis les données des équipements Domoticz ; après une commande `switchT`, relecture de l'état pour confirmer la mise à jour.
-- Colonne E facultative pour choisir l'icône avec des clés telles que `light`, `garage`, `motion`, `pump` ou `shutter` ; valeur vide ou inconnue : icône générique ou icône habituelle.
+- Colonne E facultative : nom officiel d'une icône Lucide en `kebab-case` (par exemple `lightbulb`, `door-open`, `car-front`, `footprints`, `droplets` ou `thermometer`) ; une valeur vide utilise une icône automatique et un nom inconnu retombe sur `house`.
+- Chargement de la bibliothèque Lucide et rendu réel des SVG sur les cartes classiques, `switchV` et `switchT` ; suppression de la table de conversion en emojis.
 - Boutons `switchT` arrondis, colorés et légèrement en relief.
 - Création de `maison-dashboard-v66.html`.
 
