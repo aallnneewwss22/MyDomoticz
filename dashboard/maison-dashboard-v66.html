@@ -707,8 +707,8 @@
                 heading.append(name, type);
                 top.append(icon, heading);
 
-                const value = document.createElement("div");
-                value.className = config.type === "switchV" ? "binary-state" : "device-value";
+                const value = document.createElement(config.type === "switchT" ? "button" : "div");
+                value.className = config.type === "switchV" ? "binary-state" : config.type === "switchT" ? "switch-toggle" : "device-value";
                 if (config.type === "switchV") {
                     const on = isBinaryOn(device);
                     value.classList.add(on ? "is-on" : "is-off");
