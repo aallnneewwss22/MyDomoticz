@@ -5,6 +5,13 @@ Ce fichier retrace les évolutions notables de MyDomoticz, de la plus récente �
 ## [Non publié]
 
 ### Ajouté
+- Reconnaissance des marqueurs `switchV` et `switchT` en troisième colonne de `IDX2.xlsx` : `switchV` affiche l'état binaire en lecture seule ; `switchT` propose un bouton permettant de basculer entre ON et OFF.
+- Lecture de l'état réel via l'API JSON Domoticz (`type=devices&rid=IDX`) et vérification par une nouvelle lecture après chaque commande `switchlight`.
+- Prise en charge de la colonne E facultative pour choisir une icône par équipement (mots-clés ou emoji), avec icône générique de secours.
+- Création de `maison-dashboard-v66.html`.
+
+
+### Ajouté
 - Reconnaissance du marqueur `counter` en troisième colonne de `IDX2.xlsx`, avec affichage de la valeur et consultation de l'historique comme pour `temp`.
 - Utilisation de l'API Domoticz `type=command&param=graph&sensor=counter` pour les historiques de compteurs ; les équipements `temp` conservent `sensor=temp`.
 - Activation de `method=1` pour l'historique journalier des compteurs afin de récupérer les mesures de consommation instantanée ; les périodes longues restent en mode agrégé.
