@@ -704,7 +704,8 @@
             function createDeviceCard(device, config = {}) {
                 const card = document.createElement("article");
                 card.className = "device-card";
-                card.dataset.configuredType = config.type || "";
+                const configuredType = String(config.type || "").trim().toLowerCase();
+                card.dataset.configuredType = configuredType;
 
                 const top = document.createElement("div");
                 top.className = "device-top";
@@ -723,18 +724,18 @@
 
                 const type = document.createElement("div");
                 type.className = "device-type";
-                type.textContent = config.type === "switchV" ? "État binaire" : config.type === "switchT" ? "Commande" : `${getCategory(device)} · ${valueOrFallback(device.Type, "Type inconnu")}`;
+                type.textContent = configuredType === "switchv" ? "État binaire" : configuredType === "switcht" ? "Commande" : `${getCategory(device)} · ${valueOrFallback(device.Type, "Type inconnu")}`;
 
                 heading.append(name, type);
                 top.append(icon, heading);
 
-                const value = document.createElement(config.type === "switchT" ? "button" : "div");
-                value.className = config.type === "switchV" ? "binary-state" : config.type === "switchT" ? "switch-toggle" : "device-value";
-                if (config.type === "switchV") {
+                const value = document.createElement(configuredType === "switcht" ? "button" : "div");
+                value.className = configuredType === "switchv" ? "binary-state" : configuredType === "switcht" ? "switch-toggle" : "device-value";
+                if (configuredType === "switchv") {
                     const on = isBinaryOn(device);
                     value.classList.add(on ? "is-on" : "is-off");
                     value.textContent = on ? "ON" : "OFF";
-                } else if (config.type === "switchT") {
+                } else if (configuredType === "switcht") {
                     value.className = "switch-toggle";
                     const on = isBinaryOn(device);
                     value.classList.toggle("is-off", !on);
