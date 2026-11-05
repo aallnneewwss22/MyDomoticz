@@ -1821,7 +1821,7 @@
                     const historyButton = card.querySelector('.history-view-toggle button[aria-label="Afficher la courbe d\'historique"]');
                     valueButton?.setAttribute("aria-pressed", "true");
                     historyButton?.setAttribute("aria-pressed", "false");
-                    const deviceIdx = card.querySelector(".device-type")?.textContent.match(/IDX\\s+(\\d+)/)?.[1];
+                    const deviceIdx = card.querySelector(".device-type")?.textContent.match(/IDX\s+(\d+)/)?.[1];
                     if (deviceIdx) {
                         try {
                             localStorage.setItem(`domoticz-history-view-${deviceIdx}`, "value");
