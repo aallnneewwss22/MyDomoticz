@@ -4,6 +4,12 @@ Ce fichier retrace les évolutions notables de MyDomoticz, de la plus récente �
 
 ## [Non publié]
 
+### Modifié
+- Découverte automatique des pages au chargement : le dashboard recherche les classeurs `IDX1.xlsx` à `IDX9.xlsx` dans son propre répertoire et construit le menu dans l'ordre numérique.
+- Le nom affiché de chaque page est le nom du classeur sans extension ; les extensions `.xlsx` et `.XLSX` sont acceptées.
+- Suppression des déclarations de pages codées en dur : ajouter ou retirer un classeur suffit à modifier les pages disponibles.
+- Création de `maison-dashboard-v68.html`.
+
 ### Ajouté
 - Préparation du mode multi-pages avec un menu déroulant dans le header : **Maison** charge `IDX2.xlsx` et **Page 2** charge `IDX1.xlsx`.
 - Sélection de page mémorisée dans le navigateur ; chaque page recharge indépendamment ses équipements, historiques et actions depuis son propre classeur Excel.
