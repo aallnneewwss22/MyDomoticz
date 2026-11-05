@@ -39,7 +39,7 @@ Valeurs reconnues en colonne C :
 - `temp` et `counter` : cartes avec valeur et historique ;
 - `switchV` : état binaire en lecture seule, affiché avec un voyant et le texte ON/OFF ;
 - `switchT` : bouton ON/OFF commandable ; la commande est envoyée à Domoticz puis l'état est relu ;
-- `VirtualSensorSlot` : bouton d'action dans la boîte « Actions Domoticz` ;
+- `VirtualSensorSlot` : bouton d'action dans la boîte « Actions Domoticz » ;
 - `caméra` : carte vidéo ; la colonne A contient le nom du flux défini dans go2rtc (caractères autorisés : lettres, chiffres, point, tiret et soulignement).
 
 La colonne E contient directement le nom officiel d'une icône de la bibliothèque **Lucide**, en minuscules et au format `kebab-case` (sans préfixe ni emoji). Exemples : `thermometer`, `droplets`, `lightbulb`, `door-open`, `car-front`, `footprints`, `lock`, `bell-ring`, `zap`, `camera`, `plug` ou `house`. La colonne peut rester vide : une icône est alors choisie automatiquement selon la catégorie de l'équipement. Si le nom indiqué n'existe pas dans la version Lucide chargée, une icône générique (`house`) est utilisée. La même convention s'applique aux cartes classiques, `switchV` et `switchT`.
