@@ -1465,6 +1465,16 @@
                     // La sélection reste active pour la session si le stockage local est indisponible.
                 }
 
+                if (refreshTimer !== null) {
+                    clearInterval(refreshTimer);
+                    refreshTimer = null;
+                }
+                if (pageOverlay.classList.contains("is-open")) {
+                    pageOverlay.classList.remove("is-open");
+                    pageOverlay.setAttribute("aria-hidden", "true");
+                    closePageOverlayHistory();
+                }
+
                 state.devices = [];
                 state.displayedIdxs = new Set();
                 state.displayedIdxOrder = [];
