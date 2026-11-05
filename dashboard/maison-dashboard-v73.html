@@ -1700,6 +1700,12 @@
                 if (expectedPageRequestId !== state.pageRequestId) return;
                 $("refresh").disabled = true;
                 try {
+                    if (state.displayedIdxs.size === 0) {
+                        state.devices = [];
+                        renderDevices();
+                        $("updated").textContent = `Fichier : ${state.idxFileName} · actualisé à ` + new Date().toLocaleTimeString("fr-FR");
+                        return;
+                    }
                     const devices = await fetchDevices();
                     if (expectedPageRequestId !== state.pageRequestId) return;
                     state.devices = devices;
@@ -1709,9 +1715,15 @@
                     if (expectedPageRequestId !== state.pageRequestId) return;
                     $("updated").textContent = valueOrFallback(error?.message, "Erreur inconnue");
                     if (state.devices.length === 0) {
-                        $("grid").replaceChildren();
-                        $("empty").classList.remove("hidden");
-                        $("empty").textContent = "La page n’a pas pu récupérer les équipements. Vérifie que tu es connecté à Domoticz et que l’API JSON est accessible depuis cette page.";
+                        renderDevices();
+                        if (state.displayItems.some((item) => item.type === "camera")) {
+                            $("empty").classList.add("hidden");
+                            $("updated").textContent += " · équipements Domoticz indisponibles";
+                        } else {
+                            $("grid").replaceChildren();
+                            $("empty").classList.remove("hidden");
+                            $("empty").textContent = "La page n’a pas pu récupérer les équipements. Vérifie que tu es connecté à Domoticz et que l’API JSON est accessible depuis cette page.";
+                        }
                     }
                 } finally {
                     if (expectedPageRequestId === state.pageRequestId) $("refresh").disabled = false;
