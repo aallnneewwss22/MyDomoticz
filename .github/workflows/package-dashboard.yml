@@ -50,7 +50,7 @@ jobs:
           ouvre ${dashboard_file}. Vous pouvez conserver les anciennes versions.
           
           Ce ZIP contient les fichiers HTML du tableau de bord uniquement.
-          Le classeur IDX2.xlsx ou IDX2.XLS n'est pas inclus ; conservez-le dans
+          Les classeurs IDX2.xlsx et IDX1.xlsx ne sont pas inclus ; conservez-les dans
           le répertoire templates s'il est utilisé par votre installation.
           EOF
 

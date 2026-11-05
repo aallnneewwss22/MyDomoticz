@@ -135,6 +135,31 @@
             width: auto;
         }
 
+        .page-navigation {
+            display: flex;
+            flex: 0 1 190px;
+            align-items: center;
+            min-width: 130px;
+        }
+
+        .page-navigation select {
+            width: 100%;
+            min-height: 42px;
+            padding: 8px 34px 8px 12px;
+            border: 2px solid var(--button-border);
+            border-radius: 10px;
+            background: var(--panel);
+            color: var(--text);
+            font: inherit;
+            font-weight: 650;
+            cursor: pointer;
+        }
+
+        .page-navigation select:focus-visible {
+            outline: 3px solid var(--accent);
+            outline-offset: 3px;
+        }
+
         .toolbar-button {
             display: inline-grid;
             flex: 0 0 42px;
@@ -196,7 +221,9 @@
 
         /* La boîte des actions doit laisser la place aux trois colonnes de boutons. */
         #actions-dialog {
-            width: min(calc(100vw - 32px), 1100px);
+            width: fit-content;
+            max-width: calc(100vw - 12px);
+            padding: 6px;
             border: 4px solid var(--accent);
             outline: 1px solid var(--text);
             box-shadow: 0 0 0 4px var(--panel), 0 8px 28px #0006;
@@ -210,8 +237,11 @@
         .actions-list {
             display: grid;
             grid-template-columns: repeat(3, max-content);
-            justify-content: center;
-            gap: 9px;
+            justify-content: start;
+            column-gap: 2px;
+            row-gap: 3px;
+            width: max-content;
+            max-width: 100%;
             max-height: min(60vh, 520px);
             overflow-y: auto;
         }
@@ -221,6 +251,8 @@
             max-width: 100%;
             white-space: nowrap;
             text-align: left;
+            padding-left: 6px;
+            padding-right: 6px;
         }
 
         .action-status {
@@ -307,13 +339,13 @@
         .page-body-overlay.is-open {
             display: block;
         }
-        .page-overlay-content { height: 100%; display: flex; flex-direction: column; gap: 12px; padding: clamp(12px, 2vw, 24px); color: var(--text); }
+        .page-overlay-content { height: 100%; display: flex; flex-direction: column; gap: 12px; padding: 4px 0; color: var(--text); }
         .page-overlay-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-        .page-overlay-title { margin: 0; font-size: clamp(1.1rem, 2.2vw, 1.6rem); }
-        .page-overlay-controls { display: flex; flex-wrap: wrap; gap: 8px; }
+        .page-overlay-title { margin: 0; padding-left: 5px; font-size: clamp(1.1rem, 2.2vw, 1.6rem); }
+        .page-overlay-controls { display: flex; flex-wrap: wrap; gap: 8px; padding-right: 5px; }
         .page-overlay-controls button[aria-pressed="true"] { background: var(--button-selected-bg); color: #fff; }
         .page-overlay-chart { flex: 1 1 auto; min-height: 220px; width: 100%; }
-        .page-overlay-status { margin: 0; color: var(--muted); font-size: .9rem; }
+        .page-overlay-status { margin: 0; padding-left: 5px; color: var(--muted); font-size: .9rem; }
         .history-card-header { position: relative; display: block; min-height: 0; height: auto; margin: 0; padding: 0 72px 0 0; line-height: 1; }
         .history-card-header .device-name { display: block; margin: 0; padding: 0; line-height: 1; }
         .history-view-toggle { position: absolute; top: 0; right: 0; display: inline-flex; flex: 0 0 auto; overflow: hidden; border: 1px solid var(--border); border-radius: 9px; }
@@ -366,6 +398,12 @@
             font-size: 1.1rem;
         }
 
+        .device-icon svg {
+            width: 20px;
+            height: 20px;
+            stroke-width: 1.9;
+        }
+
         .device-name {
             overflow-wrap: anywhere;
             font-weight: 700;
@@ -385,6 +423,53 @@
             font-weight: 650;
             line-height: 1.2;
         }
+
+        .binary-state {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 5px;
+            font-size: 1rem;
+            font-weight: 750;
+            letter-spacing: .02em;
+        }
+
+        .binary-state::before {
+            content: "";
+            width: 11px;
+            height: 11px;
+            flex: 0 0 11px;
+            border-radius: 50%;
+            background: var(--muted);
+            box-shadow: inset 0 1px 2px #0003, 0 0 0 2px color-mix(in srgb, var(--muted) 16%, transparent);
+        }
+
+        .binary-state.is-on { color: var(--good); }
+        .binary-state.is-on::before { background: var(--good); box-shadow: inset 0 1px 2px #0003, 0 0 0 2px color-mix(in srgb, var(--good) 18%, transparent); }
+        .binary-state.is-off { color: var(--muted); }
+
+        .switch-toggle {
+            min-width: 76px;
+            min-height: 36px;
+            margin-top: 5px;
+            padding: 5px 15px;
+            border: 1px solid color-mix(in srgb, var(--good) 75%, #000);
+            border-radius: 999px;
+            background: linear-gradient(180deg, #b9f0ce 0%, #79d99e 100%);
+            color: #104d2c;
+            box-shadow: inset 0 1px 0 #ffffffb8, 0 2px 3px #102a1c35;
+            font-weight: 800;
+            letter-spacing: .03em;
+        }
+        .switch-toggle.is-off {
+            border-color: color-mix(in srgb, var(--muted) 65%, #000);
+            background: linear-gradient(180deg, #edf1f7 0%, #cbd5e4 100%);
+            color: #26364d;
+            box-shadow: inset 0 1px 0 #ffffffc9, 0 2px 3px #102a1c2b;
+        }
+        .switch-toggle:hover:not(:disabled) { filter: brightness(1.03); }
+        .switch-toggle:active:not(:disabled) { transform: translateY(1px); box-shadow: inset 0 2px 3px #0002; }
+        .switch-toggle:disabled { opacity: .65; }
 
         .device-meta {
             margin-top: 2px;
@@ -431,6 +516,13 @@
             <div class="statusbar" id="updated">Aucune actualisation effectuée</div>
 
             <div class="toolbar">
+                <label class="page-navigation">
+                    <span class="visually-hidden">Page du tableau de bord</span>
+                    <select id="page-select" aria-label="Page du tableau de bord">
+                        <option value="maison">Maison</option>
+                        <option value="page-2">Page 2</option>
+                    </select>
+                </label>
                 <button id="refresh" class="toolbar-button" type="button"
                         aria-label="Actualiser" title="Actualiser">
                     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -511,6 +603,7 @@
 
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <script>
         (() => {
             "use strict";
@@ -521,11 +614,21 @@
             const REFRESH_STORAGE_KEY = "mydomoticz.refreshIntervalSeconds";
             const THEME_STORAGE_KEY = "mydomoticz.theme";
             const AVAILABLE_THEMES = ["auto", "classic", "dark", "nature", "midnight"];
-            const IDX_FILE_CANDIDATES = ["IDX2.xlsx", "IDX2.XLS", "IDX2.xls", "IDX2.XLSX"];
+            const PAGE_STORAGE_KEY = "mydomoticz.currentPage";
+            // Ajouter une entrée ici pour créer une nouvelle page partageant le même header et les mêmes fonctions.
+            const PAGE_DEFINITIONS = [
+                { id: "maison", label: "Maison", configFiles: ["IDX2.xlsx", "IDX2.XLS", "IDX2.xls", "IDX2.XLSX"] },
+                { id: "page-2", label: "Page 2", configFiles: ["IDX1.xlsx", "IDX1.XLS", "IDX1.xls", "IDX1.XLSX"] }
+            ];
             const HISTORY_RANGES = { day: "24 heures", week: "7 jours", month: "30 jours", year: "1 an" };
             const HISTORY_BUTTON_LABELS = { day: "24 H", week: "7 J", month: "30 J", year: "1 A" };
             let refreshIntervalSeconds = loadRefreshInterval();
-            let selectedTheme = loadTheme();            let refreshTimer = null;            const state = {
+            let selectedTheme = loadTheme();
+            let currentPageId = loadCurrentPageId();
+            let refreshTimer = null;
+            const state = {
+                pageRequestId: 0,
+                pageId: currentPageId,
                 devices: [],
                 displayedIdxs: new Set(),
                 displayedIdxOrder: [],
@@ -559,6 +662,19 @@
                 return "auto";
             }
 
+            function loadCurrentPageId() {
+                try {
+                    const saved = localStorage.getItem(PAGE_STORAGE_KEY);
+                    return PAGE_DEFINITIONS.some((page) => page.id === saved) ? saved : "maison";
+                } catch (error) {
+                    return "maison";
+                }
+            }
+
+            function getCurrentPage() {
+                return PAGE_DEFINITIONS.find((page) => page.id === currentPageId) || PAGE_DEFINITIONS[0];
+            }
+
             function applyTheme(theme) {
                 document.documentElement.dataset.theme = theme;
             }
@@ -567,7 +683,7 @@
                 if (refreshTimer !== null) {
                     clearInterval(refreshTimer);
                 }
-                refreshTimer = setInterval(refreshDevices, refreshIntervalSeconds * 1000);
+                refreshTimer = setInterval(() => refreshDevices(), refreshIntervalSeconds * 1000);
             }
 
             function valueOrFallback(value, fallback = "—") {
@@ -598,24 +714,53 @@
                 return "Autres";
             }
 
-            function getIcon(device) {
+            // La colonne E contient directement un nom Lucide officiel (kebab-case).
+            // Les noms inconnus ou absents retombent sur une icône Lucide générique.
+            function getIcon(device, configuredIcon = "") {
+                const key = String(configuredIcon || "").trim().toLowerCase();
+                if (key) return key;
                 const icons = {
-                    "Climat": "🌡️",
-                    "Énergie": "⚡",
-                    "Commandes et sécurité": "💡",
-                    "Autres": "📟"
+                    "Climat": "thermometer",
+                    "Énergie": "zap",
+                    "Commandes et sécurité": "lightbulb",
+                    "Autres": "activity"
                 };
+                return icons[getCategory(device)] || "house";
+            }
 
-                return icons[getCategory(device)];
+            function createLucideIcon(name) {
+                const icon = document.createElement("i");
+                icon.setAttribute("data-lucide", name || "house");
+                icon.setAttribute("aria-hidden", "true");
+                return icon;
+            }
+
+            function renderLucideIcons() {
+                if (!window.lucide || typeof window.lucide.createIcons !== "function") return;
+                window.lucide.createIcons();
+                // Un nom non reconnu par la version chargée est remplacé par une icône sûre.
+                document.querySelectorAll("[data-lucide]:not(svg)").forEach((element) => {
+                    if (!element.querySelector("svg")) element.setAttribute("data-lucide", "house");
+                });
+                window.lucide.createIcons();
+            }
+
+            function isBinaryOn(device) {
+                const status = String(device.Status ?? device.Data ?? "").trim().toLowerCase();
+                if (["on", "open", "opened", "active", "true", "1"].includes(status)) return true;
+                if (["off", "closed", "inactive", "false", "0"].includes(status)) return false;
+                return Number(device.nValue) === 1;
             }
 
             function isSwitch(device) {
                 return /light|switch|dimmer|blinds|door|contact|security/i.test(device.Type || "");
             }
 
-            function createDeviceCard(device) {
+            function createDeviceCard(device, config = {}) {
                 const card = document.createElement("article");
                 card.className = "device-card";
+                const configuredType = String(config.type || "").trim().toLowerCase();
+                card.dataset.configuredType = configuredType;
 
                 const top = document.createElement("div");
                 top.className = "device-top";
@@ -623,25 +768,40 @@
                 const icon = document.createElement("div");
                 icon.className = "device-icon";
                 icon.setAttribute("aria-hidden", "true");
-                icon.textContent = getIcon(device);
+                icon.append(createLucideIcon(getIcon(device, config.icon)));
 
                 const heading = document.createElement("div");
                 heading.style.minWidth = "0";
 
                 const name = document.createElement("div");
                 name.className = "device-name";
-                name.textContent = valueOrFallback(device.Name, "Équipement sans nom");
+                name.textContent = valueOrFallback(config.label, valueOrFallback(device.Name, "Équipement sans nom"));
 
                 const type = document.createElement("div");
                 type.className = "device-type";
-                type.textContent = `${getCategory(device)} · ${valueOrFallback(device.Type, "Type inconnu")}`;
+                type.textContent = configuredType === "switchv" ? "État binaire" : configuredType === "switcht" ? "Commande" : `${getCategory(device)} · ${valueOrFallback(device.Type, "Type inconnu")}`;
 
                 heading.append(name, type);
                 top.append(icon, heading);
 
-                const value = document.createElement("div");
-                value.className = "device-value";
-                value.textContent = valueOrFallback(device.Data, "Pas de valeur disponible");
+                const value = document.createElement(configuredType === "switcht" ? "button" : "div");
+                value.className = configuredType === "switchv" ? "binary-state" : configuredType === "switcht" ? "switch-toggle" : "device-value";
+                if (configuredType === "switchv") {
+                    const on = isBinaryOn(device);
+                    value.classList.add(on ? "is-on" : "is-off");
+                    value.textContent = on ? "ON" : "OFF";
+                } else if (configuredType === "switcht") {
+                    value.className = "switch-toggle";
+                    const on = isBinaryOn(device);
+                    value.classList.toggle("is-off", !on);
+                    value.textContent = on ? "ON" : "OFF";
+                    value.type = "button";
+                    value.setAttribute("aria-pressed", String(on));
+                    value.setAttribute("aria-label", `${config.label || device.Name} : ${on ? "ON" : "OFF"}. Cliquer pour inverser.`);
+                    value.addEventListener("click", () => toggleConfiguredSwitch(device, config, value));
+                } else {
+                    value.textContent = valueOrFallback(device.Data, "Pas de valeur disponible");
+                }
 
                 const metadata = document.createElement("div");
                 metadata.className = "device-meta";
@@ -684,10 +844,11 @@
                     }
                     const device = devicesByIdx.get(item.idx);
                     if (!device) continue;
-                    items.push(item.type === "temp" || item.type === "counter" ? createHistoryCard(device, item.label, item.defaultView, item.type) : createDeviceCard(device));
+                    items.push(item.type === "temp" || item.type === "counter" ? createHistoryCard(device, item.label, item.defaultView, item.type) : createDeviceCard(device, item));
                     hasRenderedItem = true;
                 }
                 grid.replaceChildren(...items);
+                renderLucideIcons();
                 $("empty").classList.toggle("hidden", items.length > 0);
             }
 
@@ -1018,6 +1179,8 @@
             }
 
             async function fetchDevices() {
+                const displayedIdxs = new Set(state.displayedIdxs);
+                const displayedIdxOrder = [...state.displayedIdxOrder];
                 const endpoints = [
                     "/json.htm?type=devices&filter=all&used=true&order=Name",
                     "/json.htm?type=command&param=getdevices&filter=all&used=true&order=Name"
@@ -1044,7 +1207,7 @@
                             (data.status === "OK" || data.status === undefined)
                         ) {
                             const orderByIdx = new Map(
-                                state.displayedIdxOrder.map((idx, index) => [idx, index])
+                                displayedIdxOrder.map((idx, index) => [idx, index])
                             );
 
                             return data.result
@@ -1052,7 +1215,7 @@
                                     (device) =>
                                         device &&
                                         device.idx !== undefined &&
-                                        state.displayedIdxs.has(String(device.idx))
+                                        displayedIdxs.has(String(device.idx))
                                 )
                                 .sort((a, b) =>
                                     (orderByIdx.get(String(a.idx)) ?? Number.MAX_SAFE_INTEGER) -
@@ -1078,14 +1241,15 @@
                 return /^\d+$/.test(text) ? text : "";
             }
 
-            async function loadDisplayedIdxs() {
+            async function loadDisplayedIdxs(page, pageRequestId) {
                 if (!window.XLSX) {
                     throw new Error("La bibliothèque de lecture Excel n’a pas été chargée. Vérifie l’accès à cdn.jsdelivr.net.");
                 }
 
                 let lastError;
 
-                for (const fileName of IDX_FILE_CANDIDATES) {
+                for (const fileName of page.configFiles) {
+                    if (pageRequestId !== state.pageRequestId) return false;
                     try {
                         const workbookUrl = new URL(fileName, window.location.href);
                         workbookUrl.searchParams.set("_cb", Date.now().toString());
@@ -1094,23 +1258,19 @@
                             credentials: "same-origin",
                             cache: "no-store"
                         });
+                        if (pageRequestId !== state.pageRequestId) return false;
                         if (!response.ok) {
-                            throw new Error(`${fileName} : HTTP ${response.status}`);                        }
+                            throw new Error(`${fileName} : HTTP ${response.status}`);
+                        }
 
                         const workbook = XLSX.read(await response.arrayBuffer(), { type: "array" });
                         const firstSheetName = workbook.SheetNames[0];
-
-                        if (!firstSheetName) {
-                            throw new Error(`${fileName} ne contient aucune feuille.`);
-                        }
+                        if (!firstSheetName) throw new Error(`${fileName} ne contient aucune feuille.`);
 
                         const rows = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheetName], {
-                            header: 1,
-                            raw: true,
-                            defval: null,
-                            blankrows: true
+                            header: 1, raw: true, defval: null, blankrows: true
                         });
-                        // Colonne C : scalaire, VirtualSensorSlot, temp ou counter. Colonne D : mode initial (valeur/historique).
+                        // Colonnes : A=IDX, B=libellé, C=type, D=vue initiale, E=icône.
                         const displayedIdxs = new Set();
                         const displayedIdxOrder = [];
                         const displayedBreakBefore = new Set();
@@ -1121,10 +1281,7 @@
 
                         for (const [rowOrder, row] of rows.entries()) {
                             const isBlankRow = !Array.isArray(row) ||
-                                row.every((cell) =>
-                                    cell === null || cell === undefined || String(cell).trim() === ""
-                                );
-
+                                row.every((cell) => cell === null || cell === undefined || String(cell).trim() === "");
                             if (isBlankRow) {
                                 displayedBreakPending = true;
                                 actionBreakPending = true;
@@ -1133,19 +1290,19 @@
 
                             const idx = normalizeIdx(row?.[0]);
                             if (!idx) continue;
-
                             const marker = String(row?.[2] ?? "").trim().toLocaleLowerCase("fr-FR");
 
                             if (marker === "virtualsensorslot") {
                                 const label = String(row?.[1] ?? "").trim() || `Action ${idx}`;
                                 actions.push({ idx, label, rowOrder, breakBefore: actionBreakPending });
                                 actionBreakPending = false;
-                            } else if ((marker === "scalaire" || marker === "temp" || marker === "counter") && !displayedIdxs.has(idx)) {
+                            } else if (["scalaire", "temp", "counter", "switchv", "switcht"].includes(marker) && !displayedIdxs.has(idx)) {
                                 displayedIdxs.add(idx);
                                 displayedIdxOrder.push(idx);
                                 const configuredView = String(row?.[3] ?? "").trim().toLocaleLowerCase("fr-FR");
                                 const defaultView = configuredView === "historique" ? "history" : "value";
-                                displayItems.push({ idx, type: marker, label: String(row?.[1] ?? "").trim(), defaultView, breakBefore: displayedBreakPending });
+                                const configuredIcon = String(row?.[4] ?? "").trim().toLowerCase();
+                                displayItems.push({ idx, type: marker, label: String(row?.[1] ?? "").trim(), icon: configuredIcon, defaultView, breakBefore: displayedBreakPending });
                                 if (displayedBreakPending) displayedBreakBefore.add(idx);
                                 displayedBreakPending = false;
                             }
@@ -1154,6 +1311,7 @@
                         if (displayedIdxs.size === 0 && actions.length === 0) {
                             throw new Error(`${fileName} ne contient aucun IDX numérique dans la première colonne.`);
                         }
+                        if (pageRequestId !== state.pageRequestId) return false;
 
                         state.displayedIdxs = displayedIdxs;
                         state.displayedIdxOrder = displayedIdxOrder;
@@ -1162,15 +1320,35 @@
                         state.actions = actions;
                         state.idxFileName = fileName;
                         renderActions();
-                        return;
+                        return true;
                     } catch (error) {
                         lastError = error;
                     }
                 }
 
-                throw new Error(
-                    `Impossible de charger IDX2.xlsx / IDX2.XLS à côté de la page. ${lastError?.message || ""}`
-                );
+                throw new Error(`Impossible de charger ${page.configFiles[0]} à côté de la page. ${lastError?.message || ""}`);
+            }
+
+            async function toggleConfiguredSwitch(device, config, button) {
+                const wasOn = isBinaryOn(device);
+                button.disabled = true;
+                const nextCommand = wasOn ? "Off" : "On";
+                button.textContent = "…";
+                try {
+                    const params = new URLSearchParams({ type: "command", param: "switchlight", idx: String(device.idx), switchcmd: nextCommand });
+                    const response = await fetch(`/json.htm?${params.toString()}`, { method: "GET", credentials: "same-origin", cache: "no-store" });
+                    if (!response.ok) throw new Error(`Erreur HTTP ${response.status}`);
+                    const result = await response.json();
+                    if (result?.status && String(result.status).toUpperCase() !== "OK") throw new Error(result.message || "Domoticz a refusé la commande.");
+                    await refreshDevices();
+                    const updated = state.devices.find(item => String(item.idx) === String(device.idx));
+                    if (!updated || isBinaryOn(updated) !== !wasOn) throw new Error("La commande a été acceptée, mais le nouvel état n'est pas encore confirmé.");
+                } catch (error) {
+                    $("updated").textContent = `Commande impossible pour « ${config.label || device.Name} » : ${error.message || "erreur inconnue"}`;
+                    button.textContent = wasOn ? "ON" : "OFF";
+                } finally {
+                    button.disabled = false;
+                }
             }
 
             async function activateDomoticzSwitch(action, button) {
@@ -1215,7 +1393,7 @@
                 if (state.actions.length === 0) {
                     const message = document.createElement("p");
                     message.className = "settings-help";
-                    message.textContent = "Aucune action n'est définie dans la troisième colonne de IDX2.xlsx.";
+                    message.textContent = "Aucune action n'est définie dans la troisième colonne du fichier de configuration.";
                     container.append(message);
                     return;
                 }
@@ -1252,43 +1430,76 @@
                 }
             }
 
-            async function refreshDevices() {
+            async function refreshDevices(expectedPageRequestId = state.pageRequestId) {
+                if (expectedPageRequestId !== state.pageRequestId) return;
                 $("refresh").disabled = true;
-
                 try {
-                    state.devices = await fetchDevices();
+                    const devices = await fetchDevices();
+                    if (expectedPageRequestId !== state.pageRequestId) return;
+                    state.devices = devices;
                     renderDevices();
-
-                    $("updated").textContent =
-                        `Fichier : ${state.idxFileName} · actualisé à ` +
-                        new Date().toLocaleTimeString("fr-FR");
+                    $("updated").textContent = `Fichier : ${state.idxFileName} · actualisé à ` + new Date().toLocaleTimeString("fr-FR");
                 } catch (error) {
+                    if (expectedPageRequestId !== state.pageRequestId) return;
                     $("updated").textContent = valueOrFallback(error?.message, "Erreur inconnue");
-
                     if (state.devices.length === 0) {
                         $("grid").replaceChildren();
                         $("empty").classList.remove("hidden");
-                        $("empty").textContent =
-                            "La page n’a pas pu récupérer les équipements. Vérifie que tu es connecté à Domoticz et que l’API JSON est accessible depuis cette page.";
+                        $("empty").textContent = "La page n’a pas pu récupérer les équipements. Vérifie que tu es connecté à Domoticz et que l’API JSON est accessible depuis cette page.";
                     }
                 } finally {
-                    $("refresh").disabled = false;
+                    if (expectedPageRequestId === state.pageRequestId) $("refresh").disabled = false;
                 }
             }
 
-            async function initializeDashboard() {
+            async function initializeDashboard(pageId = currentPageId) {
+                const page = PAGE_DEFINITIONS.find((item) => item.id === pageId) || PAGE_DEFINITIONS[0];
+                currentPageId = page.id;
+                const pageRequestId = ++state.pageRequestId;
+                state.pageId = page.id;
+                $("page-select").value = page.id;
+                document.title = `${page.label} — Domoticz`;
+                try {
+                    localStorage.setItem(PAGE_STORAGE_KEY, page.id);
+                } catch (error) {
+                    // La sélection reste active pour la session si le stockage local est indisponible.
+                }
+
+                if (refreshTimer !== null) {
+                    clearInterval(refreshTimer);
+                    refreshTimer = null;
+                }
+                if (pageOverlay.classList.contains("is-open")) {
+                    pageOverlay.classList.remove("is-open");
+                    pageOverlay.setAttribute("aria-hidden", "true");
+                    closePageOverlayHistory();
+                }
+
+                state.devices = [];
+                state.displayedIdxs = new Set();
+                state.displayedIdxOrder = [];
+                state.displayedBreakBefore = new Set();
+                state.displayItems = [];
+                state.historyCache.clear();
+                state.actions = [];
+                state.idxFileName = "";
+                $("grid").replaceChildren();
+                $("empty").classList.add("hidden");
+                $("updated").textContent = `Chargement de ${page.configFiles[0]}…`;
                 $("refresh").disabled = true;
+                renderActions();
 
                 try {
-                    await loadDisplayedIdxs();
-                    await refreshDevices();
-                    startAutoRefresh();
+                    const loaded = await loadDisplayedIdxs(page, pageRequestId);
+                    if (!loaded || pageRequestId !== state.pageRequestId) return;
+                    await refreshDevices(pageRequestId);
+                    if (pageRequestId === state.pageRequestId) startAutoRefresh();
                 } catch (error) {
+                    if (pageRequestId !== state.pageRequestId) return;
                     $("updated").textContent = valueOrFallback(error?.message, "Erreur inconnue");
                     $("grid").replaceChildren();
                     $("empty").classList.remove("hidden");
-                    $("empty").textContent =
-                        "Le fichier IDX2.xlsx ou IDX2.XLS n’a pas pu être lu. Place-le dans le même répertoire que cette page HTML et vérifie que la première colonne contient les IDX.";
+                    $("empty").textContent = `Le fichier ${page.configFiles[0]} n’a pas pu être lu. Place-le dans le même répertoire que cette page HTML et vérifie que la première colonne contient les IDX.`;
                     $("refresh").disabled = true;
                 }
             }
@@ -1322,6 +1533,14 @@
                 title.textContent = label;
                 const controls = document.createElement("div");
                 controls.className = "page-overlay-controls";
+                const resetZoomButton = document.createElement("button");
+                resetZoomButton.type = "button";
+                resetZoomButton.textContent = "Réinitialiser le zoom";
+                resetZoomButton.title = "Afficher à nouveau toute la période";
+                resetZoomButton.addEventListener("click", () => {
+                    if (overlayChart) overlayChart.dispatchAction({ type: "dataZoom", start: 0, end: 100 });
+                });
+                controls.append(resetZoomButton);
                 const chartNode = document.createElement("div");
                 chartNode.className = "page-overlay-chart";
                 const status = document.createElement("p");
@@ -1391,7 +1610,14 @@
                         series.push({ name: "Humidité", type: "line", smooth: true, showSymbol: false, data: points.filter(p => p.humidity !== null).map(p => [p.date.replace(" ", "T"), p.humidity]), yAxisIndex: 1 });
                         yAxis.push({ type: "value", name: "%", min: 0, max: 100, position: "right" });
                     }
-                    overlayChart.setOption({ animation: false, tooltip: { trigger: "axis" }, legend: { top: 0, textStyle: { color: getComputedStyle(document.body).color } }, grid: { left: 58, right: yAxis.length > 1 ? 58 : 24, top: 42, bottom: 48 }, xAxis: { type: "time", axisLabel: { formatter: axisLabel } }, yAxis, series });
+                    overlayChart.setOption({ animation: false, tooltip: { trigger: "axis" }, legend: { top: 0, textStyle: { color: getComputedStyle(document.body).color } }, grid: { left: 8, right: yAxis.length > 1 ? 8 : 4, top: 38, bottom: 92, containLabel: true },
+                        xAxis: { type: "time", splitNumber: 12, minorTick: { show: true, splitNumber: 2 }, minorSplitLine: { show: true, lineStyle: { color: "rgba(110, 125, 145, 0.22)", type: "dotted", width: 1 } }, axisLabel: { formatter: axisLabel, rotate: 45, hideOverlap: true }, splitLine: { show: true, lineStyle: { color: "rgba(110, 125, 145, 0.48)", type: "dashed", width: 1.2 } } },
+                        yAxis: yAxis.map(axis => ({ ...axis, splitNumber: 10, minorTick: { show: true, splitNumber: 2 }, minorSplitLine: { show: axis.position !== "right", lineStyle: { color: "rgba(110, 125, 145, 0.22)", type: "dotted", width: 1 } }, splitLine: { show: axis.position !== "right", lineStyle: { color: "rgba(110, 125, 145, 0.48)", type: "dashed", width: 1.2 } } })),
+                        dataZoom: [
+                            { type: "inside", xAxisIndex: 0, filterMode: "none", zoomOnMouseWheel: true, moveOnMouseMove: true, moveOnMouseWheel: false, preventDefaultMouseMove: true, throttle: 50 },
+                            { type: "slider", xAxisIndex: 0, filterMode: "none", height: 44, bottom: 8, showDetail: false, brushSelect: false }
+                        ],
+                        series });
                     status.textContent = `${points.length} mesure(s) · ${HISTORY_RANGES[range]}`;
                 } catch (error) {
                     if (token === overlayRequestToken) status.textContent = `Historique indisponible : ${error.message || "erreur inconnue"}`;
@@ -1424,7 +1650,10 @@
                 }
             }, { passive: false });
 
-            $("refresh").addEventListener("click", refreshDevices);
+            $("refresh").addEventListener("click", () => refreshDevices());
+            $("page-select").addEventListener("change", (event) => {
+                initializeDashboard(event.target.value);
+            });
 
             $("open-actions").addEventListener("click", () => {
                 renderActions();

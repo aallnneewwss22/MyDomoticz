@@ -5,6 +5,13 @@ Ce fichier retrace les évolutions notables de MyDomoticz, de la plus récente �
 ## [Non publié]
 
 ### Ajouté
+- Préparation du mode multi-pages avec un menu déroulant dans le header : **Maison** charge `IDX2.xlsx` et **Page 2** charge `IDX1.xlsx`.
+- Sélection de page mémorisée dans le navigateur ; chaque page recharge indépendamment ses équipements, historiques et actions depuis son propre classeur Excel.
+- Protection contre les réponses asynchrones tardives lors d'un changement de page, afin d'éviter de mélanger les équipements de deux configurations.
+- Création de `maison-dashboard-v67.html`.
+
+
+### Ajouté
 - Prise en charge des équipements `switchV` (état binaire en lecture seule) et `switchT` (bouton ON/OFF commandable) déclarés en troisième colonne de `IDX2.xlsx`.
 - Lecture des états binaires depuis les données des équipements Domoticz ; après une commande `switchT`, relecture de l'état pour confirmer la mise à jour.
 - Colonne E facultative : nom officiel d'une icône Lucide en `kebab-case` (par exemple `lightbulb`, `door-open`, `car-front`, `footprints`, `droplets` ou `thermometer`) ; une valeur vide utilise une icône automatique et un nom inconnu retombe sur `house`.
