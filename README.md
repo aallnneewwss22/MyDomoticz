@@ -2,12 +2,12 @@
 
 Pages web personnalisées pour Domoticz, développées progressivement et versionnées avec Git.
 
-## Tableau de bord — version courante v66
+## Tableau de bord — version courante v67
 
 Le tableau de bord est fourni sous deux fichiers :
 
 - `dashboard/maison.html` : page d'entrée à installer dans le menu **Custom** de Domoticz ;
-- `dashboard/maison-dashboard-v66.html` : version actuelle du tableau de bord autonome, destinée à s'ouvrir dans son propre onglet.
+- `dashboard/maison-dashboard-v67.html` : version actuelle du tableau de bord autonome, destinée à s'ouvrir dans son propre onglet.
 
 Le suffixe `-vN` du tableau de bord fait partie de la stratégie de cache : chaque évolution du tableau de bord crée un nouveau fichier numéroté afin que le navigateur demande une URL différente.
 
@@ -15,7 +15,7 @@ Fonctions du tableau de bord :
 
 - interface responsive pour PC, tablette et smartphone ;
 - consultation en lecture seule des équipements Domoticz ;
-- affichage des équipements dont la troisième colonne de `IDX2.xlsx` ou `IDX2.XLS` contient `main`, dans le même ordre que leurs lignes dans le classeur ;
+- affichage des équipements dont la troisième colonne du classeur associé à la page sélectionnée contient un type reconnu, dans le même ordre que les lignes du classeur ;
 - cartes d'historique de température pour les lignes dont la troisième colonne contient `historique` (sans distinction de casse ni d'espaces superflus), avec périodes 24 heures, 7 jours, 30 jours et 1 an ;
 - boîte de dialogue « Action... » : une ligne dont la troisième colonne contient `VirtualSensorSlot` crée un bouton portant le libellé de la deuxième colonne ; les boutons suivent l'ordre des lignes du classeur, les lignes entièrement vides créent un passage à la rangée suivante, et ils envoient à Domoticz la commande d'activation (`switchcmd=On`) de l'IDX de la première colonne ;
 - actualisation automatique réglable depuis la boîte de dialogue « Paramètres... » (30 secondes par défaut, de 5 secondes à 1 heure) ;
@@ -27,7 +27,9 @@ Les commandes d'activation sont limitées aux IDX déclarés dans les lignes d'a
 
 
 
-### Types d'équipements et icônes dans IDX2.xlsx
+### Types d'équipements et icônes dans les classeurs de page
+
+Chaque page utilise un classeur distinct : `IDX2.xlsx` pour **Maison** et `IDX1.xlsx` pour **Page 2**. Les deux classeurs suivent la même structure et les mêmes règles de configuration.
 
 Le classeur utilise les colonnes suivantes : A = IDX Domoticz, B = libellé affiché, C = type, D = vue initiale (pour les historiques), E = icône facultative.
 
@@ -40,11 +42,17 @@ Valeurs reconnues en colonne C :
 
 La colonne E contient directement le nom officiel d'une icône de la bibliothèque **Lucide**, en minuscules et au format `kebab-case` (sans préfixe ni emoji). Exemples : `thermometer`, `droplets`, `lightbulb`, `door-open`, `car-front`, `footprints`, `lock`, `bell-ring`, `zap`, `camera`, `plug` ou `house`. La colonne peut rester vide : une icône est alors choisie automatiquement selon la catégorie de l'équipement. Si le nom indiqué n'existe pas dans la version Lucide chargée, une icône générique (`house`) est utilisée. La même convention s'applique aux cartes classiques, `switchV` et `switchT`.
 
+## Navigation multi-pages
+
+Le menu déroulant du header permet de sélectionner **Maison** (configuration `IDX2.xlsx`) ou **Page 2** (configuration `IDX1.xlsx`). La page sélectionnée est mémorisée dans le navigateur. Le header, les paramètres, les actions, les cartes, les icônes Lucide et les communications avec Domoticz sont communs ; seuls les équipements et actions chargés depuis le classeur changent. Pour ajouter une page, ajouter une entrée à `PAGE_DEFINITIONS` dans le JavaScript du tableau de bord, avec un identifiant, un libellé et les variantes de nom de son fichier Excel.
+
+Les deux classeurs doivent être placés à côté du HTML dans `/home/pi/domoticz/www/templates`. Ils ne sont pas inclus dans le ZIP, afin de préserver les configurations propres à l'installation.
+
 ## Installation
 
 1. Sauvegarder le répertoire `www/templates` de Domoticz.
 2. Copier `dashboard/maison.html` vers `www/templates/maison.html`.
-3. Copier le dernier fichier numéroté du tableau de bord — actuellement `dashboard/maison-dashboard-v66.html` — vers `www/templates/maison-dashboard-v21.html`, dans le même répertoire.
+3. Copier le dernier fichier numéroté du tableau de bord — actuellement `dashboard/maison-dashboard-v67.html` — vers `www/templates/maison-dashboard-v67.html`, dans le même répertoire.
 4. Activer le menu **Custom** dans les paramètres Domoticz si cette option est disponible dans la version installée.
 5. Recharger l'interface Domoticz puis ouvrir **Custom → maison**.
 
@@ -57,10 +65,10 @@ Le fichier autonome doit rester à côté du lanceur dans `www/templates`, car l
 Lorsqu'une Pull Request modifie le tableau de bord, GitHub Actions construit l'artefact `maison-dashboard-raspberry-pi`. Il contient à la racine du ZIP :
 
 - `maison.html` ;
-- le fichier versionné actuellement référencé par le lanceur, par exemple `maison-dashboard-v66.html` ;
+- le fichier versionné actuellement référencé par le lanceur, par exemple `maison-dashboard-v67.html` ;
 - `LISEZ-MOI.txt`, qui rappelle le chemin de destination et les fichiers à copier.
 
-Pour le récupérer, ouvrir la Pull Request, suivre son exécution dans **Checks** ou **Actions**, puis télécharger l'artefact `maison-dashboard-raspberry-pi` depuis le détail de l'exécution réussie. Décompresser le ZIP et copier les deux fichiers HTML dans `/home/pi/domoticz/www/templates` sur le Raspberry Pi. Le classeur `IDX2.xlsx` ou `IDX2.XLS` n'est pas inclus : il reste à gérer séparément et doit être conservé dans le répertoire s'il est utilisé par l'installation.
+Pour le récupérer, ouvrir la Pull Request, suivre son exécution dans **Checks** ou **Actions**, puis télécharger l'artefact `maison-dashboard-raspberry-pi` depuis le détail de l'exécution réussie. Décompresser le ZIP et copier les deux fichiers HTML dans `/home/pi/domoticz/www/templates` sur le Raspberry Pi. Les classeurs `IDX2.xlsx` et `IDX1.xlsx` ne sont pas inclus : ils restent à gérer séparément et doivent être conservés dans le répertoire `templates`.
 
 L'artefact est temporaire (conservation de 14 jours) et correspond au contenu de la branche de la Pull Request au moment de l'exécution ; attendre la réussite du workflow après les dernières modifications avant de télécharger le ZIP.
 
