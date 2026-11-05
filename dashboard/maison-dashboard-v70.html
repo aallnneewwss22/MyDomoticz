@@ -1821,8 +1821,6 @@
                     const historyButton = card.querySelector('.history-view-toggle button[aria-label="Afficher la courbe d\'historique"]');
                     valueButton?.setAttribute("aria-pressed", "true");
                     historyButton?.setAttribute("aria-pressed", "false");
-                    const idx = card.querySelector(".history-card-header")?.nextElementSibling;
-                    const match = card.querySelector(".history-card-header")?.querySelector(".device-name");
                     const deviceIdx = card.querySelector(".device-type")?.textContent.match(/IDX\\s+(\\d+)/)?.[1];
                     if (deviceIdx) {
                         try {
