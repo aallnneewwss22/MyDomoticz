@@ -4,6 +4,12 @@ Ce fichier retrace les évolutions notables de MyDomoticz, de la plus récente �
 
 ## [Non publié]
 
+### Ajouté
+- Personnalisation du nom affiché de chaque page depuis les paramètres : sélection du fichier IDX, modification du libellé, validation avec `+` et réinitialisation au nom technique.
+- Mémorisation des correspondances dans le navigateur, indépendamment du nom réel du classeur.
+- Création de `maison-dashboard-v69.html`.
+
+
 ### Modifié
 - Découverte automatique des pages au chargement : le dashboard recherche les classeurs `IDX1.xlsx` à `IDX9.xlsx` dans son propre répertoire et construit le menu dans l'ordre numérique.
 - Le nom affiché de chaque page est le nom du classeur sans extension ; les extensions `.xlsx` et `.XLSX` sont acceptées.
