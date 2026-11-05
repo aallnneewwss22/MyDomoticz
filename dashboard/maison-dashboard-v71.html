@@ -135,6 +135,31 @@
             width: auto;
         }
 
+        .page-navigation {
+            display: flex;
+            flex: 0 1 190px;
+            align-items: center;
+            min-width: 130px;
+        }
+
+        .page-navigation select {
+            width: 100%;
+            min-height: 42px;
+            padding: 8px 34px 8px 12px;
+            border: 2px solid var(--button-border);
+            border-radius: 10px;
+            background: var(--panel);
+            color: var(--text);
+            font: inherit;
+            font-weight: 650;
+            cursor: pointer;
+        }
+
+        .page-navigation select:focus-visible {
+            outline: 3px solid var(--accent);
+            outline-offset: 3px;
+        }
+
         .toolbar-button {
             display: inline-grid;
             flex: 0 0 42px;
@@ -196,7 +221,9 @@
 
         /* La boîte des actions doit laisser la place aux trois colonnes de boutons. */
         #actions-dialog {
-            width: min(calc(100vw - 32px), 1100px);
+            width: fit-content;
+            max-width: calc(100vw - 12px);
+            padding: 6px;
             border: 4px solid var(--accent);
             outline: 1px solid var(--text);
             box-shadow: 0 0 0 4px var(--panel), 0 8px 28px #0006;
@@ -210,8 +237,11 @@
         .actions-list {
             display: grid;
             grid-template-columns: repeat(3, max-content);
-            justify-content: center;
-            gap: 9px;
+            justify-content: start;
+            column-gap: 2px;
+            row-gap: 3px;
+            width: max-content;
+            max-width: 100%;
             max-height: min(60vh, 520px);
             overflow-y: auto;
         }
@@ -221,6 +251,8 @@
             max-width: 100%;
             white-space: nowrap;
             text-align: left;
+            padding-left: 6px;
+            padding-right: 6px;
         }
 
         .action-status {
@@ -248,6 +280,54 @@
             border-radius: 9px;
             background: var(--bg);
             color: var(--text);            font: inherit;        }
+
+        .page-name-group {
+            min-width: 0;
+            margin: 2px 0;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: color-mix(in srgb, var(--panel) 82%, var(--bg));
+        }
+
+        .page-name-group legend {
+            display: table;
+            width: auto;
+            margin: 0;
+            padding: 0 8px;
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        .page-name-group .settings-help {
+            line-height: 1.4;
+        }
+
+        .page-name-edit-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 42px 42px;
+            gap: 6px;
+        }
+
+        .page-name-edit-row button {
+            min-height: 42px;
+            padding: 4px;
+            font-size: 1.25rem;
+            line-height: 1;
+        }
+
+        .page-name-save {
+            border-color: var(--good);
+            background: color-mix(in srgb, var(--good) 16%, var(--panel));
+        }
+
+        .page-name-reset {
+            min-width: 42px;
+        }
+
+        .page-name-settings .settings-help {
+            margin-top: 0;
+        }
 
         .settings-help {
             margin: 0;
@@ -366,6 +446,12 @@
             font-size: 1.1rem;
         }
 
+        .device-icon svg {
+            width: 20px;
+            height: 20px;
+            stroke-width: 1.9;
+        }
+
         .device-name {
             overflow-wrap: anywhere;
             font-weight: 700;
@@ -385,6 +471,53 @@
             font-weight: 650;
             line-height: 1.2;
         }
+
+        .binary-state {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 5px;
+            font-size: 1rem;
+            font-weight: 750;
+            letter-spacing: .02em;
+        }
+
+        .binary-state::before {
+            content: "";
+            width: 11px;
+            height: 11px;
+            flex: 0 0 11px;
+            border-radius: 50%;
+            background: var(--muted);
+            box-shadow: inset 0 1px 2px #0003, 0 0 0 2px color-mix(in srgb, var(--muted) 16%, transparent);
+        }
+
+        .binary-state.is-on { color: var(--good); }
+        .binary-state.is-on::before { background: var(--good); box-shadow: inset 0 1px 2px #0003, 0 0 0 2px color-mix(in srgb, var(--good) 18%, transparent); }
+        .binary-state.is-off { color: var(--muted); }
+
+        .switch-toggle {
+            min-width: 76px;
+            min-height: 36px;
+            margin-top: 5px;
+            padding: 5px 15px;
+            border: 1px solid color-mix(in srgb, var(--good) 75%, #000);
+            border-radius: 999px;
+            background: linear-gradient(180deg, #b9f0ce 0%, #79d99e 100%);
+            color: #104d2c;
+            box-shadow: inset 0 1px 0 #ffffffb8, 0 2px 3px #102a1c35;
+            font-weight: 800;
+            letter-spacing: .03em;
+        }
+        .switch-toggle.is-off {
+            border-color: color-mix(in srgb, var(--muted) 65%, #000);
+            background: linear-gradient(180deg, #edf1f7 0%, #cbd5e4 100%);
+            color: #26364d;
+            box-shadow: inset 0 1px 0 #ffffffc9, 0 2px 3px #102a1c2b;
+        }
+        .switch-toggle:hover:not(:disabled) { filter: brightness(1.03); }
+        .switch-toggle:active:not(:disabled) { transform: translateY(1px); box-shadow: inset 0 2px 3px #0002; }
+        .switch-toggle:disabled { opacity: .65; }
 
         .device-meta {
             margin-top: 2px;
@@ -428,9 +561,25 @@
 <body>
     <main>
         <header>
+            <button id="collapse-history-cards" class="toolbar-button" type="button"
+                    aria-label="Afficher les valeurs de toutes les cartes" title="Afficher les valeurs de toutes les cartes">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M8 3v3a2 2 0 0 1-2 2H3"></path>
+                    <path d="M21 8h-3a2 2 0 0 1-2-2V3"></path>
+                    <path d="M3 16h3a2 2 0 0 1 2 2v3"></path>
+                    <path d="M16 21v-3a2 2 0 0 1 2-2h3"></path>
+                </svg>
+                <span class="visually-hidden">Afficher les valeurs de toutes les cartes</span>
+            </button>
             <div class="statusbar" id="updated">Aucune actualisation effectuée</div>
 
             <div class="toolbar">
+                <label class="page-navigation">
+                    <span class="visually-hidden">Page du tableau de bord</span>
+                    <select id="page-select" aria-label="Page du tableau de bord">
+
+                    </select>
+                </label>
                 <button id="refresh" class="toolbar-button" type="button"
                         aria-label="Actualiser" title="Actualiser">
                     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -493,7 +642,24 @@
                         <option value="midnight">Bleu nuit</option>
                     </select>
                 </label>
-                <p class="settings-help">La période et le thème sont mémorisés dans ce navigateur.</p>
+                <fieldset class="settings-field page-name-group">
+                    <legend>Noms des pages</legend>
+                    <label for="page-name-file">Fichier de configuration</label>
+                    <select id="page-name-file" aria-label="Fichier de configuration"></select>
+                    <label for="page-name-input">Nom affiché dans le menu</label>
+                    <div class="page-name-edit-row">
+                        <input id="page-name-input" type="text" maxlength="40"
+                               aria-label="Nom affiché de la page" autocomplete="off">
+                        <button id="save-page-name" type="button" class="page-name-save"
+                                title="Valider ce nom" aria-label="Valider ce nom">+</button>
+                        <button id="reset-page-name" type="button" class="page-name-reset"
+                                title="Revenir au nom du fichier" aria-label="Revenir au nom du fichier">↶</button>
+                    </div>
+                    <p id="page-name-status" class="settings-help" role="status" aria-live="polite">
+                        Sélectionne un fichier, modifie son nom puis valide avec +.
+                    </p>
+                </fieldset>
+                <p class="settings-help">La période, le thème et les noms des pages sont mémorisés dans ce navigateur.</p>
                 <div class="dialog-actions">
                     <button id="cancel-settings" type="button">Annuler</button>
                     <button type="submit">Enregistrer</button>
@@ -511,6 +677,7 @@
 
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <script>
         (() => {
             "use strict";
@@ -521,11 +688,24 @@
             const REFRESH_STORAGE_KEY = "mydomoticz.refreshIntervalSeconds";
             const THEME_STORAGE_KEY = "mydomoticz.theme";
             const AVAILABLE_THEMES = ["auto", "classic", "dark", "nature", "midnight"];
-            const IDX_FILE_CANDIDATES = ["IDX2.xlsx", "IDX2.XLS", "IDX2.xls", "IDX2.XLSX"];
+            const PAGE_STORAGE_KEY = "mydomoticz.currentPage";
+            const PAGE_NAMES_STORAGE_KEY = "mydomoticz.pageNames";
+            // Les pages sont découvertes au démarrage à partir des classeurs IDX1.xlsx à IDX9.xlsx.
+            // Le suffixe .XLSX est également accepté pour les systèmes de fichiers sensibles à la casse.
+            let PAGE_DEFINITIONS = [];
+            const discoveredWorkbookBuffers = new Map();
             const HISTORY_RANGES = { day: "24 heures", week: "7 jours", month: "30 jours", year: "1 an" };
             const HISTORY_BUTTON_LABELS = { day: "24 H", week: "7 J", month: "30 J", year: "1 A" };
             let refreshIntervalSeconds = loadRefreshInterval();
-            let selectedTheme = loadTheme();            let refreshTimer = null;            const state = {
+            let selectedTheme = loadTheme();
+            let savedPageNames = loadPageNames();
+            let draftPageNames = {};
+            let selectedPageNameId = "";
+            let currentPageId = "";
+            let refreshTimer = null;
+            const state = {
+                pageRequestId: 0,
+                pageId: currentPageId,
                 devices: [],
                 displayedIdxs: new Set(),
                 displayedIdxOrder: [],
@@ -559,6 +739,114 @@
                 return "auto";
             }
 
+            function loadPageNames() {
+                try {
+                    const saved = JSON.parse(localStorage.getItem(PAGE_NAMES_STORAGE_KEY) || "{}");
+                    if (!saved || typeof saved !== "object" || Array.isArray(saved)) return {};
+                    return Object.fromEntries(
+                        Object.entries(saved)
+                            .filter(([id, name]) => /^IDX[1-9]$/.test(id) && typeof name === "string" && name.trim())
+                            .map(([id, name]) => [id, name.trim()])
+                    );
+                } catch (error) {
+                    // Les noms techniques des fichiers restent utilisés si le stockage local est indisponible.
+                    return {};
+                }
+            }
+
+            function getPageLabel(page, names = savedPageNames) {
+                const customName = names[page.id];
+                return typeof customName === "string" && customName.trim()
+                    ? customName.trim()
+                    : page.id;
+            }
+
+            function populatePageNameEditor() {
+                draftPageNames = { ...savedPageNames };
+                const fileSelect = $("page-name-file");
+                fileSelect.replaceChildren();
+
+                for (const page of PAGE_DEFINITIONS) {
+                    const option = document.createElement("option");
+                    option.value = page.id;
+                    option.textContent = page.configFiles[0];
+                    fileSelect.append(option);
+                }
+
+                selectedPageNameId = PAGE_DEFINITIONS.some(page => page.id === currentPageId)
+                    ? currentPageId
+                    : (PAGE_DEFINITIONS[0]?.id || "");
+                fileSelect.value = selectedPageNameId;
+                syncPageNameInput();
+            }
+
+            function syncPageNameInput() {
+                const page = PAGE_DEFINITIONS.find(item => item.id === selectedPageNameId);
+                if (!page) return;
+                $("page-name-input").value = draftPageNames[page.id] || page.id;
+                $("reset-page-name").disabled = !draftPageNames[page.id];
+            }
+
+            function updatePageMenuLabels() {
+                const pageSelect = $("page-select");
+                for (const page of PAGE_DEFINITIONS) {
+                    const option = Array.from(pageSelect.options).find(item => item.value === page.id);
+                    if (option) option.textContent = getPageLabel(page);
+                }
+            }
+
+            function loadCurrentPageId() {
+                try {
+                    const saved = localStorage.getItem(PAGE_STORAGE_KEY);
+                    return PAGE_DEFINITIONS.some((page) => page.id === saved) ? saved : (PAGE_DEFINITIONS[0]?.id || "");
+                } catch (error) {
+                    return "maison";
+                }
+            }
+
+            async function discoverPageDefinitions() {
+                const pages = [];
+
+                for (let number = 1; number <= 9; number += 1) {
+                    // Sur Linux, .xlsx et .XLSX sont deux noms distincts : tester les deux.
+                    for (const extension of [".xlsx", ".XLSX"]) {
+                        const fileName = `IDX${number}${extension}`;
+                        const workbookUrl = new URL(fileName, window.location.href);
+                        workbookUrl.searchParams.set("_cb", Date.now().toString());
+
+                        try {
+                            const response = await fetch(workbookUrl, {
+                                credentials: "same-origin",
+                                cache: "no-store"
+                            });
+                            if (!response.ok) continue;
+
+                            const buffer = await response.arrayBuffer();
+                            // Valider le contenu Excel : une réponse HTTP 200 ne suffit pas
+                            // si le serveur renvoie par exemple une page HTML d'erreur.
+                            const workbook = XLSX.read(buffer, { type: "array" });
+                            if (!workbook.SheetNames[0]) continue;
+
+                            discoveredWorkbookBuffers.set(fileName, buffer);
+                            pages.push({
+                                id: `IDX${number}`,
+                                label: `IDX${number}`,
+                                configFiles: [fileName]
+                            });
+                            break;
+                        } catch (error) {
+                            // Fichier absent, illisible ou erreur réseau : essayer l'autre casse.
+                        }
+                    }
+                }
+
+                return pages;
+            }
+
+            function getCurrentPage() {
+                return PAGE_DEFINITIONS.find((page) => page.id === currentPageId) || PAGE_DEFINITIONS[0];
+            }
+
             function applyTheme(theme) {
                 document.documentElement.dataset.theme = theme;
             }
@@ -567,7 +855,7 @@
                 if (refreshTimer !== null) {
                     clearInterval(refreshTimer);
                 }
-                refreshTimer = setInterval(refreshDevices, refreshIntervalSeconds * 1000);
+                refreshTimer = setInterval(() => refreshDevices(), refreshIntervalSeconds * 1000);
             }
 
             function valueOrFallback(value, fallback = "—") {
@@ -598,24 +886,53 @@
                 return "Autres";
             }
 
-            function getIcon(device) {
+            // La colonne E contient directement un nom Lucide officiel (kebab-case).
+            // Les noms inconnus ou absents retombent sur une icône Lucide générique.
+            function getIcon(device, configuredIcon = "") {
+                const key = String(configuredIcon || "").trim().toLowerCase();
+                if (key) return key;
                 const icons = {
-                    "Climat": "🌡️",
-                    "Énergie": "⚡",
-                    "Commandes et sécurité": "💡",
-                    "Autres": "📟"
+                    "Climat": "thermometer",
+                    "Énergie": "zap",
+                    "Commandes et sécurité": "lightbulb",
+                    "Autres": "activity"
                 };
+                return icons[getCategory(device)] || "house";
+            }
 
-                return icons[getCategory(device)];
+            function createLucideIcon(name) {
+                const icon = document.createElement("i");
+                icon.setAttribute("data-lucide", name || "house");
+                icon.setAttribute("aria-hidden", "true");
+                return icon;
+            }
+
+            function renderLucideIcons() {
+                if (!window.lucide || typeof window.lucide.createIcons !== "function") return;
+                window.lucide.createIcons();
+                // Un nom non reconnu par la version chargée est remplacé par une icône sûre.
+                document.querySelectorAll("[data-lucide]:not(svg)").forEach((element) => {
+                    if (!element.querySelector("svg")) element.setAttribute("data-lucide", "house");
+                });
+                window.lucide.createIcons();
+            }
+
+            function isBinaryOn(device) {
+                const status = String(device.Status ?? device.Data ?? "").trim().toLowerCase();
+                if (["on", "open", "opened", "active", "true", "1"].includes(status)) return true;
+                if (["off", "closed", "inactive", "false", "0"].includes(status)) return false;
+                return Number(device.nValue) === 1;
             }
 
             function isSwitch(device) {
                 return /light|switch|dimmer|blinds|door|contact|security/i.test(device.Type || "");
             }
 
-            function createDeviceCard(device) {
+            function createDeviceCard(device, config = {}) {
                 const card = document.createElement("article");
                 card.className = "device-card";
+                const configuredType = String(config.type || "").trim().toLowerCase();
+                card.dataset.configuredType = configuredType;
 
                 const top = document.createElement("div");
                 top.className = "device-top";
@@ -623,25 +940,40 @@
                 const icon = document.createElement("div");
                 icon.className = "device-icon";
                 icon.setAttribute("aria-hidden", "true");
-                icon.textContent = getIcon(device);
+                icon.append(createLucideIcon(getIcon(device, config.icon)));
 
                 const heading = document.createElement("div");
                 heading.style.minWidth = "0";
 
                 const name = document.createElement("div");
                 name.className = "device-name";
-                name.textContent = valueOrFallback(device.Name, "Équipement sans nom");
+                name.textContent = valueOrFallback(config.label, valueOrFallback(device.Name, "Équipement sans nom"));
 
                 const type = document.createElement("div");
                 type.className = "device-type";
-                type.textContent = `${getCategory(device)} · ${valueOrFallback(device.Type, "Type inconnu")}`;
+                type.textContent = configuredType === "switchv" ? "État binaire" : configuredType === "switcht" ? "Commande" : `${getCategory(device)} · ${valueOrFallback(device.Type, "Type inconnu")}`;
 
                 heading.append(name, type);
                 top.append(icon, heading);
 
-                const value = document.createElement("div");
-                value.className = "device-value";
-                value.textContent = valueOrFallback(device.Data, "Pas de valeur disponible");
+                const value = document.createElement(configuredType === "switcht" ? "button" : "div");
+                value.className = configuredType === "switchv" ? "binary-state" : configuredType === "switcht" ? "switch-toggle" : "device-value";
+                if (configuredType === "switchv") {
+                    const on = isBinaryOn(device);
+                    value.classList.add(on ? "is-on" : "is-off");
+                    value.textContent = on ? "ON" : "OFF";
+                } else if (configuredType === "switcht") {
+                    value.className = "switch-toggle";
+                    const on = isBinaryOn(device);
+                    value.classList.toggle("is-off", !on);
+                    value.textContent = on ? "ON" : "OFF";
+                    value.type = "button";
+                    value.setAttribute("aria-pressed", String(on));
+                    value.setAttribute("aria-label", `${config.label || device.Name} : ${on ? "ON" : "OFF"}. Cliquer pour inverser.`);
+                    value.addEventListener("click", () => toggleConfiguredSwitch(device, config, value));
+                } else {
+                    value.textContent = valueOrFallback(device.Data, "Pas de valeur disponible");
+                }
 
                 const metadata = document.createElement("div");
                 metadata.className = "device-meta";
@@ -684,10 +1016,11 @@
                     }
                     const device = devicesByIdx.get(item.idx);
                     if (!device) continue;
-                    items.push(item.type === "temp" || item.type === "counter" ? createHistoryCard(device, item.label, item.defaultView, item.type) : createDeviceCard(device));
+                    items.push(item.type === "temp" || item.type === "counter" ? createHistoryCard(device, item.label, item.defaultView, item.type) : createDeviceCard(device, item));
                     hasRenderedItem = true;
                 }
                 grid.replaceChildren(...items);
+                renderLucideIcons();
                 $("empty").classList.toggle("hidden", items.length > 0);
             }
 
@@ -777,7 +1110,9 @@
                     const opening = !overlay.classList.contains("is-open");
                     if (opening) {
                         const headerBottom = document.querySelector("main > header").getBoundingClientRect().bottom;
-                        overlay.style.setProperty("--page-overlay-top", `${Math.ceil(headerBottom + 12)}px`);
+                        // Si le header a défilé hors de l'écran, ancrer la fenêtre en haut du viewport.
+                        const overlayTop = headerBottom > 0 ? Math.ceil(headerBottom + 12) : 12;
+                        overlay.style.setProperty("--page-overlay-top", `${overlayTop}px`);
                         showPageOverlayHistory(device, sensor, title.textContent);
                     } else {
                         closePageOverlayHistory();
@@ -1018,6 +1353,8 @@
             }
 
             async function fetchDevices() {
+                const displayedIdxs = new Set(state.displayedIdxs);
+                const displayedIdxOrder = [...state.displayedIdxOrder];
                 const endpoints = [
                     "/json.htm?type=devices&filter=all&used=true&order=Name",
                     "/json.htm?type=command&param=getdevices&filter=all&used=true&order=Name"
@@ -1044,7 +1381,7 @@
                             (data.status === "OK" || data.status === undefined)
                         ) {
                             const orderByIdx = new Map(
-                                state.displayedIdxOrder.map((idx, index) => [idx, index])
+                                displayedIdxOrder.map((idx, index) => [idx, index])
                             );
 
                             return data.result
@@ -1052,7 +1389,7 @@
                                     (device) =>
                                         device &&
                                         device.idx !== undefined &&
-                                        state.displayedIdxs.has(String(device.idx))
+                                        displayedIdxs.has(String(device.idx))
                                 )
                                 .sort((a, b) =>
                                     (orderByIdx.get(String(a.idx)) ?? Number.MAX_SAFE_INTEGER) -
@@ -1078,39 +1415,28 @@
                 return /^\d+$/.test(text) ? text : "";
             }
 
-            async function loadDisplayedIdxs() {
+            async function loadDisplayedIdxs(page, pageRequestId) {
                 if (!window.XLSX) {
                     throw new Error("La bibliothèque de lecture Excel n’a pas été chargée. Vérifie l’accès à cdn.jsdelivr.net.");
                 }
 
                 let lastError;
 
-                for (const fileName of IDX_FILE_CANDIDATES) {
+                for (const fileName of page.configFiles) {
+                    if (pageRequestId !== state.pageRequestId) return false;
                     try {
-                        const workbookUrl = new URL(fileName, window.location.href);
-                        workbookUrl.searchParams.set("_cb", Date.now().toString());
+                        if (pageRequestId !== state.pageRequestId) return false;
+                        const workbookBuffer = discoveredWorkbookBuffers.get(fileName);
+                        if (!workbookBuffer) throw new Error(`${fileName} n'a pas été détecté au démarrage.`);
 
-                        const response = await fetch(workbookUrl, {
-                            credentials: "same-origin",
-                            cache: "no-store"
-                        });
-                        if (!response.ok) {
-                            throw new Error(`${fileName} : HTTP ${response.status}`);                        }
-
-                        const workbook = XLSX.read(await response.arrayBuffer(), { type: "array" });
+                        const workbook = XLSX.read(workbookBuffer, { type: "array" });
                         const firstSheetName = workbook.SheetNames[0];
-
-                        if (!firstSheetName) {
-                            throw new Error(`${fileName} ne contient aucune feuille.`);
-                        }
+                        if (!firstSheetName) throw new Error(`${fileName} ne contient aucune feuille.`);
 
                         const rows = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheetName], {
-                            header: 1,
-                            raw: true,
-                            defval: null,
-                            blankrows: true
+                            header: 1, raw: true, defval: null, blankrows: true
                         });
-                        // Colonne C : scalaire, VirtualSensorSlot, temp ou counter. Colonne D : mode initial (valeur/historique).
+                        // Colonnes : A=IDX, B=libellé, C=type, D=vue initiale, E=icône.
                         const displayedIdxs = new Set();
                         const displayedIdxOrder = [];
                         const displayedBreakBefore = new Set();
@@ -1121,10 +1447,7 @@
 
                         for (const [rowOrder, row] of rows.entries()) {
                             const isBlankRow = !Array.isArray(row) ||
-                                row.every((cell) =>
-                                    cell === null || cell === undefined || String(cell).trim() === ""
-                                );
-
+                                row.every((cell) => cell === null || cell === undefined || String(cell).trim() === "");
                             if (isBlankRow) {
                                 displayedBreakPending = true;
                                 actionBreakPending = true;
@@ -1133,19 +1456,19 @@
 
                             const idx = normalizeIdx(row?.[0]);
                             if (!idx) continue;
-
                             const marker = String(row?.[2] ?? "").trim().toLocaleLowerCase("fr-FR");
 
                             if (marker === "virtualsensorslot") {
                                 const label = String(row?.[1] ?? "").trim() || `Action ${idx}`;
                                 actions.push({ idx, label, rowOrder, breakBefore: actionBreakPending });
                                 actionBreakPending = false;
-                            } else if ((marker === "scalaire" || marker === "temp" || marker === "counter") && !displayedIdxs.has(idx)) {
+                            } else if (["scalaire", "temp", "counter", "switchv", "switcht"].includes(marker) && !displayedIdxs.has(idx)) {
                                 displayedIdxs.add(idx);
                                 displayedIdxOrder.push(idx);
                                 const configuredView = String(row?.[3] ?? "").trim().toLocaleLowerCase("fr-FR");
                                 const defaultView = configuredView === "historique" ? "history" : "value";
-                                displayItems.push({ idx, type: marker, label: String(row?.[1] ?? "").trim(), defaultView, breakBefore: displayedBreakPending });
+                                const configuredIcon = String(row?.[4] ?? "").trim().toLowerCase();
+                                displayItems.push({ idx, type: marker, label: String(row?.[1] ?? "").trim(), icon: configuredIcon, defaultView, breakBefore: displayedBreakPending });
                                 if (displayedBreakPending) displayedBreakBefore.add(idx);
                                 displayedBreakPending = false;
                             }
@@ -1154,6 +1477,7 @@
                         if (displayedIdxs.size === 0 && actions.length === 0) {
                             throw new Error(`${fileName} ne contient aucun IDX numérique dans la première colonne.`);
                         }
+                        if (pageRequestId !== state.pageRequestId) return false;
 
                         state.displayedIdxs = displayedIdxs;
                         state.displayedIdxOrder = displayedIdxOrder;
@@ -1162,15 +1486,35 @@
                         state.actions = actions;
                         state.idxFileName = fileName;
                         renderActions();
-                        return;
+                        return true;
                     } catch (error) {
                         lastError = error;
                     }
                 }
 
-                throw new Error(
-                    `Impossible de charger IDX2.xlsx / IDX2.XLS à côté de la page. ${lastError?.message || ""}`
-                );
+                throw new Error(`Impossible de charger ${page.configFiles[0]} à côté de la page. ${lastError?.message || ""}`);
+            }
+
+            async function toggleConfiguredSwitch(device, config, button) {
+                const wasOn = isBinaryOn(device);
+                button.disabled = true;
+                const nextCommand = wasOn ? "Off" : "On";
+                button.textContent = "…";
+                try {
+                    const params = new URLSearchParams({ type: "command", param: "switchlight", idx: String(device.idx), switchcmd: nextCommand });
+                    const response = await fetch(`/json.htm?${params.toString()}`, { method: "GET", credentials: "same-origin", cache: "no-store" });
+                    if (!response.ok) throw new Error(`Erreur HTTP ${response.status}`);
+                    const result = await response.json();
+                    if (result?.status && String(result.status).toUpperCase() !== "OK") throw new Error(result.message || "Domoticz a refusé la commande.");
+                    await refreshDevices();
+                    const updated = state.devices.find(item => String(item.idx) === String(device.idx));
+                    if (!updated || isBinaryOn(updated) !== !wasOn) throw new Error("La commande a été acceptée, mais le nouvel état n'est pas encore confirmé.");
+                } catch (error) {
+                    $("updated").textContent = `Commande impossible pour « ${config.label || device.Name} » : ${error.message || "erreur inconnue"}`;
+                    button.textContent = wasOn ? "ON" : "OFF";
+                } finally {
+                    button.disabled = false;
+                }
             }
 
             async function activateDomoticzSwitch(action, button) {
@@ -1215,7 +1559,7 @@
                 if (state.actions.length === 0) {
                     const message = document.createElement("p");
                     message.className = "settings-help";
-                    message.textContent = "Aucune action n'est définie dans la troisième colonne de IDX2.xlsx.";
+                    message.textContent = "Aucune action n'est définie dans la troisième colonne du fichier de configuration.";
                     container.append(message);
                     return;
                 }
@@ -1252,43 +1596,76 @@
                 }
             }
 
-            async function refreshDevices() {
+            async function refreshDevices(expectedPageRequestId = state.pageRequestId) {
+                if (expectedPageRequestId !== state.pageRequestId) return;
                 $("refresh").disabled = true;
-
                 try {
-                    state.devices = await fetchDevices();
+                    const devices = await fetchDevices();
+                    if (expectedPageRequestId !== state.pageRequestId) return;
+                    state.devices = devices;
                     renderDevices();
-
-                    $("updated").textContent =
-                        `Fichier : ${state.idxFileName} · actualisé à ` +
-                        new Date().toLocaleTimeString("fr-FR");
+                    $("updated").textContent = `Fichier : ${state.idxFileName} · actualisé à ` + new Date().toLocaleTimeString("fr-FR");
                 } catch (error) {
+                    if (expectedPageRequestId !== state.pageRequestId) return;
                     $("updated").textContent = valueOrFallback(error?.message, "Erreur inconnue");
-
                     if (state.devices.length === 0) {
                         $("grid").replaceChildren();
                         $("empty").classList.remove("hidden");
-                        $("empty").textContent =
-                            "La page n’a pas pu récupérer les équipements. Vérifie que tu es connecté à Domoticz et que l’API JSON est accessible depuis cette page.";
+                        $("empty").textContent = "La page n’a pas pu récupérer les équipements. Vérifie que tu es connecté à Domoticz et que l’API JSON est accessible depuis cette page.";
                     }
                 } finally {
-                    $("refresh").disabled = false;
+                    if (expectedPageRequestId === state.pageRequestId) $("refresh").disabled = false;
                 }
             }
 
-            async function initializeDashboard() {
+            async function initializeDashboard(pageId = currentPageId) {
+                const page = PAGE_DEFINITIONS.find((item) => item.id === pageId) || PAGE_DEFINITIONS[0];
+                currentPageId = page.id;
+                const pageRequestId = ++state.pageRequestId;
+                state.pageId = page.id;
+                $("page-select").value = page.id;
+                document.title = `${page.label} — Domoticz`;
+                try {
+                    localStorage.setItem(PAGE_STORAGE_KEY, page.id);
+                } catch (error) {
+                    // La sélection reste active pour la session si le stockage local est indisponible.
+                }
+
+                if (refreshTimer !== null) {
+                    clearInterval(refreshTimer);
+                    refreshTimer = null;
+                }
+                if (pageOverlay.classList.contains("is-open")) {
+                    pageOverlay.classList.remove("is-open");
+                    pageOverlay.setAttribute("aria-hidden", "true");
+                    closePageOverlayHistory();
+                }
+
+                state.devices = [];
+                state.displayedIdxs = new Set();
+                state.displayedIdxOrder = [];
+                state.displayedBreakBefore = new Set();
+                state.displayItems = [];
+                state.historyCache.clear();
+                state.actions = [];
+                state.idxFileName = "";
+                $("grid").replaceChildren();
+                $("empty").classList.add("hidden");
+                $("updated").textContent = `Chargement de ${page.configFiles[0]}…`;
                 $("refresh").disabled = true;
+                renderActions();
 
                 try {
-                    await loadDisplayedIdxs();
-                    await refreshDevices();
-                    startAutoRefresh();
+                    const loaded = await loadDisplayedIdxs(page, pageRequestId);
+                    if (!loaded || pageRequestId !== state.pageRequestId) return;
+                    await refreshDevices(pageRequestId);
+                    if (pageRequestId === state.pageRequestId) startAutoRefresh();
                 } catch (error) {
+                    if (pageRequestId !== state.pageRequestId) return;
                     $("updated").textContent = valueOrFallback(error?.message, "Erreur inconnue");
                     $("grid").replaceChildren();
                     $("empty").classList.remove("hidden");
-                    $("empty").textContent =
-                        "Le fichier IDX2.xlsx ou IDX2.XLS n’a pas pu être lu. Place-le dans le même répertoire que cette page HTML et vérifie que la première colonne contient les IDX.";
+                    $("empty").textContent = `Le fichier ${page.configFiles[0]} n’a pas pu être lu. Place-le dans le même répertoire que cette page HTML et vérifie que la première colonne contient les IDX.`;
                     $("refresh").disabled = true;
                 }
             }
@@ -1439,7 +1816,28 @@
                 }
             }, { passive: false });
 
-            $("refresh").addEventListener("click", refreshDevices);
+            $("collapse-history-cards").addEventListener("click", () => {
+                document.querySelectorAll('.history-card[data-view="history"]').forEach((card) => {
+                    card.dataset.view = "value";
+                    const valueButton = card.querySelector('.history-view-toggle button[aria-label="Afficher la valeur"]');
+                    const historyButton = card.querySelector('.history-view-toggle button[aria-label="Afficher la courbe d\'historique"]');
+                    valueButton?.setAttribute("aria-pressed", "true");
+                    historyButton?.setAttribute("aria-pressed", "false");
+                    const deviceIdx = card.querySelector(".device-type")?.textContent.match(/IDX\s+(\d+)/)?.[1];
+                    if (deviceIdx) {
+                        try {
+                            localStorage.setItem(`domoticz-history-view-${deviceIdx}`, "value");
+                        } catch (error) {
+                            // Le mode valeur reste appliqué pendant cette session.
+                        }
+                    }
+                });
+            });
+
+            $("refresh").addEventListener("click", () => refreshDevices());
+            $("page-select").addEventListener("change", (event) => {
+                initializeDashboard(event.target.value);
+            });
 
             $("open-actions").addEventListener("click", () => {
                 renderActions();
@@ -1450,7 +1848,44 @@
             $("open-settings").addEventListener("click", () => {
                 refreshInput.value = String(refreshIntervalSeconds);
                 themeSelect.value = selectedTheme;
+                populatePageNameEditor();
+                $("page-name-status").textContent = "Sélectionne un fichier, modifie son nom puis valide avec +.";
                 settingsDialog.showModal();
+            });
+
+            $("page-name-file").addEventListener("change", (event) => {
+                selectedPageNameId = event.target.value;
+                syncPageNameInput();
+                $("page-name-status").textContent = "Nom chargé. Tu peux le modifier puis valider avec +.";
+            });
+
+            $("save-page-name").addEventListener("click", () => {
+                const name = $("page-name-input").value.trim();
+                if (!selectedPageNameId || !name) {
+                    $("page-name-input").setCustomValidity("Saisis un nom de page non vide.");
+                    $("page-name-input").reportValidity();
+                    return;
+                }
+
+                $("page-name-input").setCustomValidity("");
+                if (name === selectedPageNameId) {
+                    delete draftPageNames[selectedPageNameId];
+                } else {
+                    draftPageNames[selectedPageNameId] = name;
+                }
+                $("reset-page-name").disabled = !draftPageNames[selectedPageNameId];
+                $("page-name-status").textContent = "Nom validé. Clique sur « Enregistrer » pour appliquer les changements.";
+            });
+
+            $("reset-page-name").addEventListener("click", () => {
+                if (!selectedPageNameId) return;
+                delete draftPageNames[selectedPageNameId];
+                syncPageNameInput();
+                $("page-name-status").textContent = "Nom d'origine restauré. Clique sur « Enregistrer » pour confirmer.";
+            });
+
+            $("page-name-input").addEventListener("input", () => {
+                $("page-name-input").setCustomValidity("");
             });
 
             $("cancel-settings").addEventListener("click", () => settingsDialog.close());
@@ -1472,20 +1907,57 @@
                     ? themeSelect.value
                     : "auto";
                 applyTheme(selectedTheme);
+                savedPageNames = { ...draftPageNames };
                 try {
                     localStorage.setItem(REFRESH_STORAGE_KEY, String(value));
                     localStorage.setItem(THEME_STORAGE_KEY, selectedTheme);
+                    localStorage.setItem(PAGE_NAMES_STORAGE_KEY, JSON.stringify(savedPageNames));
                 } catch (error) {
                     // Les réglages s'appliquent à cette session même si leur mémorisation échoue.
                 }
+                updatePageMenuLabels();
                 startAutoRefresh();
                 settingsDialog.close();
             });
 
             refreshInput.addEventListener("input", () => refreshInput.setCustomValidity(""));
 
+            async function startDashboard() {
+                $("page-select").disabled = true;
+                $("updated").textContent = "Recherche des pages IDX1 à IDX9…";
+
+                try {
+                    PAGE_DEFINITIONS = await discoverPageDefinitions();
+                    const pageSelect = $("page-select");
+                    pageSelect.replaceChildren();
+
+                    if (PAGE_DEFINITIONS.length === 0) {
+                        $("updated").textContent = "Aucun fichier IDX1.xlsx à IDX9.xlsx trouvé.";
+                        $("empty").classList.remove("hidden");
+                        $("empty").textContent = "Place au moins un classeur IDX1.xlsx à IDX9.xlsx dans le même répertoire que cette page HTML.";
+                        $("refresh").disabled = true;
+                        return;
+                    }
+
+                    for (const page of PAGE_DEFINITIONS) {
+                        const option = document.createElement("option");
+                        option.value = page.id;
+                        option.textContent = getPageLabel(page);
+                        pageSelect.append(option);
+                    }
+
+                    pageSelect.disabled = false;
+                    currentPageId = loadCurrentPageId();
+                    await initializeDashboard(currentPageId);
+                } catch (error) {
+                    $("updated").textContent = `Détection des pages impossible : ${error.message || "erreur inconnue"}`;
+                    $("empty").classList.remove("hidden");
+                    $("empty").textContent = "Impossible de rechercher les classeurs IDX1.xlsx à IDX9.xlsx dans le répertoire du dashboard.";
+                }
+            }
+
             applyTheme(selectedTheme);
-            initializeDashboard();
+            startDashboard();
         })();
     </script>
 </body>
