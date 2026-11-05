@@ -1,0 +1,18 @@
+# Exemple go2rtc — à adapter à votre réseau.
+# Ne commitez jamais un fichier contenant vos identifiants ou mots de passe.
+
+api:
+  listen: ":1984"
+
+rtsp:
+  listen: ":8554"
+
+webrtc:
+  listen: ":8555"
+  # Si la découverte automatique ne fonctionne pas, indiquez l'adresse LAN du Raspberry Pi :
+  # candidates:
+  #   - 192.168.1.21:8555
+
+streams:
+  salon: rtsp://UTILISATEUR:MOT_DE_PASSE@192.168.1.50:554/chemin-du-flux
+  entree: rtsp://UTILISATEUR:MOT_DE_PASSE@192.168.1.51:554/chemin-du-flux

@@ -5,6 +5,17 @@ Ce fichier retrace les évolutions notables de MyDomoticz, de la plus récente �
 ## [Non publié]
 
 ### Ajouté
+- Nouveau type de ligne « caméra » dans les classeurs IDX : la colonne A contient le nom du flux go2rtc, la colonne B son libellé et la colonne C le marqueur « caméra ».
+- Cartes vidéo intégrées utilisant le lecteur universel go2rtc (stream.html) avec sélection automatique WebRTC/MSE/HLS.
+- Adresse du serveur go2rtc configurable dans les paramètres du tableau de bord, mémorisée dans le navigateur ; valeur par défaut : même hôte que Domoticz, port 1984.
+- Documentation et exemple de configuration go2rtc sans identifiants réels. Les secrets RTSP restent dans la configuration locale de go2rtc, jamais dans Excel.
+- Création de maison-dashboard-v73.html.
+
+### Modifié
+- Le chargement des classeurs accepte désormais les noms de flux caméra en première colonne, en plus des IDX numériques Domoticz.
+
+
+### Ajouté
 - Personnalisation du nom affiché de chaque page depuis les paramètres : sélection du fichier IDX, modification du libellé, validation avec `+` et réinitialisation au nom technique.
 - Mémorisation des correspondances dans le navigateur, indépendamment du nom réel du classeur.
 - Création de `maison-dashboard-v69.html`.
