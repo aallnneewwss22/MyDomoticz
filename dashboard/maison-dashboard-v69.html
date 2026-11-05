@@ -281,6 +281,25 @@
             background: var(--bg);
             color: var(--text);            font: inherit;        }
 
+        .page-name-group {
+            min-width: 0;
+            margin: 2px 0;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: color-mix(in srgb, var(--panel) 82%, var(--bg));
+        }
+
+        .page-name-group legend {
+            padding: 0 7px;
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        .page-name-group .settings-help {
+            line-height: 1.4;
+        }
+
         .page-name-edit-row {
             display: grid;
             grid-template-columns: minmax(0, 1fr) 42px 42px;
@@ -610,9 +629,11 @@
                         <option value="midnight">Bleu nuit</option>
                     </select>
                 </label>
-                <div class="settings-field page-name-settings">
-                    <label for="page-name-file">Nom des pages</label>
+                <fieldset class="settings-field page-name-group">
+                    <legend>Noms des pages</legend>
+                    <label for="page-name-file">Fichier de configuration</label>
                     <select id="page-name-file" aria-label="Fichier de configuration"></select>
+                    <label for="page-name-input">Nom affiché dans le menu</label>
                     <div class="page-name-edit-row">
                         <input id="page-name-input" type="text" maxlength="40"
                                aria-label="Nom affiché de la page" autocomplete="off">
@@ -624,7 +645,7 @@
                     <p id="page-name-status" class="settings-help" role="status" aria-live="polite">
                         Sélectionne un fichier, modifie son nom puis valide avec +.
                     </p>
-                </div>
+                </fieldset>
                 <p class="settings-help">La période, le thème et les noms des pages sont mémorisés dans ce navigateur.</p>
                 <div class="dialog-actions">
                     <button id="cancel-settings" type="button">Annuler</button>
