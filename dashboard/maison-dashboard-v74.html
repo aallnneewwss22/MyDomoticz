@@ -1136,6 +1136,12 @@
                 const setMode = (nextMode, message) => {
                     mode = nextMode;
                     frame.classList.toggle("is-hidden", mode !== "on");
+                    // Décharger réellement le lecteur dans ce navigateur en arrêt local ou global.
+                    if (mode === "on") {
+                        if (frame.src !== playerUrl.href) frame.src = playerUrl.href;
+                    } else if (frame.src !== "about:blank") {
+                        frame.src = "about:blank";
+                    }
                     for (const [key, button] of Object.entries(buttons)) {
                         button.setAttribute("aria-pressed", String(key === mode));
                         button.disabled = busy;
