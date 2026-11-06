@@ -128,7 +128,7 @@ class Handler(BaseHTTPRequestHandler):
         if not self.authorized():
             return
         parts = urllib.parse.urlsplit(self.path).path.strip("/").split("/")
-        if len(parts) != 4 or parts[:2] != ["api", "cameras"]:
+        if len(parts) != 4 or parts[:2] != ["api", "cameras"] or parts[3] != action:
             self.send_json(404, {"error": "Route inconnue."})
             return
         name = urllib.parse.unquote(parts[2]) if len(parts) == 3 else urllib.parse.unquote(parts[2])
