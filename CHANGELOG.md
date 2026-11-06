@@ -1,5 +1,16 @@
 # Journal des modifications
 
+## [Non publié]
+
+### Ajouté
+- Commande Audio activé / Audio coupé sur chaque carte caméra, avec un état partagé entre tous les navigateurs et conservé sur le Raspberry Pi.
+- Le service auxiliaire bascule l'unique source go2rtc entre le RTSP original (audio activé) et la variante vidéo seule avec #media=video (audio coupé), en recréant le flux actif.
+- Persistance de la préférence audio dans le registre privé des caméras ; un choix fait pendant un arrêt global est appliqué au prochain démarrage.
+- Création de maison-dashboard-v76.html ; les lecteurs vidéo restent préservés pendant les actualisations ordinaires.
+
+### Compatibilité
+- Les caméras déjà enregistrées conservent leur comportement audio actuel après la mise à jour ; l'audio reste activé par défaut jusqu'à une action explicite.
+
 Ce fichier retrace les évolutions notables de MyDomoticz, de la plus récente à la plus ancienne. Il décrit les changements du projet, sans détailler les opérations Git ou les statuts des Pull Requests.
 
 ## [Non publié]
