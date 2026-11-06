@@ -40,6 +40,7 @@ if [[ ! -f "${ETC_DIR}/go2rtc-control.env" ]]; then
   cat > "${ETC_DIR}/go2rtc-control.env" <<EOF
 GO2RTC_API=http://127.0.0.1:1984
 GO2RTC_CONFIG=${CONFIG_PATH}
+SOURCE_REGISTRY=/var/lib/go2rtc-control/cameras.json
 TOKEN_FILE=${ETC_DIR}/token
 DASHBOARD_ORIGIN=${DASHBOARD_ORIGIN}
 CONTROL_HOST=0.0.0.0
@@ -47,15 +48,21 @@ CONTROL_PORT=1985
 EOF
   chown root:"${SERVICE_USER}" "${ETC_DIR}/go2rtc-control.env"
   chmod 0640 "${ETC_DIR}/go2rtc-control.env"
+elif ! grep -q '^SOURCE_REGISTRY=' "${ETC_DIR}/go2rtc-control.env"; then
+  # Upgrade path: preserve the existing token and all current settings.
+  printf '\nSOURCE_REGISTRY=/var/lib/go2rtc-control/cameras.json\n' >> "${ETC_DIR}/go2rtc-control.env"
 fi
 
 systemctl daemon-reload
-systemctl enable --now go2rtc-control.service
+systemctl enable go2rtc-control.service
+systemctl restart go2rtc-control.service
 
 echo
-echo "Service installé et démarré."
+echo "Service installé/mis à jour et démarré."
+echo "Les sources caméra sont copiées une seule fois dans /var/lib/go2rtc-control/cameras.json."
+echo "Le registre est indépendant du YAML go2rtc et n'est jamais réinitialisé lors d'une mise à jour."
 echo "Configuration : ${ETC_DIR}/go2rtc-control.env"
-echo "Jeton à saisir dans les paramètres du tableau de bord :"
+echo "Jeton à saisir dans les paramètres du tableau de bord (inchangé lors d'une mise à jour) :"
 cat "${ETC_DIR}/token"
 echo
 echo "Vérifie que le port TCP 1985 reste limité à ton réseau local."
