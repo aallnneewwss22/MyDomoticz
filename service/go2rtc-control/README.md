@@ -40,6 +40,20 @@ sudo systemctl status go2rtc-control
 sudo journalctl -u go2rtc-control -n 50 --no-pager
 ```
 
+## Commande audio par caméra
+
+Chaque caméra conserve un état audio commun à tous les navigateurs, dans le registre privé /var/lib/go2rtc-control/cameras.json. Le bouton Audio activé / Audio coupé modifie la source du flux go2rtc unique :
+
+- Audio activé : source RTSP originale, sans modification.
+- Audio coupé : ajout de #media=video à la source afin que go2rtc ne récupère que la vidéo.
+- Si le flux est en marche, le service le supprime puis le recrée avec la variante choisie ; le lecteur doit donc se reconnecter.
+- Si le flux est arrêté globalement, le choix est simplement mémorisé et sera appliqué au prochain bouton Marche.
+- Le réglage est partagé entre les navigateurs et survit aux redémarrages du service.
+
+Lors de la mise à jour depuis l'ancienne version, les entrées existantes du registre conservent le comportement audio antérieur (audio activé). Aucun flux existant n'est silencieusement basculé pendant la migration. L'utilisateur peut ensuite désactiver l'audio depuis la carte caméra.
+
+Le paramètre #media=video empêche go2rtc de récupérer le média audio ; il ne garantit pas que le microphone ou l'encodage audio soit physiquement désactivé dans la caméra.
+
 ## Sécurité
 
 - Les identifiants RTSP restent sur le Raspberry Pi, dans le YAML go2rtc et le registre privé ; ils ne sont jamais renvoyés au navigateur par l'API auxiliaire.
