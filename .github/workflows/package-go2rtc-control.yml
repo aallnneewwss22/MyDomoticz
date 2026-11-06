@@ -1,0 +1,43 @@
+name: Package go2rtc control service
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "service/go2rtc-control/**"
+      - ".github/workflows/package-go2rtc-control.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare service archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p package/service
+          cp -R service/go2rtc-control package/service/go2rtc-control
+          cat > package/INSTALLATION.txt <<'EOF'
+          Service auxiliaire de commande go2rtc
+
+          Sur le Raspberry Pi, décompressez cette archive puis exécutez :
+            cd service/go2rtc-control
+            sudo bash install.sh
+
+          Vérifiez les valeurs par défaut et lisez service/go2rtc-control/README.md
+          avant l'installation. Les sources Python sont incluses dans cette archive.
+          EOF
+          (cd package && zip -r ../go2rtc-control-raspberry-pi.zip .)
+      - name: Upload service ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: go2rtc-control-raspberry-pi
+          path: go2rtc-control-raspberry-pi.zip
+          if-no-files-found: error
+          retention-days: 14
