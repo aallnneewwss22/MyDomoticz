@@ -104,6 +104,9 @@
         }
 
         header {
+            position: sticky;
+            top: 0;
+            z-index: 900;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -420,6 +423,22 @@
         .history-status { min-height: 1.3em; margin: 0; color: var(--muted); font-size: .8rem; }
         .history-stats { display: flex; flex-wrap: wrap; gap: 12px; margin-top: -22px; padding-top: 9px; border-top: 1px solid var(--border); color: var(--muted); font-size: .8rem; }
 
+        .camera-card {
+            min-width: 0;
+            overflow: hidden;
+        }
+
+        .camera-card .device-meta { overflow-wrap: anywhere; }
+        .camera-frame {
+            display: block; width: 100%; aspect-ratio: 16 / 9; margin-top: 9px;
+            border: 0; border-radius: 9px; background: #101722;
+        }
+        .camera-frame.is-hidden { display: none; }
+        .camera-controls { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+        .camera-controls button { min-height: 34px; padding: 5px 9px; font-size: .85rem; }
+        .camera-controls button[aria-pressed="true"] { background: var(--button-selected-bg); color: #fff; }
+        .camera-status { min-height: 1.3em; margin: 5px 0 0; color: var(--muted); font-size: .8rem; }
+
         .device-card {
             min-width: 0;
             padding: 9px 15px 10px;
@@ -642,6 +661,24 @@
                         <option value="midnight">Bleu nuit</option>
                     </select>
                 </label>
+                <label class="settings-field" for="go2rtc-url">
+                    <span>Adresse de go2rtc</span>
+                    <input id="go2rtc-url" name="go2rtc-url" type="url" inputmode="url"
+                           placeholder="Automatique : http://adresse-du-Raspberry:1984">
+                    <p class="settings-help">Laisser vide pour utiliser automatiquement le nom d'hôte du serveur Domoticz avec le port 1984.</p>
+                </label>
+                <label class="settings-field" for="camera-control-url">
+                    <span>Adresse du service de commande des caméras</span>
+                    <input id="camera-control-url" name="camera-control-url" type="url" inputmode="url"
+                           placeholder="Automatique : http://adresse-du-Raspberry:1985">
+                    <p class="settings-help">Laisser vide pour utiliser automatiquement le nom d'hôte de Domoticz avec le port 1985.</p>
+                </label>
+                <label class="settings-field" for="camera-control-token">
+                    <span>Jeton d'accès au service caméra</span>
+                    <input id="camera-control-token" name="camera-control-token" type="password"
+                           autocomplete="new-password" placeholder="Coller le jeton fourni lors de l'installation">
+                    <p class="settings-help">Le jeton est mémorisé dans le stockage local de ce navigateur. Il n'est jamais placé dans le classeur IDX.</p>
+                </label>
                 <fieldset class="settings-field page-name-group">
                     <legend>Noms des pages</legend>
                     <label for="page-name-file">Fichier de configuration</label>
@@ -690,6 +727,10 @@
             const AVAILABLE_THEMES = ["auto", "classic", "dark", "nature", "midnight"];
             const PAGE_STORAGE_KEY = "mydomoticz.currentPage";
             const PAGE_NAMES_STORAGE_KEY = "mydomoticz.pageNames";
+            const GO2RTC_STORAGE_KEY = "mydomoticz.go2rtcBaseUrl";
+            const CAMERA_CONTROL_URL_KEY = "mydomoticz.cameraControlUrl";
+            const CAMERA_CONTROL_TOKEN_KEY = "mydomoticz.cameraControlToken";
+            const CAMERA_LOCAL_STOP_PREFIX = "mydomoticz.cameraLocalStop.";
             // Les pages sont découvertes au démarrage à partir des classeurs IDX1.xlsx à IDX9.xlsx.
             // Le suffixe .XLSX est également accepté pour les systèmes de fichiers sensibles à la casse.
             let PAGE_DEFINITIONS = [];
@@ -699,6 +740,7 @@
             let refreshIntervalSeconds = loadRefreshInterval();
             let selectedTheme = loadTheme();
             let savedPageNames = loadPageNames();
+            let go2rtcBaseUrl = loadGo2rtcBaseUrl();
             let draftPageNames = {};
             let selectedPageNameId = "";
             let currentPageId = "";
@@ -737,6 +779,27 @@
                     // Le thème automatique reste disponible si le stockage local est indisponible.
                 }
                 return "auto";
+            }
+
+            function defaultGo2rtcBaseUrl() {
+                return `${window.location.protocol}//${window.location.hostname}:1984`;
+            }
+
+            function normalizeGo2rtcBaseUrl(value) {
+                const candidate = String(value ?? "").trim() || defaultGo2rtcBaseUrl();
+                const parsed = new URL(candidate);
+                if (!["http:", "https:"].includes(parsed.protocol)) {
+                    throw new Error("L'adresse go2rtc doit commencer par http:// ou https://.");
+                }
+                return parsed.origin;
+            }
+
+            function loadGo2rtcBaseUrl() {
+                try {
+                    return normalizeGo2rtcBaseUrl(localStorage.getItem(GO2RTC_STORAGE_KEY) || "");
+                } catch (error) {
+                    return defaultGo2rtcBaseUrl();
+                }
             }
 
             function loadPageNames() {
@@ -1002,10 +1065,151 @@
                 return card;
             }
 
+            function cameraControlBaseUrl() {
+                const saved = localStorage.getItem(CAMERA_CONTROL_URL_KEY) || "";
+                const candidate = saved.trim() || `${window.location.protocol}//${window.location.hostname}:1985`;
+                const parsed = new URL(candidate);
+                if (!["http:", "https:"].includes(parsed.protocol)) throw new Error("Adresse du service caméra invalide.");
+                return parsed.origin;
+            }
+
+            function cameraControlToken() {
+                try { return localStorage.getItem(CAMERA_CONTROL_TOKEN_KEY) || ""; }
+                catch (error) { return ""; }
+            }
+
+            async function cameraControlRequest(stream, action) {
+                const token = cameraControlToken();
+                if (!token) throw new Error("Configure le jeton d'accès dans les paramètres du tableau de bord.");
+                const response = await fetch(`${cameraControlBaseUrl()}/api/cameras/${encodeURIComponent(stream)}/${action}`, {
+                    method: action === "status" ? "GET" : "POST",
+                    headers: { Authorization: `Bearer ${token}` },
+                    cache: "no-store"
+                });
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok) throw new Error(data.error || `Erreur HTTP ${response.status}`);
+                return data;
+            }
+
+            function createCameraCard(config) {
+                const card = document.createElement("article");
+                card.className = "device-card camera-card";
+                card.dataset.cameraStream = config.stream;
+                const top = document.createElement("div");
+                top.className = "device-top";
+                const icon = document.createElement("div");
+                icon.className = "device-icon";
+                icon.setAttribute("aria-hidden", "true");
+                icon.append(createLucideIcon("camera"));
+                const heading = document.createElement("div");
+                heading.style.minWidth = "0";
+                const name = document.createElement("div");
+                name.className = "device-name";
+                name.textContent = config.label || config.stream;
+                const type = document.createElement("div");
+                type.className = "device-type";
+                type.textContent = `Caméra · flux ${config.stream}`;
+                heading.append(name, type);
+                top.append(icon, heading);
+
+                const frame = document.createElement("iframe");
+                frame.className = "camera-frame";
+                frame.title = `Vidéo : ${config.label || config.stream}`;
+                frame.loading = "lazy";
+                frame.allow = "autoplay; fullscreen; picture-in-picture";
+                frame.allowFullscreen = true;
+                frame.referrerPolicy = "no-referrer";
+                const playerUrl = new URL("/stream.html", go2rtcBaseUrl);
+                playerUrl.searchParams.set("src", config.stream);
+                playerUrl.searchParams.set("mode", "webrtc,mse,hls");
+                frame.src = playerUrl.href;
+
+                const controls = document.createElement("div");
+                controls.className = "camera-controls";
+                const status = document.createElement("p");
+                status.className = "camera-status";
+                status.setAttribute("role", "status");
+                status.setAttribute("aria-live", "polite");
+                const buttons = {};
+                let mode = "on";
+                let busy = false;
+
+                const setMode = (nextMode, message) => {
+                    mode = nextMode;
+                    frame.classList.toggle("is-hidden", mode !== "on");
+                    // Décharger réellement le lecteur dans ce navigateur en arrêt local ou global.
+                    if (mode === "on") {
+                        if (frame.src !== playerUrl.href) frame.src = playerUrl.href;
+                    } else if (frame.src !== "about:blank") {
+                        frame.src = "about:blank";
+                    }
+                    for (const [key, button] of Object.entries(buttons)) {
+                        button.setAttribute("aria-pressed", String(key === mode));
+                        button.disabled = busy;
+                    }
+                    status.textContent = message || ({on:"Caméra en marche", local:"Arrêt local : le flux reste actif sur le serveur", global:"Arrêt global : le flux est arrêté sur go2rtc"})[mode];
+                };
+                const runAction = async (action) => {
+                    if (busy) return;
+                    busy = true;
+                    Object.values(buttons).forEach(button => button.disabled = true);
+                    status.textContent = "Commande en cours…";
+                    try {
+                        if (action === "local") {
+                            localStorage.setItem(CAMERA_LOCAL_STOP_PREFIX + config.stream, "1");
+                            setMode("local");
+                        } else if (action === "global") {
+                            await cameraControlRequest(config.stream, "stop");
+                            localStorage.removeItem(CAMERA_LOCAL_STOP_PREFIX + config.stream);
+                            setMode("global");
+                        } else {
+                            const current = await cameraControlRequest(config.stream, "status");
+                            if (!current.enabled) await cameraControlRequest(config.stream, "start");
+                            localStorage.removeItem(CAMERA_LOCAL_STOP_PREFIX + config.stream);
+                            frame.src = playerUrl.href;
+                            setMode("on");
+                        }
+                    } catch (error) {
+                        status.textContent = `Commande impossible : ${error.message || "erreur inconnue"}`;
+                    } finally {
+                        busy = false;
+                        Object.values(buttons).forEach(button => button.disabled = false);
+                    }
+                };
+                for (const [key, label] of [["on","Marche"],["local","Arrêt local"],["global","Arrêt global"]]) {
+                    const button = document.createElement("button");
+                    button.type = "button";
+                    button.textContent = label;
+                    button.addEventListener("click", () => runAction(key));
+                    buttons[key] = button;
+                    controls.append(button);
+                }
+                card.append(top, controls, frame, status);
+                try {
+                    if (localStorage.getItem(CAMERA_LOCAL_STOP_PREFIX + config.stream) === "1") {
+                        setMode("local");
+                    } else {
+                        setMode("on");
+                    }
+                } catch (error) { setMode("on"); }
+                cameraControlRequest(config.stream, "status").then(result => {
+                    if (!result.enabled) setMode("global", "Arrêt global : le flux est arrêté sur go2rtc");
+                }).catch(error => {
+                    status.textContent = `État du service indisponible : ${error.message || "vérifie les paramètres"}`;
+                });
+                return card;
+            }
+
             function renderDevices() {
                 const grid = $("grid");
                 const items = [];
                 const devicesByIdx = new Map(state.devices.map((device) => [String(device.idx), device]));
+                // Réutiliser les cartes caméra déjà montées : retirer une iframe du DOM
+                // détruit son lecteur WebRTC/MSE et provoque une reconnexion au prochain rendu.
+                const existingCameras = new Map(
+                    Array.from(grid.querySelectorAll(".camera-card[data-camera-stream]"))
+                        .map(card => [card.dataset.cameraStream, card])
+                );
                 let hasRenderedItem = false;
                 for (const item of state.displayItems) {
                     if (item.breakBefore && hasRenderedItem) {
@@ -1014,12 +1218,30 @@
                         separator.setAttribute("aria-hidden", "true");
                         items.push(separator);
                     }
+                    if (item.type === "camera") {
+                        const existing = existingCameras.get(item.stream);
+                        items.push(existing || createCameraCard(item));
+                        hasRenderedItem = true;
+                        continue;
+                    }
                     const device = devicesByIdx.get(item.idx);
                     if (!device) continue;
                     items.push(item.type === "temp" || item.type === "counter" ? createHistoryCard(device, item.label, item.defaultView, item.type) : createDeviceCard(device, item));
                     hasRenderedItem = true;
                 }
-                grid.replaceChildren(...items);
+
+                // Réconciliation positionnelle : les cartes caméra restent dans le DOM
+                // lorsque leur emplacement ne change pas. Seules les cartes ordinaires
+                // sont remplacées à chaque actualisation Domoticz.
+                for (let index = 0; index < items.length; index += 1) {
+                    const desired = items[index];
+                    const current = grid.children[index] || null;
+                    if (current !== desired) grid.insertBefore(desired, current);
+                }
+                while (grid.children.length > items.length) {
+                    grid.lastElementChild.remove();
+                }
+
                 renderLucideIcons();
                 $("empty").classList.toggle("hidden", items.length > 0);
             }
@@ -1110,7 +1332,9 @@
                     const opening = !overlay.classList.contains("is-open");
                     if (opening) {
                         const headerBottom = document.querySelector("main > header").getBoundingClientRect().bottom;
-                        overlay.style.setProperty("--page-overlay-top", `${Math.ceil(headerBottom + 12)}px`);
+                        // Si le header a défilé hors de l'écran, ancrer la fenêtre en haut du viewport.
+                        const overlayTop = headerBottom > 0 ? Math.ceil(headerBottom + 12) : 12;
+                        overlay.style.setProperty("--page-overlay-top", `${overlayTop}px`);
                         showPageOverlayHistory(device, sensor, title.textContent);
                     } else {
                         closePageOverlayHistory();
@@ -1404,6 +1628,11 @@
                 throw lastError || new Error("API Domoticz indisponible");
             }
 
+            function normalizeCameraKey(value) {
+                const key = String(value ?? "").trim();
+                return /^[a-zA-Z0-9_.-]{1,80}$/.test(key) ? key : "";
+            }
+
             function normalizeIdx(value) {
                 if (typeof value === "number" && Number.isInteger(value) && value > 0) {
                     return String(value);
@@ -1452,9 +1681,17 @@
                                 continue;
                             }
 
+                            const marker = String(row?.[2] ?? "").trim().toLocaleLowerCase("fr-FR");
+                            if (marker === "caméra" || marker === "camera") {
+                                const stream = normalizeCameraKey(row?.[0]);
+                                if (!stream || displayItems.some((item) => item.type === "camera" && item.stream === stream)) continue;
+                                displayItems.push({ type: "camera", stream, label: String(row?.[1] ?? "").trim(), breakBefore: displayedBreakPending });
+                                displayedBreakPending = false;
+                                continue;
+                            }
+
                             const idx = normalizeIdx(row?.[0]);
                             if (!idx) continue;
-                            const marker = String(row?.[2] ?? "").trim().toLocaleLowerCase("fr-FR");
 
                             if (marker === "virtualsensorslot") {
                                 const label = String(row?.[1] ?? "").trim() || `Action ${idx}`;
@@ -1472,8 +1709,8 @@
                             }
                         }
 
-                        if (displayedIdxs.size === 0 && actions.length === 0) {
-                            throw new Error(`${fileName} ne contient aucun IDX numérique dans la première colonne.`);
+                        if (displayItems.length === 0 && actions.length === 0) {
+                            throw new Error(`${fileName} ne contient aucun équipement, flux caméra ou bouton d'action reconnu.`);
                         }
                         if (pageRequestId !== state.pageRequestId) return false;
 
@@ -1598,6 +1835,12 @@
                 if (expectedPageRequestId !== state.pageRequestId) return;
                 $("refresh").disabled = true;
                 try {
+                    if (state.displayedIdxs.size === 0) {
+                        state.devices = [];
+                        renderDevices();
+                        $("updated").textContent = `Fichier : ${state.idxFileName} · actualisé à ` + new Date().toLocaleTimeString("fr-FR");
+                        return;
+                    }
                     const devices = await fetchDevices();
                     if (expectedPageRequestId !== state.pageRequestId) return;
                     state.devices = devices;
@@ -1607,9 +1850,15 @@
                     if (expectedPageRequestId !== state.pageRequestId) return;
                     $("updated").textContent = valueOrFallback(error?.message, "Erreur inconnue");
                     if (state.devices.length === 0) {
-                        $("grid").replaceChildren();
-                        $("empty").classList.remove("hidden");
-                        $("empty").textContent = "La page n’a pas pu récupérer les équipements. Vérifie que tu es connecté à Domoticz et que l’API JSON est accessible depuis cette page.";
+                        renderDevices();
+                        if (state.displayItems.some((item) => item.type === "camera")) {
+                            $("empty").classList.add("hidden");
+                            $("updated").textContent += " · équipements Domoticz indisponibles";
+                        } else {
+                            $("grid").replaceChildren();
+                            $("empty").classList.remove("hidden");
+                            $("empty").textContent = "La page n’a pas pu récupérer les équipements. Vérifie que tu es connecté à Domoticz et que l’API JSON est accessible depuis cette page.";
+                        }
                     }
                 } finally {
                     if (expectedPageRequestId === state.pageRequestId) $("refresh").disabled = false;
@@ -1663,7 +1912,7 @@
                     $("updated").textContent = valueOrFallback(error?.message, "Erreur inconnue");
                     $("grid").replaceChildren();
                     $("empty").classList.remove("hidden");
-                    $("empty").textContent = `Le fichier ${page.configFiles[0]} n’a pas pu être lu. Place-le dans le même répertoire que cette page HTML et vérifie que la première colonne contient les IDX.`;
+                    $("empty").textContent = `Le fichier ${page.configFiles[0]} n’a pas pu être lu. Place-le dans le même répertoire que cette page HTML et vérifie que la première colonne contient des IDX ou des noms de flux caméra valides.`;
                     $("refresh").disabled = true;
                 }
             }
@@ -1846,6 +2095,9 @@
             $("open-settings").addEventListener("click", () => {
                 refreshInput.value = String(refreshIntervalSeconds);
                 themeSelect.value = selectedTheme;
+                $("go2rtc-url").value = go2rtcBaseUrl === defaultGo2rtcBaseUrl() ? "" : go2rtcBaseUrl;
+                $("camera-control-url").value = localStorage.getItem(CAMERA_CONTROL_URL_KEY) || "";
+                $("camera-control-token").value = cameraControlToken();
                 populatePageNameEditor();
                 $("page-name-status").textContent = "Sélectionne un fichier, modifie son nom puis valide avec +.";
                 settingsDialog.showModal();
@@ -1904,12 +2156,36 @@
                 selectedTheme = AVAILABLE_THEMES.includes(themeSelect.value)
                     ? themeSelect.value
                     : "auto";
+                try {
+                    go2rtcBaseUrl = normalizeGo2rtcBaseUrl($("go2rtc-url").value);
+                } catch (error) {
+                    $("go2rtc-url").setCustomValidity(error.message || "Adresse go2rtc invalide.");
+                    $("go2rtc-url").reportValidity();
+                    return;
+                }
+                $("go2rtc-url").setCustomValidity("");
+                let cameraControlUrl = "";
+                try {
+                    const candidate = $("camera-control-url").value.trim() || `${window.location.protocol}//${window.location.hostname}:1985`;
+                    const parsed = new URL(candidate);
+                    if (!["http:", "https:"].includes(parsed.protocol)) throw new Error("L'adresse du service caméra doit commencer par http:// ou https://.");
+                    cameraControlUrl = parsed.origin;
+                } catch (error) {
+                    $("camera-control-url").setCustomValidity(error.message || "Adresse du service caméra invalide.");
+                    $("camera-control-url").reportValidity();
+                    return;
+                }
+                $("camera-control-url").setCustomValidity("");
                 applyTheme(selectedTheme);
                 savedPageNames = { ...draftPageNames };
                 try {
                     localStorage.setItem(REFRESH_STORAGE_KEY, String(value));
                     localStorage.setItem(THEME_STORAGE_KEY, selectedTheme);
                     localStorage.setItem(PAGE_NAMES_STORAGE_KEY, JSON.stringify(savedPageNames));
+                    localStorage.setItem(GO2RTC_STORAGE_KEY, go2rtcBaseUrl);
+                    localStorage.setItem(CAMERA_CONTROL_URL_KEY, cameraControlUrl);
+                    const enteredToken = $("camera-control-token").value.trim();
+                    if (enteredToken) localStorage.setItem(CAMERA_CONTROL_TOKEN_KEY, enteredToken);
                 } catch (error) {
                     // Les réglages s'appliquent à cette session même si leur mémorisation échoue.
                 }
@@ -1919,6 +2195,7 @@
             });
 
             refreshInput.addEventListener("input", () => refreshInput.setCustomValidity(""));
+            $("go2rtc-url").addEventListener("input", () => $("go2rtc-url").setCustomValidity(""));
 
             async function startDashboard() {
                 $("page-select").disabled = true;
