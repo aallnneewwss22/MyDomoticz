@@ -1,0 +1,21 @@
+[Unit]
+Description=API locale de commande des flux go2rtc
+After=network-online.target go2rtc-test.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+EnvironmentFile=/etc/go2rtc-control/go2rtc-control.env
+ExecStart=/usr/bin/python3 /opt/go2rtc-control/server.py
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target
