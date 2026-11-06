@@ -1,16 +1,16 @@
 # Service de commande go2rtc
 
-Service auxiliaire local permettant au tableau de bord MyDomoticz de commander les flux définis dans le YAML go2rtc.
+Service auxiliaire local permettant au tableau de bord MyDomoticz de commander les flux définis dans go2rtc.
 
 ## Les trois états
 
 - **Marche** : le lecteur vidéo est affiché dans la page.
 - **Arrêt local** : le lecteur est arrêté dans ce navigateur uniquement ; go2rtc continue de fournir le flux.
-- **Arrêt global** : le flux est supprimé de go2rtc. Les autres clients qui l'utilisent peuvent être interrompus, mais le service go2rtc reste actif.
+- **Arrêt global** : le flux ciblé est supprimé de go2rtc. Les autres clients qui l'utilisent peuvent être interrompus, mais le service go2rtc reste actif.
 
-Après un arrêt global, le retour à Marche recrée le flux depuis sa source YAML locale. Seuls les flux déclarés avec une source textuelle simple sont pris en charge.
+**Important :** l'API DELETE de go2rtc retire également la définition du flux de son YAML. Pour éviter toute perte de source, ce service conserve donc une copie privée indépendante des sources caméra dans `/var/lib/go2rtc-control/cameras.json`. L'arrêt global ne supprime jamais cette copie. Le bouton Marche recrée le flux à partir du registre.
 
-## Installation
+## Installation et mise à jour
 
 Depuis le dossier extrait sur le Raspberry Pi :
 
@@ -27,20 +27,24 @@ Pour adapter le chemin YAML ou l'origine du tableau de bord :
 sudo GO2RTC_CONFIG=/chemin/go2rtc.yaml DASHBOARD_ORIGIN=http://192.168.1.21:8080 bash install.sh
 ```
 
-Le script installe `python3-yaml`, déploie le programme dans `/opt/go2rtc-control`, crée un jeton aléatoire dans `/etc/go2rtc-control/token` et active le service systemd. Le jeton s'affiche à la fin : saisis-le dans les paramètres du tableau de bord et conserve-le en lieu sûr.
+Le script installe `python3-yaml`, déploie le programme dans `/opt/go2rtc-control`, crée le jeton dans `/etc/go2rtc-control/token` lors de la première installation, puis redémarre le service.
 
-Le fichier `/etc/go2rtc-control/go2rtc-control.env` n'est créé qu'à la première installation. Après une modification de ce fichier :
+**Migration automatique de l'installation existante :** si le registre indépendant n'existe pas encore, le premier démarrage de cette version copie les sources textuelles actuellement présentes dans le YAML go2rtc vers `/var/lib/go2rtc-control/cameras.json`. Dans ton cas, comme tu as restauré le YAML avant cette mise à jour, cette copie récupérera les sources restaurées. Le registre est ensuite conservé tel quel : une mise à jour ou un redémarrage ne l'écrase pas, même si go2rtc a retiré un flux du YAML.
+
+Le registre contient des URL potentiellement sensibles. Il est stocké sous le répertoire d'état systemd, avec des droits privés (fichier 0600, répertoire 0750), accessible au compte du service. Ne le publie pas et ne le partage pas. Le jeton existant et les paramètres actuels sont conservés lors d'une mise à jour.
+
+Après installation :
 
 ```bash
-sudo systemctl restart go2rtc-control
 sudo systemctl status go2rtc-control
+sudo journalctl -u go2rtc-control -n 50 --no-pager
 ```
 
 ## Sécurité
 
-- Les identifiants RTSP restent dans le YAML local go2rtc ; ils ne sont jamais transmis au navigateur ni renvoyés par l'API auxiliaire.
-- Le jeton autorise l'arrêt et le redémarrage des flux déclarés. Le navigateur le mémorise pour les commandes.
-- Le contrôle CORS de l'origine ne remplace pas le jeton Bearer : les deux protections sont utilisées.
+- Les identifiants RTSP restent sur le Raspberry Pi, dans le YAML go2rtc et le registre privé ; ils ne sont jamais renvoyés au navigateur par l'API auxiliaire.
+- Le jeton Bearer et le contrôle strict de l'origine CORS sont tous deux utilisés.
+- Les sources prises en charge sont les chaînes simples du YAML go2rtc. Les entrées multi-sources/complexes sont ignorées.
 - Limite le port TCP 1985 au réseau local avec le pare-feu. N'expose pas les ports 1984 et 1985 à Internet.
 - L'arrêt global affecte les autres clients utilisant le flux ; l'arrêt local ne concerne que la page courante.
 
