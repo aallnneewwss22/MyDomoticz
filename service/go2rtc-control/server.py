@@ -109,10 +109,10 @@ def load_camera_settings() -> dict[str, dict[str, object]]:
         if not isinstance(name, str) or not STREAM_NAME.fullmatch(name):
             continue
         if isinstance(entry, str) and entry.strip():
-            cameras[name] = {"source": entry.strip(), "audio_enabled": False}
+            cameras[name] = {"source": entry.strip(), "audio_enabled": True}
         elif isinstance(entry, dict):
             source = entry.get("source")
-            audio_enabled = entry.get("audio_enabled", False)
+            audio_enabled = entry.get("audio_enabled", True)
             if isinstance(source, str) and source.strip() and isinstance(audio_enabled, bool):
                 cameras[name] = {"source": source.strip(), "audio_enabled": audio_enabled}
     return cameras
