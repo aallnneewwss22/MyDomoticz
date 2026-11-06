@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Small authenticated control API for locally configured go2rtc streams."""
+"""Authenticated local control API for go2rtc streams."""
 from __future__ import annotations
 
 import json
 import os
 import re
 import secrets
+import tempfile
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -17,6 +18,7 @@ import yaml
 STREAM_NAME = re.compile(r"^[A-Za-z0-9_.-]{1,80}$")
 GO2RTC_API = os.environ.get("GO2RTC_API", "http://127.0.0.1:1984").rstrip("/")
 GO2RTC_CONFIG = Path(os.environ.get("GO2RTC_CONFIG", "/home/pi/go2rtc-test/go2rtc.yaml"))
+SOURCE_REGISTRY = Path(os.environ.get("SOURCE_REGISTRY", "/var/lib/go2rtc-control/cameras.json"))
 TOKEN_FILE = Path(os.environ.get("TOKEN_FILE", "/etc/go2rtc-control/token"))
 DASHBOARD_ORIGIN = os.environ.get("DASHBOARD_ORIGIN", "http://192.168.1.21:8080").rstrip("/")
 CONTROL_HOST = os.environ.get("CONTROL_HOST", "0.0.0.0")
@@ -31,22 +33,73 @@ def read_token() -> str:
     try:
         token = TOKEN_FILE.read_text(encoding="utf-8").strip()
     except OSError as exc:
-        raise RuntimeError(f"Impossible de lire le jeton ({TOKEN_FILE}).") from exc
+        raise RuntimeError("Impossible de lire le jeton d'accès.") from exc
     if len(token) < 32:
-        raise RuntimeError("Le jeton doit contenir au moins 32 caractères.")
+        raise RuntimeError("Le jeton d'accès est invalide.")
     return token
 
 
-def load_sources() -> dict[str, str]:
+def load_go2rtc_sources() -> dict[str, str]:
+    """Read supported simple source strings from go2rtc YAML."""
     try:
         data = yaml.safe_load(GO2RTC_CONFIG.read_text(encoding="utf-8")) or {}
     except (OSError, yaml.YAMLError) as exc:
         raise ControlError("Configuration go2rtc illisible.") from exc
+    if not isinstance(data, dict):
+        raise ControlError("La configuration go2rtc doit être un dictionnaire.")
     streams = data.get("streams", {})
     if not isinstance(streams, dict):
         raise ControlError("La section streams du YAML doit être un dictionnaire.")
     sources: dict[str, str] = {}
     for name, source in streams.items():
+        if isinstance(name, str) and STREAM_NAME.fullmatch(name) and isinstance(source, str) and source.strip():
+            sources[name] = source.strip()
+    return sources
+
+
+def _write_registry_atomically(sources: dict[str, str]) -> None:
+    """Create the private registry without exposing sources in logs or API output."""
+    SOURCE_REGISTRY.parent.mkdir(parents=True, exist_ok=True)
+    fd, temporary_name = tempfile.mkstemp(prefix=".cameras-", dir=str(SOURCE_REGISTRY.parent))
+    temporary = Path(temporary_name)
+    try:
+        os.fchmod(fd, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            json.dump(sources, handle, ensure_ascii=False, indent=2)
+            handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        # The registry is initialized once. Never replace an existing registry:
+        # it may contain sources whose streams were globally stopped.
+        try:
+            os.link(temporary, SOURCE_REGISTRY)
+        except FileExistsError:
+            pass
+    finally:
+        try:
+            temporary.unlink()
+        except FileNotFoundError:
+            pass
+
+
+def ensure_source_registry() -> None:
+    """Migrate YAML sources on first start; preserve registry on every later start."""
+    if SOURCE_REGISTRY.exists():
+        return
+    sources = load_go2rtc_sources()
+    _write_registry_atomically(sources)
+
+
+def load_sources() -> dict[str, str]:
+    """Read the independent registry, never the mutable go2rtc YAML."""
+    try:
+        data = json.loads(SOURCE_REGISTRY.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ControlError("Registre local des caméras illisible.") from exc
+    if not isinstance(data, dict):
+        raise ControlError("Registre local des caméras invalide.")
+    sources: dict[str, str] = {}
+    for name, source in data.items():
         if isinstance(name, str) and STREAM_NAME.fullmatch(name) and isinstance(source, str) and source.strip():
             sources[name] = source.strip()
     return sources
@@ -81,10 +134,10 @@ def stream_exists(name: str) -> bool:
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "go2rtc-control/1.0"
+    server_version = "go2rtc-control/1.1"
 
     def log_message(self, fmt: str, *args: object) -> None:
-        # Ne jamais journaliser les paramètres de requête, qui pourraient contenir une source.
+        # Never log query parameters: a start request contains an RTSP source.
         super().log_message("%s", self.path.split("?", 1)[0])
 
     def send_json(self, status: int, payload: dict[str, object]) -> None:
@@ -105,7 +158,11 @@ class Handler(BaseHTTPRequestHandler):
         if origin and origin != DASHBOARD_ORIGIN:
             self.send_json(403, {"error": "Origine non autorisée."})
             return False
-        expected = "Bearer " + read_token()
+        try:
+            expected = "Bearer " + read_token()
+        except RuntimeError:
+            self.send_json(503, {"error": "Jeton d'accès indisponible."})
+            return False
         supplied = self.headers.get("Authorization", "")
         if not secrets.compare_digest(supplied, expected):
             self.send_json(401, {"error": "Jeton absent ou invalide."})
@@ -131,19 +188,21 @@ class Handler(BaseHTTPRequestHandler):
         if len(parts) != 4 or parts[:2] != ["api", "cameras"] or parts[3] != action:
             self.send_json(404, {"error": "Route inconnue."})
             return
-        name = urllib.parse.unquote(parts[2]) if len(parts) == 3 else urllib.parse.unquote(parts[2])
+        name = urllib.parse.unquote(parts[2])
         if not STREAM_NAME.fullmatch(name):
             self.send_json(400, {"error": "Nom de flux invalide."})
             return
         try:
             sources = load_sources()
             if name not in sources:
-                self.send_json(404, {"error": "Flux absent de la configuration locale."})
+                self.send_json(404, {"error": "Caméra absente du registre local."})
                 return
             if action == "status":
                 self.send_json(200, {"enabled": stream_exists(name)})
                 return
             if action == "stop":
+                # go2rtc DELETE also removes the YAML stream definition.
+                # The independent registry above is deliberately retained.
                 status, _ = go2rtc_request("DELETE", "/api/streams?" + urllib.parse.urlencode({"src": name}))
                 if status not in (200, 204):
                     raise ControlError(f"Arrêt refusé par go2rtc (HTTP {status}).")
@@ -170,4 +229,5 @@ class Handler(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     read_token()
+    ensure_source_registry()
     ThreadingHTTPServer((CONTROL_HOST, CONTROL_PORT), Handler).serve_forever()
