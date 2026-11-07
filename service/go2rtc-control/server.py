@@ -236,7 +236,7 @@ def _ptz_log_exception(operation: str, settings: dict[str, object], exc: Excepti
     config = settings.get("ptz")
     config = config if isinstance(config, dict) else {}
     host = str(config.get("host", "hôte inconnu"))
-    detail = str(exc).replace("\\r", " ").replace("\\n", " ")
+    detail = str(exc).replace(chr(13), " ").replace(chr(10), " ")
     for secret in (config.get("username"), config.get("password")):
         if isinstance(secret, str) and secret:
             detail = detail.replace(secret, "[masqué]")
