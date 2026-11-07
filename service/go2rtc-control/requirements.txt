@@ -1,1 +1,2 @@
 PyYAML>=5.3
+onvif-zeep==0.2.12
