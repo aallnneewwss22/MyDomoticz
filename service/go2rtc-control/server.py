@@ -294,7 +294,7 @@ def ptz_move(settings: dict[str, object], payload: dict[str, object]) -> None:
     # RelativeTranslation uses the camera's normalized GenericTranslation
     # space (-1..1). Keep each joystick tick deliberately small: the browser
     # sends another finite step only while the joystick remains deflected.
-    distance = 0.12 * speed
+    distance = 0.08
     try:
         request = ptz.create_type("RelativeMove")
         request.ProfileToken = profile_token
@@ -358,7 +358,7 @@ def _read_json_body(handler: BaseHTTPRequestHandler) -> dict[str, object]:
     return payload
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "go2rtc-control/1.3"
+    server_version = "go2rtc-control/1.4"
 
     def log_message(self, fmt: str, *args: object) -> None:
         # Never log query parameters: a start request contains an RTSP source.
