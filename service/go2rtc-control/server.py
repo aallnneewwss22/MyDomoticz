@@ -35,6 +35,8 @@ DASHBOARD_ORIGIN = os.environ.get("DASHBOARD_ORIGIN", "http://192.168.1.21:8080"
 CONTROL_HOST = os.environ.get("CONTROL_HOST", "0.0.0.0")
 CONTROL_PORT = int(os.environ.get("CONTROL_PORT", "1985"))
 REGISTRY_LOCK = threading.RLock()
+PTZ_CACHE_LOCK = threading.RLock()
+PTZ_CLIENT_CACHE: dict[tuple[str, int, str, str], tuple[object, str]] = {}
 
 
 class ControlError(Exception):
@@ -209,15 +211,22 @@ def _ptz_connection(settings: dict[str, object]):
     if ONVIFCamera is None: raise ControlError("La bibliothèque ONVIF n'est pas installée sur le Raspberry Pi.")
     config = settings.get("ptz")
     if not isinstance(config, dict): raise ControlError("La connexion ONVIF de cette caméra n'est pas configurée.")
-    try:
-        camera = ONVIFCamera(str(config["host"]), int(config.get("port", 80)), str(config.get("username", "")), str(config.get("password", "")))
-        media = camera.create_media_service()
-        profiles = media.GetProfiles()
-        profile = next((item for item in profiles if getattr(item, "PTZConfiguration", None)), None)
-        if profile is None: raise ControlError("Aucun profil ONVIF avec capacités PTZ n'a été trouvé.")
-        return camera.create_ptz_service(), profile.token
-    except ControlError: raise
-    except Exception as exc: raise ControlError("Connexion ONVIF impossible. Vérifie l'adresse, le port et les identifiants.") from exc
+    key = (str(config["host"]), int(config.get("port", 80)), str(config.get("username", "")), str(config.get("password", "")))
+    with PTZ_CACHE_LOCK:
+        cached = PTZ_CLIENT_CACHE.get(key)
+        if cached is not None:
+            return cached
+        try:
+            camera = ONVIFCamera(key[0], key[1], key[2], key[3])
+            media = camera.create_media_service()
+            profiles = media.GetProfiles()
+            profile = next((item for item in profiles if getattr(item, "PTZConfiguration", None)), None)
+            if profile is None: raise ControlError("Aucun profil ONVIF avec capacités PTZ n'a été trouvé.")
+            result = (camera.create_ptz_service(), profile.token)
+            PTZ_CLIENT_CACHE[key] = result
+            return result
+        except ControlError: raise
+        except Exception as exc: raise ControlError("Connexion ONVIF impossible. Vérifie l'adresse, le port et les identifiants.") from exc
 
 
 def _ptz_float(value: object, name: str, minimum: float = -1.0, maximum: float = 1.0) -> float:
