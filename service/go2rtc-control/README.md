@@ -40,6 +40,14 @@ sudo systemctl status go2rtc-control
 sudo journalctl -u go2rtc-control -n 50 --no-pager
 ```
 
+En cas d'échec d'une commande PTZ, le service consigne désormais l'opération concernée (connexion, `ContinuousMove` ou `Stop`), le type d'exception et le détail technique fourni par ONVIF. Les identifiants configurés sont masqués. Pour suivre les erreurs en direct :
+
+```bash
+sudo journalctl -u go2rtc-control -f
+```
+
+Après un échec de déplacement ou d'arrêt, la session ONVIF correspondante est retirée du cache ; la commande suivante établit donc une nouvelle session au lieu de réutiliser celle qui vient d'échouer.
+
 ## Commande audio par caméra
 
 Chaque caméra conserve un état audio commun à tous les navigateurs, dans le registre privé /var/lib/go2rtc-control/cameras.json. Le bouton Audio activé / Audio coupé modifie la source du flux go2rtc unique :
