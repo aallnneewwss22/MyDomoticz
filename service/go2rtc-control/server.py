@@ -284,19 +284,27 @@ def _ptz_float(value: object, name: str, minimum: float = -1.0, maximum: float =
 
 
 def ptz_move(settings: dict[str, object], payload: dict[str, object]) -> None:
-    ptz, profile_token = _ptz_connection(settings)
-    pan, tilt, zoom = _ptz_float(payload.get("pan", 0), "pan"), _ptz_float(payload.get("tilt", 0), "tilt"), _ptz_float(payload.get("zoom", 0), "zoom")
+    """Send one finite relative pan/tilt step; never rely on ContinuousMove."""
+    pan = _ptz_float(payload.get("pan", 0), "pan")
+    tilt = _ptz_float(payload.get("tilt", 0), "tilt")
     speed = _ptz_float(payload.get("speed", 0.5), "speed", 0.05, 1.0)
+    if abs(pan) < 0.001 and abs(tilt) < 0.001:
+        raise ControlError("Le déplacement demandé est nul.")
+    ptz, profile_token = _ptz_connection(settings)
+    # RelativeTranslation uses the camera's normalized GenericTranslation
+    # space (-1..1). Keep each joystick tick deliberately small: the browser
+    # sends another finite step only while the joystick remains deflected.
+    distance = 0.12 * speed
     try:
-        request = ptz.create_type("ContinuousMove")
+        request = ptz.create_type("RelativeMove")
         request.ProfileToken = profile_token
-        request.Velocity = {"PanTilt": {"x": pan * speed, "y": tilt * speed}, "Zoom": {"x": zoom * speed}}
-        request.Timeout = "PT1S"
-        ptz.ContinuousMove(request)
+        request.Translation = {"PanTilt": {"x": pan * distance, "y": tilt * distance}}
+        request.Speed = {"PanTilt": {"x": speed, "y": speed}}
+        ptz.RelativeMove(request)
     except Exception as exc:
         _ptz_invalidate_cache(settings)
-        _ptz_log_exception("ContinuousMove", settings, exc)
-        raise ControlError("La commande de déplacement PTZ a échoué. Consulte le journal go2rtc-control pour le détail technique.") from exc
+        _ptz_log_exception("RelativeMove", settings, exc)
+        raise ControlError("La commande de déplacement relatif PTZ a échoué. Consulte le journal go2rtc-control pour le détail technique.") from exc
 
 
 def ptz_stop(settings: dict[str, object]) -> None:
