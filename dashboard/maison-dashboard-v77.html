@@ -449,6 +449,7 @@
         .ptz-video-slot .camera-frame { display: block; width: 100%; aspect-ratio: 16 / 9; margin: 0; border-radius: 10px; }
         .ptz-controls-column { display: grid; gap: 12px; min-width: 0; }
         .ptz-config { display: grid; gap: 10px; }
+        .ptz-config input, .ptz-presets select, .ptz-preset-save input { width: 100%; min-height: 40px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font: inherit; }
         .ptz-config[hidden], .ptz-controls[hidden] { display: none !important; }
         .ptz-config h3, .ptz-controls h3 { margin: 0; font-size: 1rem; }
         .ptz-joystick-zone { position: relative; width: min(100%, 300px); height: 250px; margin: 0 auto; border: 1px dashed var(--border); border-radius: 18px; background: color-mix(in srgb, var(--bg) 85%, var(--accent)); touch-action: none; }
@@ -1193,7 +1194,7 @@
                     const now = Date.now();
                     if (now - ptzLastMoveAt < 260) return;
                     ptzLastMoveAt = now;
-                    ptzSendMove(data.vector.x, data.vector.y, 0);
+                    ptzSendMove(data.vector.x, -data.vector.y, 0);
                 });
                 ptzJoystick.on("end", () => ptzStopMovement());
             }
@@ -1276,7 +1277,7 @@
             $("ptz-stop").addEventListener("click", ptzStopMovement);
             function ptzStartZoom(direction) {
                 if (!ptzSession || !ptzSession.configured) return;
-                ptzStopMovement();
+                if (ptzZoomTimer !== null) clearInterval(ptzZoomTimer);
                 ptzSendMove(0, 0, direction);
                 ptzZoomTimer = setInterval(() => ptzSendMove(0, 0, direction), 450);
             }
