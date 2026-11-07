@@ -306,18 +306,6 @@ def ptz_move(settings: dict[str, object], payload: dict[str, object]) -> None:
         raise ControlError("La commande de déplacement relatif PTZ a échoué. Consulte le journal go2rtc-control pour le détail technique.") from exc
 
 
-def ptz_stop(settings: dict[str, object]) -> None:
-    ptz, profile_token = _ptz_connection(settings)
-    try:
-        request = ptz.create_type("Stop")
-        request.ProfileToken, request.PanTilt, request.Zoom = profile_token, True, True
-        ptz.Stop(request)
-    except Exception as exc:
-        _ptz_invalidate_cache(settings)
-        _ptz_log_exception("Stop", settings, exc)
-        raise ControlError("L'arrêt du mouvement PTZ a échoué. Consulte le journal go2rtc-control pour le détail technique.") from exc
-
-
 def ptz_list_presets(settings: dict[str, object]) -> list[dict[str, str]]:
     ptz, profile_token = _ptz_connection(settings)
     try:
@@ -335,16 +323,6 @@ def ptz_goto_preset(settings: dict[str, object], token: str) -> None:
         ptz.GotoPreset({"ProfileToken": profile_token, "PresetToken": token})
     except ControlError: raise
     except Exception as exc: raise ControlError("Le déplacement vers cette position a échoué.") from exc
-
-
-def ptz_save_preset(settings: dict[str, object], name: str) -> dict[str, str]:
-    clean_name = " ".join(name.split()).strip()
-    if not clean_name or len(clean_name) > 40: raise ControlError("Le nom de la position doit contenir entre 1 et 40 caractères.")
-    ptz, profile_token = _ptz_connection(settings)
-    try:
-        token = ptz.SetPreset({"ProfileToken": profile_token, "PresetName": clean_name})
-        return {"token": str(token), "name": clean_name}
-    except Exception as exc: raise ControlError("Impossible d'enregistrer cette position sur la caméra.") from exc
 
 
 def _read_json_body(handler: BaseHTTPRequestHandler) -> dict[str, object]:
@@ -477,10 +455,6 @@ class Handler(BaseHTTPRequestHandler):
                     ptz_move(settings, _read_json_body(self))
                     self.send_json(200, {"ok": True})
                     return
-                if action == "ptz-stop":
-                    ptz_stop(settings)
-                    self.send_json(200, {"ok": True})
-                    return
                 if action == "ptz-presets":
                     self.send_json(200, {"presets": ptz_list_presets(settings)})
                     return
@@ -490,12 +464,6 @@ class Handler(BaseHTTPRequestHandler):
                     if not isinstance(token, str): raise ControlError("Identifiant de position prédéfinie invalide.")
                     ptz_goto_preset(settings, token)
                     self.send_json(200, {"ok": True})
-                    return
-                if action == "ptz-save-preset":
-                    payload = _read_json_body(self)
-                    preset_name = payload.get("name")
-                    if not isinstance(preset_name, str): raise ControlError("Nom de position prédéfinie invalide.")
-                    self.send_json(200, {"preset": ptz_save_preset(settings, preset_name)})
                     return
                 self.send_json(404, {"error": "Action inconnue."})
         except ControlError as exc:
