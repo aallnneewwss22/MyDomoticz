@@ -2,12 +2,12 @@
 
 Pages web personnalisées pour Domoticz, développées progressivement et versionnées avec Git.
 
-## Tableau de bord — version courante v77
+## Tableau de bord — version courante v78
 
 Le tableau de bord est fourni sous deux fichiers :
 
 - `dashboard/maison.html` : page d'entrée à installer dans le menu **Custom** de Domoticz ;
-- `dashboard/maison-dashboard-v77.html` : version actuelle du tableau de bord autonome, destinée à s'ouvrir dans son propre onglet.
+- `dashboard/maison-dashboard-v78.html` : version actuelle du tableau de bord autonome, destinée à s'ouvrir dans son propre onglet.
 
 Le suffixe `-vN` du tableau de bord fait partie de la stratégie de cache : chaque évolution du tableau de bord crée un nouveau fichier numéroté afin que le navigateur demande une URL différente.
 
@@ -15,7 +15,7 @@ Fonctions du tableau de bord :
 
 - interface responsive pour PC, tablette et smartphone ;
 - cartes vidéo intégrées pour les lignes marquées caméra, avec lecture des flux go2rtc (WebRTC puis solutions de repli MSE/HLS) ;
-- panneau de pilotage PTZ par caméra : joystick tactile/souris, vitesse réglable, zoom continu, arrêt immédiat et positions prédéfinies ONVIF ;
+- panneau de pilotage PTZ par caméra : joystick tactile/souris avec déplacements relatifs ONVIF successifs, vitesse réglable, zoom logiciel de l’image (1× à 3×) et positions prédéfinies ONVIF ;
 - consultation en lecture seule des équipements Domoticz ;
 - affichage des équipements dont la troisième colonne du classeur associé à la page sélectionnée contient un type reconnu, dans le même ordre que les lignes du classeur ;
 - cartes d'historique de température pour les lignes dont la troisième colonne contient `historique` (sans distinction de casse ni d'espaces superflus), avec périodes 24 heures, 7 jours, 30 jours et 1 an ;
@@ -70,7 +70,7 @@ Les deux classeurs doivent être placés à côté du HTML dans `/home/pi/domoti
 
 1. Sauvegarder le répertoire `www/templates` de Domoticz.
 2. Copier `dashboard/maison.html` vers `www/templates/maison.html`.
-3. Copier le dernier fichier numéroté du tableau de bord — actuellement `dashboard/maison-dashboard-v77.html` — vers `www/templates/maison-dashboard-v77.html`, dans le même répertoire.
+3. Copier le dernier fichier numéroté du tableau de bord — actuellement `dashboard/maison-dashboard-v78.html` — vers `www/templates/maison-dashboard-v78.html`, dans le même répertoire.
 4. Activer le menu **Custom** dans les paramètres Domoticz si cette option est disponible dans la version installée.
 5. Recharger l'interface Domoticz puis ouvrir **Custom → maison**.
 
@@ -83,7 +83,7 @@ Le fichier autonome doit rester à côté du lanceur dans `www/templates`, car l
 Lorsqu'une Pull Request modifie le tableau de bord, GitHub Actions construit l'artefact `maison-dashboard-raspberry-pi`. Il contient à la racine du ZIP :
 
 - `maison.html` ;
-- le fichier versionné actuellement référencé par le lanceur, par exemple `maison-dashboard-v77.html` ;
+- le fichier versionné actuellement référencé par le lanceur, par exemple `maison-dashboard-v78.html` ;
 - `LISEZ-MOI.txt`, qui rappelle le chemin de destination et les fichiers à copier.
 
 Pour le récupérer, ouvrir la Pull Request, suivre son exécution dans **Checks** ou **Actions**, puis télécharger l'artefact `maison-dashboard-raspberry-pi` depuis le détail de l'exécution réussie. Décompresser le ZIP et copier les deux fichiers HTML dans `/home/pi/domoticz/www/templates` sur le Raspberry Pi. Les classeurs `IDX2.xlsx` et `IDX1.xlsx` ne sont pas inclus : ils restent à gérer séparément et doivent être conservés dans le répertoire `templates`.
