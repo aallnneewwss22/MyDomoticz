@@ -27,7 +27,7 @@ Pour adapter le chemin YAML ou l'origine du tableau de bord :
 sudo GO2RTC_CONFIG=/chemin/go2rtc.yaml DASHBOARD_ORIGIN=http://192.168.1.21:8080 bash install.sh
 ```
 
-Le script installe `python3-yaml`, déploie le programme dans `/opt/go2rtc-control`, crée le jeton dans `/etc/go2rtc-control/token` lors de la première installation, puis redémarre le service.
+Le script installe `python3-yaml`, `python3-zeep` et `python3-pip`, place le client `onvif-zeep` dans un répertoire privé de l'application, déploie le programme dans `/opt/go2rtc-control`, crée le jeton dans `/etc/go2rtc-control/token` lors de la première installation, puis redémarre le service.
 
 **Migration automatique de l'installation existante :** si le registre indépendant n'existe pas encore, le premier démarrage de cette version copie les sources textuelles actuellement présentes dans le YAML go2rtc vers `/var/lib/go2rtc-control/cameras.json`. Dans ton cas, comme tu as restauré le YAML avant cette mise à jour, cette copie récupérera les sources restaurées. Le registre est ensuite conservé tel quel : une mise à jour ou un redémarrage ne l'écrase pas, même si go2rtc a retiré un flux du YAML.
 
@@ -54,9 +54,19 @@ Lors de la mise à jour depuis l'ancienne version, les entrées existantes du re
 
 Le paramètre #media=video empêche go2rtc de récupérer le média audio ; il ne garantit pas que le microphone ou l'encodage audio soit physiquement désactivé dans la caméra.
 
+## Pilotage PTZ ONVIF
+
+Chaque caméra peut recevoir une configuration ONVIF indépendante depuis le panneau PTZ du tableau de bord. L'adresse, le port (80 par défaut), l'identifiant et le mot de passe sont stockés dans le registre privé `/var/lib/go2rtc-control/cameras.json`, avec les sources RTSP et la préférence audio. Les secrets ONVIF ne sont jamais renvoyés par l'API.
+
+Le service utilise `onvif-zeep` pour sélectionner un profil média disposant d'une configuration PTZ, envoyer les commandes `ContinuousMove` et `Stop`, consulter les positions prédéfinies (`GetPresets`), les rappeler (`GotoPreset`) et en mémoriser de nouvelles (`SetPreset`). Les sessions ONVIF sont mises en cache en mémoire pour éviter de refaire la découverte du profil à chaque mouvement du joystick. Les mouvements continus utilisent un délai ONVIF d'une seconde, renouvelé tant que l'utilisateur maintient la commande ; le navigateur envoie également `Stop` au relâchement et à la fermeture du panneau.
+
+Routes authentifiées : `GET ptz-status`, `POST ptz-config`, `POST ptz-move`, `POST ptz-stop`, `GET ptz-presets`, `POST ptz-goto` et `POST ptz-save-preset`, sous `/api/cameras/{flux}/`.
+
+Le port ONVIF est généralement 80, mais certaines caméras utilisent un port différent : renseigne celui qui fonctionne avec ton logiciel de pilotage habituel. La configuration ONVIF est distincte de l'URL RTSP et peut utiliser des identifiants différents.
+
 ## Sécurité
 
-- Les identifiants RTSP restent sur le Raspberry Pi, dans le YAML go2rtc et le registre privé ; ils ne sont jamais renvoyés au navigateur par l'API auxiliaire.
+- Les identifiants RTSP et ONVIF restent sur le Raspberry Pi, dans le YAML go2rtc et le registre privé ; ils ne sont jamais renvoyés au navigateur par l'API auxiliaire.
 - Le jeton Bearer et le contrôle strict de l'origine CORS sont tous deux utilisés.
 - Les sources prises en charge sont les chaînes simples du YAML go2rtc. Les entrées multi-sources/complexes sont ignorées.
 - Limite le port TCP 1985 au réseau local avec le pare-feu. N'expose pas les ports 1984 et 1985 à Internet.
