@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 import secrets
@@ -35,6 +36,7 @@ DASHBOARD_ORIGIN = os.environ.get("DASHBOARD_ORIGIN", "http://192.168.1.21:8080"
 CONTROL_HOST = os.environ.get("CONTROL_HOST", "0.0.0.0")
 CONTROL_PORT = int(os.environ.get("CONTROL_PORT", "1985"))
 REGISTRY_LOCK = threading.RLock()
+LOGGER = logging.getLogger("go2rtc-control.ptz")
 PTZ_CACHE_LOCK = threading.RLock()
 PTZ_CLIENT_CACHE: dict[tuple[str, int, str, str], tuple[object, str]] = {}
 
@@ -207,11 +209,52 @@ def stream_exists(name: str) -> bool:
     return False
 
 
-def _ptz_connection(settings: dict[str, object]):
-    if ONVIFCamera is None: raise ControlError("La bibliothèque ONVIF n'est pas installée sur le Raspberry Pi.")
+def _ptz_cache_key(settings: dict[str, object]) -> tuple[str, int, str, str]:
     config = settings.get("ptz")
-    if not isinstance(config, dict): raise ControlError("La connexion ONVIF de cette caméra n'est pas configurée.")
-    key = (str(config["host"]), int(config.get("port", 80)), str(config.get("username", "")), str(config.get("password", "")))
+    if not isinstance(config, dict):
+        raise ControlError("La connexion ONVIF de cette caméra n'est pas configurée.")
+    return (
+        str(config["host"]),
+        int(config.get("port", 80)),
+        str(config.get("username", "")),
+        str(config.get("password", "")),
+    )
+
+
+def _ptz_invalidate_cache(settings: dict[str, object]) -> None:
+    """Discard a potentially stale ONVIF session after a failed PTZ operation."""
+    try:
+        key = _ptz_cache_key(settings)
+    except (ControlError, KeyError, TypeError, ValueError):
+        return
+    with PTZ_CACHE_LOCK:
+        PTZ_CLIENT_CACHE.pop(key, None)
+
+
+def _ptz_log_exception(operation: str, settings: dict[str, object], exc: Exception) -> None:
+    """Log ONVIF diagnostics without ever exposing configured credentials."""
+    config = settings.get("ptz")
+    config = config if isinstance(config, dict) else {}
+    host = str(config.get("host", "hôte inconnu"))
+    detail = str(exc).replace("\\r", " ").replace("\\n", " ")
+    for secret in (config.get("username"), config.get("password")):
+        if isinstance(secret, str) and secret:
+            detail = detail.replace(secret, "[masqué]")
+    if not detail:
+        detail = "(aucun détail fourni par la bibliothèque ONVIF)"
+    LOGGER.warning(
+        "Échec PTZ %s vers %s (%s) : %s",
+        operation,
+        host,
+        type(exc).__name__,
+        detail[:500],
+    )
+
+
+def _ptz_connection(settings: dict[str, object]):
+    if ONVIFCamera is None:
+        raise ControlError("La bibliothèque ONVIF n'est pas installée sur le Raspberry Pi.")
+    key = _ptz_cache_key(settings)
     with PTZ_CACHE_LOCK:
         cached = PTZ_CLIENT_CACHE.get(key)
         if cached is not None:
@@ -221,12 +264,16 @@ def _ptz_connection(settings: dict[str, object]):
             media = camera.create_media_service()
             profiles = media.GetProfiles()
             profile = next((item for item in profiles if getattr(item, "PTZConfiguration", None)), None)
-            if profile is None: raise ControlError("Aucun profil ONVIF avec capacités PTZ n'a été trouvé.")
+            if profile is None:
+                raise ControlError("Aucun profil ONVIF avec capacités PTZ n'a été trouvé.")
             result = (camera.create_ptz_service(), profile.token)
             PTZ_CLIENT_CACHE[key] = result
             return result
-        except ControlError: raise
-        except Exception as exc: raise ControlError("Connexion ONVIF impossible. Vérifie l'adresse, le port et les identifiants.") from exc
+        except ControlError:
+            raise
+        except Exception as exc:
+            _ptz_log_exception("connexion", settings, exc)
+            raise ControlError("Connexion ONVIF impossible. Consulte le journal go2rtc-control pour le détail technique.") from exc
 
 
 def _ptz_float(value: object, name: str, minimum: float = -1.0, maximum: float = 1.0) -> float:
@@ -246,7 +293,10 @@ def ptz_move(settings: dict[str, object], payload: dict[str, object]) -> None:
         request.Velocity = {"PanTilt": {"x": pan * speed, "y": tilt * speed}, "Zoom": {"x": zoom * speed}}
         request.Timeout = "PT1S"
         ptz.ContinuousMove(request)
-    except Exception as exc: raise ControlError("La commande de déplacement PTZ a échoué.") from exc
+    except Exception as exc:
+        _ptz_invalidate_cache(settings)
+        _ptz_log_exception("ContinuousMove", settings, exc)
+        raise ControlError("La commande de déplacement PTZ a échoué. Consulte le journal go2rtc-control pour le détail technique.") from exc
 
 
 def ptz_stop(settings: dict[str, object]) -> None:
@@ -255,7 +305,10 @@ def ptz_stop(settings: dict[str, object]) -> None:
         request = ptz.create_type("Stop")
         request.ProfileToken, request.PanTilt, request.Zoom = profile_token, True, True
         ptz.Stop(request)
-    except Exception as exc: raise ControlError("L'arrêt du mouvement PTZ a échoué.") from exc
+    except Exception as exc:
+        _ptz_invalidate_cache(settings)
+        _ptz_log_exception("Stop", settings, exc)
+        raise ControlError("L'arrêt du mouvement PTZ a échoué. Consulte le journal go2rtc-control pour le détail technique.") from exc
 
 
 def ptz_list_presets(settings: dict[str, object]) -> list[dict[str, str]]:
