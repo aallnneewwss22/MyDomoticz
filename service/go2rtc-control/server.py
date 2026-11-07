@@ -7,6 +7,7 @@ import os
 import re
 import secrets
 import tempfile
+import threading
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -23,6 +24,7 @@ TOKEN_FILE = Path(os.environ.get("TOKEN_FILE", "/etc/go2rtc-control/token"))
 DASHBOARD_ORIGIN = os.environ.get("DASHBOARD_ORIGIN", "http://192.168.1.21:8080").rstrip("/")
 CONTROL_HOST = os.environ.get("CONTROL_HOST", "0.0.0.0")
 CONTROL_PORT = int(os.environ.get("CONTROL_PORT", "1985"))
+REGISTRY_LOCK = threading.RLock()
 
 
 class ControlError(Exception):
@@ -90,19 +92,79 @@ def ensure_source_registry() -> None:
     _write_registry_atomically(sources)
 
 
-def load_sources() -> dict[str, str]:
-    """Read the independent registry, never the mutable go2rtc YAML."""
+def load_camera_settings() -> dict[str, dict[str, object]]:
+    """Load camera sources and the shared, persistent audio preference.
+
+    Version 1.1 stored each registry value as a source string. Accept that
+    format unchanged and interpret it as audio disabled until the first write.
+    """
     try:
         data = json.loads(SOURCE_REGISTRY.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise ControlError("Registre local des caméras illisible.") from exc
     if not isinstance(data, dict):
         raise ControlError("Registre local des caméras invalide.")
-    sources: dict[str, str] = {}
-    for name, source in data.items():
-        if isinstance(name, str) and STREAM_NAME.fullmatch(name) and isinstance(source, str) and source.strip():
-            sources[name] = source.strip()
-    return sources
+    cameras: dict[str, dict[str, object]] = {}
+    for name, entry in data.items():
+        if not isinstance(name, str) or not STREAM_NAME.fullmatch(name):
+            continue
+        if isinstance(entry, str) and entry.strip():
+            cameras[name] = {"source": entry.strip(), "audio_enabled": True}
+        elif isinstance(entry, dict):
+            source = entry.get("source")
+            audio_enabled = entry.get("audio_enabled", True)
+            if isinstance(source, str) and source.strip() and isinstance(audio_enabled, bool):
+                cameras[name] = {"source": source.strip(), "audio_enabled": audio_enabled}
+    return cameras
+
+
+def load_sources() -> dict[str, str]:
+    """Compatibility helper returning only the original source strings."""
+    return {name: str(settings["source"]) for name, settings in load_camera_settings().items()}
+
+
+def save_camera_settings(cameras: dict[str, dict[str, object]]) -> None:
+    """Persist camera sources and audio preferences atomically with private permissions."""
+    SOURCE_REGISTRY.parent.mkdir(parents=True, exist_ok=True)
+    fd, temporary_name = tempfile.mkstemp(prefix=".cameras-", dir=str(SOURCE_REGISTRY.parent))
+    temporary = Path(temporary_name)
+    try:
+        os.fchmod(fd, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            json.dump(cameras, handle, ensure_ascii=False, indent=2)
+            handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, SOURCE_REGISTRY)
+        os.chmod(SOURCE_REGISTRY, 0o600)
+    finally:
+        try:
+            temporary.unlink()
+        except FileNotFoundError:
+            pass
+
+
+def source_for_audio(source: str, audio_enabled: bool) -> str:
+    """Ask go2rtc for video only when audio is disabled."""
+    if audio_enabled:
+        return source
+    base, separator, fragment = source.partition("#")
+    if not separator:
+        return source + "#media=video"
+    options = [part for part in fragment.split("&") if part and not part.startswith("media=")]
+    options.append("media=video")
+    return base + "#" + "&".join(options)
+
+
+def replace_stream_source(name: str, source: str) -> None:
+    """Replace the one named stream, closing its old RTSP session first."""
+    status, _ = go2rtc_request("DELETE", "/api/streams?" + urllib.parse.urlencode({"src": name}))
+    if status not in (200, 204, 404):
+        raise ControlError(f"Arrêt du flux refusé par go2rtc (HTTP {status}).")
+    query = urllib.parse.urlencode({"name": name, "src": source})
+    status, _ = go2rtc_request("PUT", "/api/streams?" + query)
+    if status not in (200, 201, 204):
+        raise ControlError(f"Création du flux refusée par go2rtc (HTTP {status}).")
 
 
 def go2rtc_request(method: str, path: str) -> tuple[int, object]:
@@ -134,7 +196,7 @@ def stream_exists(name: str) -> bool:
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "go2rtc-control/1.1"
+    server_version = "go2rtc-control/1.2"
 
     def log_message(self, fmt: str, *args: object) -> None:
         # Never log query parameters: a start request contains an RTSP source.
@@ -193,32 +255,57 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(400, {"error": "Nom de flux invalide."})
             return
         try:
-            sources = load_sources()
-            if name not in sources:
-                self.send_json(404, {"error": "Caméra absente du registre local."})
-                return
-            if action == "status":
-                self.send_json(200, {"enabled": stream_exists(name)})
-                return
-            if action == "stop":
-                # go2rtc DELETE also removes the YAML stream definition.
-                # The independent registry above is deliberately retained.
-                status, _ = go2rtc_request("DELETE", "/api/streams?" + urllib.parse.urlencode({"src": name}))
-                if status not in (200, 204):
-                    raise ControlError(f"Arrêt refusé par go2rtc (HTTP {status}).")
-                self.send_json(200, {"enabled": False})
-                return
-            if action == "start":
-                query = urllib.parse.urlencode({"name": name, "src": sources[name]})
-                status, _ = go2rtc_request("PUT", "/api/streams?" + query)
-                if status not in (200, 201, 204):
-                    raise ControlError(f"Redémarrage refusé par go2rtc (HTTP {status}).")
-                self.send_json(200, {"enabled": True})
-                return
-            self.send_json(404, {"error": "Action inconnue."})
+            with REGISTRY_LOCK:
+                cameras = load_camera_settings()
+                if name not in cameras:
+                    self.send_json(404, {"error": "Caméra absente du registre local."})
+                    return
+                settings = cameras[name]
+                source = str(settings["source"])
+                audio_enabled = bool(settings["audio_enabled"])
+                if action == "status":
+                    self.send_json(200, {"enabled": stream_exists(name), "audio_enabled": audio_enabled})
+                    return
+                if action == "stop":
+                    # DELETE also removes the YAML stream definition. The private
+                    # registry remains the source of truth for the next start.
+                    status, _ = go2rtc_request("DELETE", "/api/streams?" + urllib.parse.urlencode({"src": name}))
+                    if status not in (200, 204, 404):
+                        raise ControlError(f"Arrêt refusé par go2rtc (HTTP {status}).")
+                    self.send_json(200, {"enabled": False, "audio_enabled": audio_enabled})
+                    return
+                if action == "start":
+                    replace_stream_source(name, source_for_audio(source, audio_enabled))
+                    self.send_json(200, {"enabled": True, "audio_enabled": audio_enabled})
+                    return
+                if action == "audio":
+                    try:
+                        length = int(self.headers.get("Content-Length", "0"))
+                    except ValueError:
+                        length = 0
+                    if length <= 0 or length > 1024:
+                        self.send_json(400, {"error": "Paramètre audio absent ou invalide."})
+                        return
+                    try:
+                        payload = json.loads(self.rfile.read(length).decode("utf-8"))
+                    except (UnicodeDecodeError, json.JSONDecodeError):
+                        self.send_json(400, {"error": "Corps JSON invalide."})
+                        return
+                    if not isinstance(payload, dict) or not isinstance(payload.get("enabled"), bool):
+                        self.send_json(400, {"error": "Le champ enabled doit être un booléen."})
+                        return
+                    next_audio = payload["enabled"]
+                    if next_audio != audio_enabled:
+                        running = stream_exists(name)
+                        if running:
+                            replace_stream_source(name, source_for_audio(source, next_audio))
+                        settings["audio_enabled"] = next_audio
+                        save_camera_settings(cameras)
+                    self.send_json(200, {"enabled": stream_exists(name), "audio_enabled": next_audio})
+                    return
+                self.send_json(404, {"error": "Action inconnue."})
         except ControlError as exc:
             self.send_json(502, {"error": str(exc)})
-
     def do_GET(self) -> None:
         self.handle_camera("status")
 

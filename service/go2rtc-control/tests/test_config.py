@@ -69,5 +69,49 @@ class SourceRegistryTests(unittest.TestCase):
         self.assertEqual(module.load_sources(), {})
 
 
+class CameraAudioSettingsTests(unittest.TestCase):
+    def setUp(self):
+        self.directory = tempfile.TemporaryDirectory()
+        self.old_registry = module.SOURCE_REGISTRY
+        module.SOURCE_REGISTRY = Path(self.directory.name) / "cameras.json"
+
+    def tearDown(self):
+        module.SOURCE_REGISTRY = self.old_registry
+        self.directory.cleanup()
+
+    def test_legacy_registry_preserves_existing_audio_behavior(self):
+        module.SOURCE_REGISTRY.write_text(
+            json.dumps({"salon": "rtsp://camera/live"}),
+            encoding="utf-8",
+        )
+        settings = module.load_camera_settings()
+        self.assertEqual(settings["salon"]["source"], "rtsp://camera/live")
+        self.assertTrue(settings["salon"]["audio_enabled"])
+
+    def test_audio_preference_is_persisted_in_private_registry(self):
+        expected = {
+            "salon": {"source": "rtsp://camera/live", "audio_enabled": False}
+        }
+        module.save_camera_settings(expected)
+        self.assertEqual(module.load_camera_settings(), expected)
+        self.assertEqual(module.SOURCE_REGISTRY.stat().st_mode & 0o777, 0o600)
+
+    def test_video_only_source_adds_media_fragment(self):
+        self.assertEqual(
+            module.source_for_audio("rtsp://camera/live", False),
+            "rtsp://camera/live#media=video",
+        )
+
+    def test_audio_enabled_uses_original_source_unchanged(self):
+        source = "rtsp://user:password@camera/live?profile=main"
+        self.assertEqual(module.source_for_audio(source, True), source)
+
+    def test_video_only_source_preserves_existing_fragment_options(self):
+        self.assertEqual(
+            module.source_for_audio("rtsp://camera/live#tcp", False),
+            "rtsp://camera/live#tcp&media=video",
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
