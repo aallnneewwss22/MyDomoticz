@@ -3,10 +3,12 @@
 ## [Non publié]
 
 ### Ajouté
+- Panneau de pilotage PTZ par caméra, avec vidéo agrandie, joystick tactile/souris NippleJS, vitesse réglable, zoom continu, arrêt explicite et gestion des positions prédéfinies ONVIF.
+- API ONVIF dans le service auxiliaire Python avec configuration indépendante par caméra ; les identifiants sont conservés uniquement dans le registre privé du Raspberry Pi.
 - Commande Audio activé / Audio coupé sur chaque carte caméra, avec un état partagé entre tous les navigateurs et conservé sur le Raspberry Pi.
 - Le service auxiliaire bascule l'unique source go2rtc entre le RTSP original (audio activé) et la variante vidéo seule avec #media=video (audio coupé), en recréant le flux actif.
 - Persistance de la préférence audio dans le registre privé des caméras ; un choix fait pendant un arrêt global est appliqué au prochain démarrage.
-- Création de maison-dashboard-v76.html ; les lecteurs vidéo restent préservés pendant les actualisations ordinaires.
+- Création de maison-dashboard-v77.html ; les lecteurs vidéo restent préservés pendant les actualisations ordinaires.
 
 ### Compatibilité
 - Les caméras déjà enregistrées conservent leur comportement audio actuel après la mise à jour ; l'audio reste activé par défaut jusqu'à une action explicite.
