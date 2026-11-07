@@ -45,8 +45,8 @@ class RelativeMoveTests(unittest.TestCase):
 
         self.assertEqual(self.ptz.calls[0], ("create_type", "RelativeMove"))
         self.assertEqual(self.ptz.request.ProfileToken, "profile-token")
-        self.assertAlmostEqual(self.ptz.request.Translation["PanTilt"]["x"], 0.08)
-        self.assertAlmostEqual(self.ptz.request.Translation["PanTilt"]["y"], -0.04)
+        self.assertAlmostEqual(self.ptz.request.Translation["PanTilt"]["x"], 1.0)
+        self.assertAlmostEqual(self.ptz.request.Translation["PanTilt"]["y"], -0.5)
         self.assertEqual(self.ptz.request.Speed["PanTilt"], {"x": 0.5, "y": 0.5})
         self.assertFalse(any(name == "ContinuousMove" for name, *_ in self.ptz.calls))
 
