@@ -12,6 +12,15 @@ module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 
 
+
+class ServiceSandboxTests(unittest.TestCase):
+    def test_zeep_cache_uses_writable_systemd_state_directory(self):
+        unit_path = Path(__file__).parents[1] / "go2rtc-control.service"
+        unit = unit_path.read_text(encoding="utf-8")
+        self.assertIn("StateDirectory=go2rtc-control", unit)
+        self.assertIn("Environment=XDG_CACHE_HOME=/var/lib/go2rtc-control/cache", unit)
+        self.assertIn("ProtectHome=read-only", unit)
+
 class PTZValidationTests(unittest.TestCase):
     def test_normalized_movement_values_are_accepted(self):
         self.assertEqual(module._ptz_float(0.75, "pan"), 0.75)
