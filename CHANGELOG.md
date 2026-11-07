@@ -3,13 +3,19 @@
 ## [Non publié]
 
 ### Modifié
+- Remplacement du coefficient de déplacement fixe par deux gains `GainPTZ` configurables, ainsi que deux vitesses `VitesseONVIF` indépendantes pour les profils PC et Mobile.
+- Suppression du slider de vitesse du panneau PTZ ; les quatre réglages sont désormais regroupés dans deux groupbox des paramètres et mémorisés dans le `localStorage` de chaque navigateur.
+- Détection automatique du profil PC/Mobile selon le périphérique de pointage principal ; les valeurs initiales conservent le comportement précédent (gain 0,08 et vitesse ONVIF 0,50).
+- Le navigateur applique désormais le gain aux composantes du joystick ; le service ONVIF transmet directement les translations relatives normalisées.
+
+### Modifié
 - Inversion des deux axes du joystick PTZ : gauche/droite et haut/bas correspondent désormais aux sens physiques attendus.
 
 ### Ajouté
 - Déplacements physiques PTZ par petits pas `RelativeMove` successifs ; abandon de `ContinuousMove`, qui échoue avec la Tapo C200 testée.
 - Zoom logiciel du lecteur dans le panneau PTZ (1× à 3×), avec indicateur et réinitialisation ; aucune commande de zoom ONVIF n’est envoyée.
 - Encapsulation temporaire du lecteur vidéo dans une fenêtre de recadrage ; le lecteur retrouve son emplacement et son affichage d’origine à la fermeture du panneau.
-- Création de `maison-dashboard-v79.html` et mise à jour du lanceur.
+- Création de `maison-dashboard-v80.html` et mise à jour du lanceur.
 - Panneau de pilotage PTZ par caméra, avec vidéo agrandie, joystick tactile/souris NippleJS, vitesse réglable, zoom continu, arrêt explicite et gestion des positions prédéfinies ONVIF.
 - API ONVIF dans le service auxiliaire Python avec configuration indépendante par caméra ; les identifiants sont conservés uniquement dans le registre privé du Raspberry Pi.
 - Commande Audio activé / Audio coupé sur chaque carte caméra, avec un état partagé entre tous les navigateurs et conservé sur le Raspberry Pi.
