@@ -3,6 +3,10 @@
 ## [Non publié]
 
 ### Ajouté
+- Déplacements physiques PTZ par petits pas `RelativeMove` successifs ; abandon de `ContinuousMove`, qui échoue avec la Tapo C200 testée.
+- Zoom logiciel du lecteur dans le panneau PTZ (1× à 3×), avec indicateur et réinitialisation ; aucune commande de zoom ONVIF n’est envoyée.
+- Encapsulation temporaire du lecteur vidéo dans une fenêtre de recadrage ; le lecteur retrouve son emplacement et son affichage d’origine à la fermeture du panneau.
+- Création de `maison-dashboard-v78.html` et mise à jour du lanceur.
 - Panneau de pilotage PTZ par caméra, avec vidéo agrandie, joystick tactile/souris NippleJS, vitesse réglable, zoom continu, arrêt explicite et gestion des positions prédéfinies ONVIF.
 - API ONVIF dans le service auxiliaire Python avec configuration indépendante par caméra ; les identifiants sont conservés uniquement dans le registre privé du Raspberry Pi.
 - Commande Audio activé / Audio coupé sur chaque carte caméra, avec un état partagé entre tous les navigateurs et conservé sur le Raspberry Pi.
