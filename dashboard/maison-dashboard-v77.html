@@ -1332,6 +1332,7 @@
                 playerUrl.searchParams.set("src", config.stream);
                 playerUrl.searchParams.set("mode", "webrtc,mse,hls");
                 frame.src = playerUrl.href;
+                const framePlaceholder = document.createComment("Emplacement du lecteur caméra");
 
                 const controls = document.createElement("div");
                 controls.className = "camera-controls";
@@ -1423,7 +1424,13 @@
                 }
                 audioButton.addEventListener("click", () => runAction("audio"));
                 controls.append(audioButton);
-                card.append(top, controls, frame, status);
+                const ptzButton = document.createElement("button");
+                ptzButton.type = "button";
+                ptzButton.textContent = "Pilotage PTZ";
+                ptzButton.title = "Ouvrir le panneau de pilotage de cette caméra";
+                ptzButton.addEventListener("click", () => openPtzPanel(config, frame, framePlaceholder));
+                controls.append(ptzButton);
+                card.append(top, controls, framePlaceholder, frame, status);
                 try {
                     if (localStorage.getItem(CAMERA_LOCAL_STOP_PREFIX + config.stream) === "1") {
                         setMode("local");
