@@ -13,6 +13,9 @@
 ### Compatibilité
 - Les caméras déjà enregistrées conservent leur comportement audio actuel après la mise à jour ; l'audio reste activé par défaut jusqu'à une action explicite.
 
+### Corrigé
+- Correction de l'installation ONVIF : récupération de l'archive source `onvif-zeep 0.2.12`, vérification de son empreinte SHA-256 et installation de l'ensemble des ressources WSDL dans `vendor/wsdl`.
+
 Ce fichier retrace les évolutions notables de MyDomoticz, de la plus récente à la plus ancienne. Il décrit les changements du projet, sans détailler les opérations Git ou les statuts des Pull Requests.
 
 ## [Non publié]
