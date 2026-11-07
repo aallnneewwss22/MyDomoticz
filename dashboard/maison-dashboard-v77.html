@@ -1142,7 +1142,7 @@
                 const headers = { Authorization: "Bearer " + token };
                 if (payload !== null) headers["Content-Type"] = "application/json";
                 const response = await fetch(cameraControlBaseUrl() + "/api/cameras/" + encodeURIComponent(stream) + "/" + action, {
-                    method: action === "status" ? "GET" : "POST",
+                    method: ["status", "ptz-status", "ptz-presets"].includes(action) ? "GET" : "POST",
                     headers,
                     body: payload === null ? undefined : JSON.stringify(payload),
                     cache: "no-store"
@@ -1152,6 +1152,154 @@
                 return data;
             }
 
+
+            const ptzDialog = $("ptz-dialog");
+            let ptzSession = null;
+            let ptzJoystick = null;
+            let ptzZoomTimer = null;
+            let ptzMoveInFlight = false;
+            let ptzLastMoveAt = 0;
+
+            function ptzSetStatus(message) { $("ptz-status").textContent = message || ""; }
+            function ptzShowConfiguration(show) {
+                $("ptz-config-form").hidden = !show;
+                $("ptz-controls").hidden = show;
+            }
+            function ptzCurrentSpeed() { return Number($("ptz-speed").value) / 100; }
+            async function ptzSendMove(pan, tilt, zoom = 0) {
+                if (!ptzSession || !ptzSession.configured || ptzMoveInFlight) return;
+                ptzMoveInFlight = true;
+                try {
+                    await cameraControlRequest(ptzSession.config.stream, "ptz-move", { pan, tilt, zoom, speed: ptzCurrentSpeed() });
+                } catch (error) { ptzSetStatus("Commande PTZ impossible : " + (error.message || "erreur inconnue")); }
+                finally { ptzMoveInFlight = false; }
+            }
+            async function ptzStopMovement() {
+                if (ptzZoomTimer !== null) { clearInterval(ptzZoomTimer); ptzZoomTimer = null; }
+                if (!ptzSession || !ptzSession.configured) return;
+                try { await cameraControlRequest(ptzSession.config.stream, "ptz-stop"); }
+                catch (error) { ptzSetStatus("Arrêt PTZ non confirmé : " + (error.message || "erreur inconnue")); }
+            }
+            function ptzDestroyJoystick() {
+                if (ptzJoystick) { ptzJoystick.destroy(); ptzJoystick = null; }
+            }
+            function ptzInitJoystick() {
+                ptzDestroyJoystick();
+                if (!window.nipplejs) { ptzSetStatus("Le joystick tactile n'a pas pu être chargé. Vérifie l'accès au CDN."); return; }
+                const color = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#2867d8";
+                ptzJoystick = window.nipplejs.create({ zone: $("ptz-joystick"), mode: "static", position: { left: "50%", top: "50%" }, size: 138, color, restOpacity: 0.8 });
+                ptzJoystick.on("move", (event, data) => {
+                    if (!data || !data.vector) return;
+                    const now = Date.now();
+                    if (now - ptzLastMoveAt < 260) return;
+                    ptzLastMoveAt = now;
+                    ptzSendMove(data.vector.x, data.vector.y, 0);
+                });
+                ptzJoystick.on("end", () => ptzStopMovement());
+            }
+            async function ptzLoadPresets() {
+                if (!ptzSession) return;
+                const select = $("ptz-preset-select");
+                select.replaceChildren();
+                const result = await cameraControlRequest(ptzSession.config.stream, "ptz-presets");
+                const presets = Array.isArray(result.presets) ? result.presets : [];
+                if (!presets.length) {
+                    const option = document.createElement("option"); option.value = ""; option.textContent = "Aucune position mémorisée"; select.append(option);
+                } else {
+                    for (const preset of presets) { const option = document.createElement("option"); option.value = preset.token; option.textContent = preset.name; select.append(option); }
+                }
+            }
+            async function openPtzPanel(config, frame, placeholder) {
+                if (ptzSession) await closePtzPanel();
+                ptzSession = { config, frame, placeholder, wasHidden: frame.classList.contains("is-hidden"), configured: false };
+                $("ptz-title").textContent = "Pilotage PTZ — " + (config.label || config.stream);
+                $("ptz-video-slot").append(frame);
+                frame.classList.remove("is-hidden");
+                $("ptz-host").value = ""; $("ptz-port").value = "80";
+                $("ptz-username").value = ""; $("ptz-password").value = "";
+                ptzShowConfiguration(false);
+                ptzSetStatus("Lecture de la configuration ONVIF…");
+                ptzDialog.showModal();
+                try {
+                    const info = await cameraControlRequest(config.stream, "ptz-status");
+                    ptzSession.configured = Boolean(info.configured);
+                    $("ptz-host").value = info.host || "";
+                    $("ptz-port").value = String(info.port || 80);
+                    ptzShowConfiguration(!ptzSession.configured);
+                    if (ptzSession.configured) {
+                        ptzSetStatus("Connexion ONVIF prête. Maintiens le joystick ou les commandes de zoom pour déplacer la caméra.");
+                        ptzInitJoystick();
+                        try { await ptzLoadPresets(); } catch (error) { ptzSetStatus("Pilotage disponible ; lecture des positions prédéfinies impossible : " + error.message); }
+                    } else { ptzSetStatus("Renseigne les paramètres ONVIF de cette caméra pour activer le pilotage."); }
+                } catch (error) {
+                    ptzShowConfiguration(true);
+                    ptzSetStatus("Service caméra indisponible : " + (error.message || "vérifie les paramètres"));
+                }
+            }
+            async function closePtzPanel() {
+                if (!ptzSession) { if (ptzDialog.open) ptzDialog.close(); return; }
+                const session = ptzSession;
+                await ptzStopMovement();
+                ptzDestroyJoystick();
+                if (session.placeholder && session.placeholder.parentNode) {
+                    session.placeholder.parentNode.insertBefore(session.frame, session.placeholder.nextSibling);
+                }
+                session.frame.classList.toggle("is-hidden", session.wasHidden);
+                ptzSession = null;
+                if (ptzDialog.open) ptzDialog.close();
+            }
+            $("ptz-close").addEventListener("click", closePtzPanel);
+            $("ptz-cancel-config").addEventListener("click", () => {
+                if (ptzSession && ptzSession.configured) ptzShowConfiguration(false);
+                else closePtzPanel();
+            });
+            ptzDialog.addEventListener("cancel", event => { event.preventDefault(); closePtzPanel(); });
+            $("ptz-config-form").addEventListener("submit", async event => {
+                event.preventDefault();
+                if (!ptzSession) return;
+                const payload = { host: $("ptz-host").value.trim(), port: Number($("ptz-port").value), username: $("ptz-username").value, password: $("ptz-password").value };
+                try {
+                    await cameraControlRequest(ptzSession.config.stream, "ptz-config", payload);
+                    ptzSession.configured = true;
+                    $("ptz-password").value = ""; $("ptz-username").value = "";
+                    ptzShowConfiguration(false); ptzInitJoystick();
+                    ptzSetStatus("Connexion ONVIF enregistrée sur le Raspberry Pi.");
+                    try { await ptzLoadPresets(); } catch (error) { ptzSetStatus("Connexion enregistrée ; lecture des positions indisponible : " + error.message); }
+                } catch (error) { ptzSetStatus("Enregistrement impossible : " + (error.message || "erreur inconnue")); }
+            });
+            $("ptz-edit-config").addEventListener("click", () => {
+                if (!ptzSession) return;
+                $("ptz-username").value = ""; $("ptz-password").value = "";
+                ptzShowConfiguration(true); ptzSetStatus("Laisse les identifiants vides pour conserver ceux déjà enregistrés.");
+            });
+            $("ptz-speed").addEventListener("input", () => { $("ptz-speed-value").textContent = $("ptz-speed").value + " %"; });
+            $("ptz-stop").addEventListener("click", ptzStopMovement);
+            function ptzStartZoom(direction) {
+                if (!ptzSession || !ptzSession.configured) return;
+                ptzStopMovement();
+                ptzSendMove(0, 0, direction);
+                ptzZoomTimer = setInterval(() => ptzSendMove(0, 0, direction), 450);
+            }
+            for (const [id, direction] of [["ptz-zoom-in", 1], ["ptz-zoom-out", -1]]) {
+                const button = $(id);
+                button.addEventListener("pointerdown", event => { event.preventDefault(); ptzStartZoom(direction); });
+                ["pointerup", "pointerleave", "pointercancel"].forEach(type => button.addEventListener(type, ptzStopMovement));
+            }
+            $("ptz-goto").addEventListener("click", async () => {
+                if (!ptzSession || !$("ptz-preset-select").value) return;
+                try { await ptzStopMovement(); await cameraControlRequest(ptzSession.config.stream, "ptz-goto", { token: $("ptz-preset-select").value }); ptzSetStatus("Déplacement vers la position demandée."); }
+                catch (error) { ptzSetStatus("Déplacement impossible : " + error.message); }
+            });
+            $("ptz-save-preset").addEventListener("click", async () => {
+                if (!ptzSession) return;
+                try {
+                    const result = await cameraControlRequest(ptzSession.config.stream, "ptz-save-preset", { name: $("ptz-preset-name").value });
+                    $("ptz-preset-name").value = ""; await ptzLoadPresets();
+                    if (result.preset) $("ptz-preset-select").value = result.preset.token;
+                    ptzSetStatus("Position mémorisée sur la caméra.");
+                } catch (error) { ptzSetStatus("Mémorisation impossible : " + error.message); }
+            });
+            $("page-select").addEventListener("change", () => { if (ptzSession) closePtzPanel(); });
             function createCameraCard(config) {
                 const card = document.createElement("article");
                 card.className = "device-card camera-card";
