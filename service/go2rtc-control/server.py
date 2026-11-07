@@ -196,7 +196,7 @@ def stream_exists(name: str) -> bool:
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "go2rtc-control/1.2"
+    server_version = "go2rtc-control/1.3"
 
     def log_message(self, fmt: str, *args: object) -> None:
         # Never log query parameters: a start request contains an RTSP source.
@@ -279,21 +279,9 @@ class Handler(BaseHTTPRequestHandler):
                     self.send_json(200, {"enabled": True, "audio_enabled": audio_enabled})
                     return
                 if action == "audio":
-                    try:
-                        length = int(self.headers.get("Content-Length", "0"))
-                    except ValueError:
-                        length = 0
-                    if length <= 0 or length > 1024:
-                        self.send_json(400, {"error": "Paramètre audio absent ou invalide."})
-                        return
-                    try:
-                        payload = json.loads(self.rfile.read(length).decode("utf-8"))
-                    except (UnicodeDecodeError, json.JSONDecodeError):
-                        self.send_json(400, {"error": "Corps JSON invalide."})
-                        return
-                    if not isinstance(payload, dict) or not isinstance(payload.get("enabled"), bool):
-                        self.send_json(400, {"error": "Le champ enabled doit être un booléen."})
-                        return
+                    payload = _read_json_body(self)
+                    if not isinstance(payload.get("enabled"), bool):
+                        raise ControlError("Le champ enabled doit être un booléen.")
                     next_audio = payload["enabled"]
                     if next_audio != audio_enabled:
                         running = stream_exists(name)
@@ -303,11 +291,59 @@ class Handler(BaseHTTPRequestHandler):
                         save_camera_settings(cameras)
                     self.send_json(200, {"enabled": stream_exists(name), "audio_enabled": next_audio})
                     return
+                if action == "ptz-status":
+                    ptz = settings.get("ptz")
+                    self.send_json(200, {"configured": isinstance(ptz, dict), "host": ptz.get("host", "") if isinstance(ptz, dict) else "", "port": ptz.get("port", 80) if isinstance(ptz, dict) else 80})
+                    return
+                if action == "ptz-config":
+                    payload = _read_json_body(self)
+                    host, port = payload.get("host"), payload.get("port", 80)
+                    username, password = payload.get("username", ""), payload.get("password", "")
+                    if not isinstance(host, str) or not host.strip() or len(host.strip()) > 253:
+                        raise ControlError("Adresse IP ou nom d’hôte ONVIF invalide.")
+                    if not isinstance(port, int) or not 1 <= port <= 65535:
+                        raise ControlError("Port ONVIF invalide.")
+                    if not isinstance(username, str) or not isinstance(password, str):
+                        raise ControlError("Identifiants ONVIF invalides.")
+                    previous = settings.get("ptz", {})
+                    if not username and isinstance(previous, dict): username = str(previous.get("username", ""))
+                    if not password and isinstance(previous, dict): password = str(previous.get("password", ""))
+                    settings["ptz"] = {"host": host.strip(), "port": port, "username": username, "password": password}
+                    save_camera_settings(cameras)
+                    self.send_json(200, {"configured": True, "host": host.strip(), "port": port})
+                    return
+                if action == "ptz-move":
+                    ptz_move(settings, _read_json_body(self))
+                    self.send_json(200, {"ok": True})
+                    return
+                if action == "ptz-stop":
+                    ptz_stop(settings)
+                    self.send_json(200, {"ok": True})
+                    return
+                if action == "ptz-presets":
+                    self.send_json(200, {"presets": ptz_list_presets(settings)})
+                    return
+                if action == "ptz-goto":
+                    payload = _read_json_body(self)
+                    token = payload.get("token")
+                    if not isinstance(token, str): raise ControlError("Identifiant de position prédéfinie invalide.")
+                    ptz_goto_preset(settings, token)
+                    self.send_json(200, {"ok": True})
+                    return
+                if action == "ptz-save-preset":
+                    payload = _read_json_body(self)
+                    preset_name = payload.get("name")
+                    if not isinstance(preset_name, str): raise ControlError("Nom de position prédéfinie invalide.")
+                    self.send_json(200, {"preset": ptz_save_preset(settings, preset_name)})
+                    return
                 self.send_json(404, {"error": "Action inconnue."})
         except ControlError as exc:
             self.send_json(502, {"error": str(exc)})
     def do_GET(self) -> None:
-        self.handle_camera("status")
+        action = urllib.parse.urlsplit(self.path).path.rstrip("/").split("/")[-1]
+        if action not in ("status", "ptz-status", "ptz-presets"):
+            action = "status"
+        self.handle_camera(action)
 
     def do_POST(self) -> None:
         action = urllib.parse.urlsplit(self.path).path.rstrip("/").split("/")[-1]
