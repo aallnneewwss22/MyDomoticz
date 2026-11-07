@@ -70,7 +70,7 @@ class PTZConnectionTests(unittest.TestCase):
         self.assertEqual(len(module.PTZ_CLIENT_CACHE), 1)
 
 
-    def test_failed_continuous_move_logs_safe_detail_and_invalidates_cache(self):
+    def test_failed_relative_move_logs_safe_detail_and_invalidates_cache(self):
         username, password = "onvif-user", "private-password"
         settings = {"ptz": {"host": "192.0.2.12", "port": 2020, "username": username, "password": password}}
         key = module._ptz_cache_key(settings)
@@ -78,17 +78,17 @@ class PTZConnectionTests(unittest.TestCase):
         class FakePTZ:
             def create_type(self, name):
                 return SimpleNamespace()
-            def ContinuousMove(self, request):
+            def RelativeMove(self, request):
                 raise RuntimeError(f"SOAP fault for {username} {password}")
 
         module.PTZ_CLIENT_CACHE[key] = (FakePTZ(), "profile")
         with self.assertLogs("go2rtc-control.ptz", level="WARNING") as captured:
             with self.assertRaises(module.ControlError):
-                module.ptz_move(settings, {"pan": 1, "tilt": 0, "zoom": 0, "speed": 0.5})
+                module.ptz_move(settings, {"pan": 1, "tilt": 0, "speed": 0.5})
 
         self.assertNotIn(key, module.PTZ_CLIENT_CACHE)
         log_text = " ".join(captured.output)
-        self.assertIn("ContinuousMove", log_text)
+        self.assertIn("RelativeMove", log_text)
         self.assertIn("SOAP fault", log_text)
         self.assertNotIn(username, log_text)
         self.assertNotIn(password, log_text)
