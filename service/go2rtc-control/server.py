@@ -400,9 +400,9 @@ class Handler(BaseHTTPRequestHandler):
                     payload = _read_json_body(self)
                     host, port = payload.get("host"), payload.get("port", 80)
                     username, password = payload.get("username", ""), payload.get("password", "")
-                    if not isinstance(host, str) or not host.strip() or len(host.strip()) > 253:
+                    if not isinstance(host, str) or not host.strip() or len(host.strip()) > 253 or any(char in host for char in "/?#@ \\t\\r\\n"):
                         raise ControlError("Adresse IP ou nom d’hôte ONVIF invalide.")
-                    if not isinstance(port, int) or not 1 <= port <= 65535:
+                    if isinstance(port, bool) or not isinstance(port, int) or not 1 <= port <= 65535:
                         raise ControlError("Port ONVIF invalide.")
                     if not isinstance(username, str) or not isinstance(password, str):
                         raise ControlError("Identifiants ONVIF invalides.")
