@@ -2,6 +2,11 @@
 
 ## [Non publié]
 
+### Simplifié
+- Suppression du bouton STOP ONVIF et de son endpoint de commande, qui n'apportait pas d'effet utile sur la caméra testée. La pause locale du joystick est conservée pour interrompre l'émission de nouvelles impulsions `RelativeMove` lorsqu'on relâche le joystick ou quitte le panneau.
+- Suppression de la création de positions prédéfinies : retrait du bouton « Mémoriser », du champ de nom et de leur traitement dans le navigateur et le service Python. La liste et le rappel des positions déjà enregistrées sur la caméra restent disponibles.
+- Création de `maison-dashboard-v81.html` et mise à jour du lanceur.
+
 ### Modifié
 - Remplacement du coefficient de déplacement fixe par deux gains `GainPTZ` configurables, ainsi que deux vitesses `VitesseONVIF` indépendantes pour les profils PC et Mobile.
 - Suppression du slider de vitesse du panneau PTZ ; les quatre réglages sont désormais regroupés dans deux groupbox des paramètres et mémorisés dans le `localStorage` de chaque navigateur.
