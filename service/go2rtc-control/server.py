@@ -16,6 +16,11 @@ from pathlib import Path
 
 import yaml
 
+try:
+    from onvif import ONVIFCamera
+except ImportError:
+    ONVIFCamera = None
+
 STREAM_NAME = re.compile(r"^[A-Za-z0-9_.-]{1,80}$")
 GO2RTC_API = os.environ.get("GO2RTC_API", "http://127.0.0.1:1984").rstrip("/")
 GO2RTC_CONFIG = Path(os.environ.get("GO2RTC_CONFIG", "/home/pi/go2rtc-test/go2rtc.yaml"))
@@ -93,11 +98,7 @@ def ensure_source_registry() -> None:
 
 
 def load_camera_settings() -> dict[str, dict[str, object]]:
-    """Load camera sources and the shared, persistent audio preference.
-
-    Version 1.1 stored each registry value as a source string. Accept that
-    format unchanged and interpret it as audio disabled until the first write.
-    """
+    """Load private camera sources, shared audio preferences and ONVIF settings."""
     try:
         data = json.loads(SOURCE_REGISTRY.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
@@ -106,17 +107,21 @@ def load_camera_settings() -> dict[str, dict[str, object]]:
         raise ControlError("Registre local des caméras invalide.")
     cameras: dict[str, dict[str, object]] = {}
     for name, entry in data.items():
-        if not isinstance(name, str) or not STREAM_NAME.fullmatch(name):
-            continue
+        if not isinstance(name, str) or not STREAM_NAME.fullmatch(name): continue
         if isinstance(entry, str) and entry.strip():
             cameras[name] = {"source": entry.strip(), "audio_enabled": True}
         elif isinstance(entry, dict):
-            source = entry.get("source")
-            audio_enabled = entry.get("audio_enabled", True)
+            source, audio_enabled = entry.get("source"), entry.get("audio_enabled", True)
             if isinstance(source, str) and source.strip() and isinstance(audio_enabled, bool):
-                cameras[name] = {"source": source.strip(), "audio_enabled": audio_enabled}
+                settings: dict[str, object] = {"source": source.strip(), "audio_enabled": audio_enabled}
+                ptz = entry.get("ptz")
+                if isinstance(ptz, dict):
+                    host, port = ptz.get("host"), ptz.get("port", 80)
+                    username, password = ptz.get("username", ""), ptz.get("password", "")
+                    if isinstance(host, str) and host.strip() and isinstance(port, int) and 1 <= port <= 65535 and isinstance(username, str) and isinstance(password, str):
+                        settings["ptz"] = {"host": host.strip(), "port": port, "username": username, "password": password}
+                cameras[name] = settings
     return cameras
-
 
 def load_sources() -> dict[str, str]:
     """Compatibility helper returning only the original source strings."""
@@ -194,6 +199,88 @@ def stream_exists(name: str) -> bool:
         return any(isinstance(item, dict) and item.get("name") == name for item in payload)
     return False
 
+
+def _ptz_connection(settings: dict[str, object]):
+    if ONVIFCamera is None: raise ControlError("La bibliothèque ONVIF n'est pas installée sur le Raspberry Pi.")
+    config = settings.get("ptz")
+    if not isinstance(config, dict): raise ControlError("La connexion ONVIF de cette caméra n'est pas configurée.")
+    try:
+        camera = ONVIFCamera(str(config["host"]), int(config.get("port", 80)), str(config.get("username", "")), str(config.get("password", "")))
+        media = camera.create_media_service()
+        profiles = media.GetProfiles()
+        profile = next((item for item in profiles if getattr(item, "PTZConfiguration", None)), None)
+        if profile is None: raise ControlError("Aucun profil ONVIF avec capacités PTZ n'a été trouvé.")
+        return camera.create_ptz_service(), profile.token
+    except ControlError: raise
+    except Exception as exc: raise ControlError("Connexion ONVIF impossible. Vérifie l'adresse, le port et les identifiants.") from exc
+
+
+def _ptz_float(value: object, name: str, minimum: float = -1.0, maximum: float = 1.0) -> float:
+    try: number = float(value)
+    except (TypeError, ValueError) as exc: raise ControlError("Valeur PTZ invalide : " + name + ".") from exc
+    if not minimum <= number <= maximum: raise ControlError("Valeur PTZ hors limites : " + name + ".")
+    return number
+
+
+def ptz_move(settings: dict[str, object], payload: dict[str, object]) -> None:
+    ptz, profile_token = _ptz_connection(settings)
+    pan, tilt, zoom = _ptz_float(payload.get("pan", 0), "pan"), _ptz_float(payload.get("tilt", 0), "tilt"), _ptz_float(payload.get("zoom", 0), "zoom")
+    speed = _ptz_float(payload.get("speed", 0.5), "speed", 0.05, 1.0)
+    try:
+        request = ptz.create_type("ContinuousMove")
+        request.ProfileToken = profile_token
+        request.Velocity = {"PanTilt": {"x": pan * speed, "y": tilt * speed}, "Zoom": {"x": zoom * speed}}
+        request.Timeout = "PT1S"
+        ptz.ContinuousMove(request)
+    except Exception as exc: raise ControlError("La commande de déplacement PTZ a échoué.") from exc
+
+
+def ptz_stop(settings: dict[str, object]) -> None:
+    ptz, profile_token = _ptz_connection(settings)
+    try:
+        request = ptz.create_type("Stop")
+        request.ProfileToken, request.PanTilt, request.Zoom = profile_token, True, True
+        ptz.Stop(request)
+    except Exception as exc: raise ControlError("L'arrêt du mouvement PTZ a échoué.") from exc
+
+
+def ptz_list_presets(settings: dict[str, object]) -> list[dict[str, str]]:
+    ptz, profile_token = _ptz_connection(settings)
+    try:
+        presets = ptz.GetPresets({"ProfileToken": profile_token})
+        return [{"token": str(item.token), "name": str(getattr(item, "Name", "") or item.token)} for item in (presets or []) if getattr(item, "token", None)]
+    except Exception as exc: raise ControlError("Impossible de lire les positions prédéfinies ONVIF.") from exc
+
+
+def ptz_goto_preset(settings: dict[str, object], token: str) -> None:
+    if not token or len(token) > 128: raise ControlError("Identifiant de position prédéfinie invalide.")
+    ptz, profile_token = _ptz_connection(settings)
+    try:
+        valid_tokens = {item["token"] for item in ptz_list_presets(settings)}
+        if token not in valid_tokens: raise ControlError("Cette position prédéfinie n'existe plus sur la caméra.")
+        ptz.GotoPreset({"ProfileToken": profile_token, "PresetToken": token})
+    except ControlError: raise
+    except Exception as exc: raise ControlError("Le déplacement vers cette position a échoué.") from exc
+
+
+def ptz_save_preset(settings: dict[str, object], name: str) -> dict[str, str]:
+    clean_name = " ".join(name.split()).strip()
+    if not clean_name or len(clean_name) > 40: raise ControlError("Le nom de la position doit contenir entre 1 et 40 caractères.")
+    ptz, profile_token = _ptz_connection(settings)
+    try:
+        token = ptz.SetPreset({"ProfileToken": profile_token, "PresetName": clean_name})
+        return {"token": str(token), "name": clean_name}
+    except Exception as exc: raise ControlError("Impossible d'enregistrer cette position sur la caméra.") from exc
+
+
+def _read_json_body(handler: BaseHTTPRequestHandler) -> dict[str, object]:
+    try: length = int(handler.headers.get("Content-Length", "0"))
+    except ValueError: length = 0
+    if length <= 0 or length > 4096: raise ControlError("Corps JSON absent ou trop volumineux.")
+    try: payload = json.loads(handler.rfile.read(length).decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc: raise ControlError("Corps JSON invalide.") from exc
+    if not isinstance(payload, dict): raise ControlError("Le corps JSON doit être un objet.")
+    return payload
 
 class Handler(BaseHTTPRequestHandler):
     server_version = "go2rtc-control/1.3"
