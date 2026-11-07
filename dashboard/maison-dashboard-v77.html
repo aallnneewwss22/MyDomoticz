@@ -1159,6 +1159,7 @@
             let ptzJoystick = null;
             let ptzZoomTimer = null;
             let ptzMoveInFlight = false;
+            let ptzMovePending = Promise.resolve();
             let ptzLastMoveAt = 0;
 
             function ptzSetStatus(message) { $("ptz-status").textContent = message || ""; }
@@ -1170,15 +1171,19 @@
             async function ptzSendMove(pan, tilt, zoom = 0) {
                 if (!ptzSession || !ptzSession.configured || ptzMoveInFlight) return;
                 ptzMoveInFlight = true;
-                try {
-                    await cameraControlRequest(ptzSession.config.stream, "ptz-move", { pan, tilt, zoom, speed: ptzCurrentSpeed() });
-                } catch (error) { ptzSetStatus("Commande PTZ impossible : " + (error.message || "erreur inconnue")); }
+                const pending = cameraControlRequest(ptzSession.config.stream, "ptz-move", { pan, tilt, zoom, speed: ptzCurrentSpeed() });
+                ptzMovePending = pending;
+                try { await pending; }
+                catch (error) { ptzSetStatus("Commande PTZ impossible : " + (error.message || "erreur inconnue")); }
                 finally { ptzMoveInFlight = false; }
             }
             async function ptzStopMovement() {
                 if (ptzZoomTimer !== null) { clearInterval(ptzZoomTimer); ptzZoomTimer = null; }
                 if (!ptzSession || !ptzSession.configured) return;
-                try { await cameraControlRequest(ptzSession.config.stream, "ptz-stop"); }
+                try {
+                    await ptzMovePending.catch(() => {});
+                    await cameraControlRequest(ptzSession.config.stream, "ptz-stop");
+                }
                 catch (error) { ptzSetStatus("Arrêt PTZ non confirmé : " + (error.message || "erreur inconnue")); }
             }
             function ptzDestroyJoystick() {
