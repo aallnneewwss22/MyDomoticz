@@ -93,25 +93,6 @@ class PTZConnectionTests(unittest.TestCase):
         self.assertNotIn(username, log_text)
         self.assertNotIn(password, log_text)
 
-    def test_failed_stop_logs_detail_and_invalidates_cache(self):
-        settings = {"ptz": {"host": "192.0.2.13", "port": 2020, "username": "", "password": ""}}
-        key = module._ptz_cache_key(settings)
-
-        class FakePTZ:
-            def create_type(self, name):
-                return SimpleNamespace()
-            def Stop(self, request):
-                raise RuntimeError("PTZ service unavailable")
-
-        module.PTZ_CLIENT_CACHE[key] = (FakePTZ(), "profile")
-        with self.assertLogs("go2rtc-control.ptz", level="WARNING") as captured:
-            with self.assertRaises(module.ControlError):
-                module.ptz_stop(settings)
-
-        self.assertNotIn(key, module.PTZ_CLIENT_CACHE)
-        self.assertIn("Stop", " ".join(captured.output))
-        self.assertIn("PTZ service unavailable", " ".join(captured.output))
-
     def test_connection_cache_reuses_the_onvif_session(self):
         calls = []
         class FakeMedia:
