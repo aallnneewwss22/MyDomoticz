@@ -291,14 +291,13 @@ def ptz_move(settings: dict[str, object], payload: dict[str, object]) -> None:
     if abs(pan) < 0.001 and abs(tilt) < 0.001:
         raise ControlError("Le déplacement demandé est nul.")
     ptz, profile_token = _ptz_connection(settings)
-    # RelativeTranslation uses the camera's normalized GenericTranslation
-    # space (-1..1). Keep each joystick tick deliberately small: the browser
-    # sends another finite step only while the joystick remains deflected.
-    distance = 0.08
+    # Pan/Tilt already contains the browser-selected GainPTZ. Values remain
+    # normalized to the camera's GenericTranslation space (-1..1).
+    # The browser sends another finite step only while the joystick is deflected.
     try:
         request = ptz.create_type("RelativeMove")
         request.ProfileToken = profile_token
-        request.Translation = {"PanTilt": {"x": pan * distance, "y": tilt * distance}}
+        request.Translation = {"PanTilt": {"x": pan, "y": tilt}}
         request.Speed = {"PanTilt": {"x": speed, "y": speed}}
         ptz.RelativeMove(request)
     except Exception as exc:
