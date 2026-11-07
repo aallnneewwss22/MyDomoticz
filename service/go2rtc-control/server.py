@@ -6,6 +6,7 @@ import json
 import os
 import re
 import secrets
+import sys
 import tempfile
 import threading
 import urllib.error
@@ -15,6 +16,10 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 import yaml
+
+VENDOR_DIR = Path(__file__).resolve().parent / "vendor"
+if VENDOR_DIR.is_dir():
+    sys.path.insert(0, str(VENDOR_DIR))
 
 try:
     from onvif import ONVIFCamera
