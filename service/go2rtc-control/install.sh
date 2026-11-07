@@ -30,6 +30,27 @@ install -d -o root -g "${SERVICE_USER}" -m 0750 "${INSTALL_DIR}" "${ETC_DIR}"
 install -o root -g root -m 0644 "${SCRIPT_DIR}/server.py" "${INSTALL_DIR}/server.py"
 install -d -o root -g root -m 0755 "${INSTALL_DIR}/vendor"
 pip3 install --disable-pip-version-check --no-deps --target "${INSTALL_DIR}/vendor" "onvif-zeep==0.2.12"
+
+# onvif-zeep 0.2.12 ships its WSDL resources in the source archive, but its
+# wheel/--target installation does not place them beside the onvif module.
+# Retrieve the matching sdist and copy the complete WSDL tree into vendor.
+WSDL_TMP_DIR="$(mktemp -d)"
+trap 'rm -rf "${WSDL_TMP_DIR}"' EXIT
+pip3 download --disable-pip-version-check --no-deps --no-binary=:all: \
+  --dest "${WSDL_TMP_DIR}" "onvif-zeep==0.2.12"
+WSDL_ARCHIVE="${WSDL_TMP_DIR}/onvif_zeep-0.2.12.tar.gz"
+echo "aa8bbc02a73eaa50894b0c18e39fa8d318a583a664c65bf35b3c8029d1c40b49  ${WSDL_ARCHIVE}" | sha256sum --check -
+tar -xzf "${WSDL_ARCHIVE}" -C "${WSDL_TMP_DIR}"
+WSDL_SOURCE_DIR="${WSDL_TMP_DIR}/onvif_zeep-0.2.12/wsdl"
+if [[ ! -s "${WSDL_SOURCE_DIR}/devicemgmt.wsdl" || ! -s "${WSDL_SOURCE_DIR}/media.wsdl" || ! -s "${WSDL_SOURCE_DIR}/ptz.wsdl" ]]; then
+  echo "Les fichiers WSDL requis sont absents de l'archive onvif-zeep 0.2.12." >&2
+  exit 1
+fi
+rm -rf "${INSTALL_DIR}/vendor/wsdl"
+install -d -o root -g root -m 0755 "${INSTALL_DIR}/vendor/wsdl"
+cp -a "${WSDL_SOURCE_DIR}/." "${INSTALL_DIR}/vendor/wsdl/"
+chown -R root:root "${INSTALL_DIR}/vendor/wsdl"
+chmod -R a+rX "${INSTALL_DIR}/vendor/wsdl"
 install -o root -g root -m 0644 "${SCRIPT_DIR}/go2rtc-control.service" /etc/systemd/system/go2rtc-control.service
 
 if [[ ! -s "${ETC_DIR}/token" ]]; then
