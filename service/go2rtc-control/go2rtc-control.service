@@ -10,6 +10,8 @@ Group=pi
 EnvironmentFile=/etc/go2rtc-control/go2rtc-control.env
 StateDirectory=go2rtc-control
 StateDirectoryMode=0750
+# Zeep's SQLite WSDL cache must live outside the read-only home directory.
+Environment=XDG_CACHE_HOME=/var/lib/go2rtc-control/cache
 ExecStart=/usr/bin/python3 /opt/go2rtc-control/server.py
 Restart=on-failure
 RestartSec=3
