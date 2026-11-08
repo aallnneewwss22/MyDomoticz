@@ -2,6 +2,13 @@
 
 ## [Non publié]
 
+### Modifié
+- Suppression complète de l’arrêt local des flux caméra : retrait du bouton, de son traitement et de la préférence locale associée. L’arrêt global via go2rtc et le redémarrage restent disponibles.
+- Désactivation du bouton « Pilotage PTZ » lorsque le flux est arrêté ; vérification supplémentaire de l’état réel du flux côté service juste avant l’ouverture du panneau.
+- Allègement du panneau PTZ : retrait des quatre libellés de section/champ demandés, conservation des commandes et ajout d’un nom accessible au sélecteur de positions prédéfinies.
+- Harmonisation des espacements verticaux des commandes PTZ avec une grille régulière.
+- Création de `maison-dashboard-v82.html` et mise à jour du lanceur.
+
 ### Simplifié
 - Suppression du bouton STOP ONVIF et de son endpoint de commande, qui n'apportait pas d'effet utile sur la caméra testée. La pause locale du joystick est conservée pour interrompre l'émission de nouvelles impulsions `RelativeMove` lorsqu'on relâche le joystick ou quitte le panneau.
 - Suppression de la création de positions prédéfinies : retrait du bouton « Mémoriser », du champ de nom et de leur traitement dans le navigateur et le service Python. La liste et le rappel des positions déjà enregistrées sur la caméra restent disponibles.
