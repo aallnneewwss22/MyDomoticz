@@ -1295,12 +1295,12 @@
                 try {
                     streamStatus = await cameraControlRequest(config.stream, "status");
                 } catch (error) {
-                    ptzSetStatus("Impossible de vérifier l’état du flux : " + (error.message || "service caméra indisponible"));
+                    onStreamUnavailable("Pilotage PTZ indisponible : impossible de vérifier l’état du flux (" + (error.message || "service caméra indisponible") + ").", false);
                     return;
                 }
                 if (!streamStatus.enabled) {
                     const message = "Pilotage PTZ indisponible : le flux vidéo est arrêté.";
-                    onStreamUnavailable(message);
+                    onStreamUnavailable(message, true);
                     return;
                 }
                 if (ptzSession) await closePtzPanel();
@@ -1511,8 +1511,9 @@
                     if (mode !== "on" || busy) return;
                     ptzButton.disabled = true;
                     try {
-                        await openPtzPanel(config, frame, framePlaceholder, (message) => {
-                            setMode("global", message);
+                        await openPtzPanel(config, frame, framePlaceholder, (message, stopped) => {
+                            status.textContent = message;
+                            if (stopped) setMode("global", message);
                         });
                     } finally {
                         ptzButton.disabled = mode !== "on" || busy;
