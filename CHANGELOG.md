@@ -2,14 +2,45 @@
 
 ## [Non publié]
 
+### Modifié
+- Suppression complète de l’arrêt local des flux caméra : retrait du bouton, de son traitement et de la préférence locale associée. L’arrêt global via go2rtc et le redémarrage restent disponibles.
+- Désactivation du bouton « Pilotage PTZ » lorsque le flux est arrêté ; vérification supplémentaire de l’état réel du flux côté service juste avant l’ouverture du panneau.
+- Allègement du panneau PTZ : retrait des quatre libellés de section/champ demandés, conservation des commandes et ajout d’un nom accessible au sélecteur de positions prédéfinies.
+- Harmonisation des espacements verticaux des commandes PTZ avec une grille régulière.
+- Création de `maison-dashboard-v82.html` et mise à jour du lanceur.
+
+### Simplifié
+- Suppression du bouton STOP ONVIF et de son endpoint de commande, qui n'apportait pas d'effet utile sur la caméra testée. La pause locale du joystick est conservée pour interrompre l'émission de nouvelles impulsions `RelativeMove` lorsqu'on relâche le joystick ou quitte le panneau.
+- Suppression de la création de positions prédéfinies : retrait du bouton « Mémoriser », du champ de nom et de leur traitement dans le navigateur et le service Python. La liste et le rappel des positions déjà enregistrées sur la caméra restent disponibles.
+- Création de `maison-dashboard-v81.html` et mise à jour du lanceur.
+- Suppression du test unitaire dédié à l'ancienne commande ONVIF `Stop` ; les tests de mouvement relatif et de rappel des positions restent en place.
+
+### Modifié
+- Remplacement du coefficient de déplacement fixe par deux gains `GainPTZ` configurables, ainsi que deux vitesses `VitesseONVIF` indépendantes pour les profils PC et Mobile.
+- Suppression du slider de vitesse du panneau PTZ ; les quatre réglages sont désormais regroupés dans deux groupbox des paramètres et mémorisés dans le `localStorage` de chaque navigateur.
+- Détection automatique du profil PC/Mobile selon le périphérique de pointage principal ; les valeurs initiales conservent le comportement précédent (gain 0,08 et vitesse ONVIF 0,50).
+- Le navigateur applique désormais le gain aux composantes du joystick ; le service ONVIF transmet directement les translations relatives normalisées.
+
+### Modifié
+- Inversion des deux axes du joystick PTZ : gauche/droite et haut/bas correspondent désormais aux sens physiques attendus.
+
 ### Ajouté
+- Déplacements physiques PTZ par petits pas `RelativeMove` successifs ; abandon de `ContinuousMove`, qui échoue avec la Tapo C200 testée.
+- Zoom logiciel du lecteur dans le panneau PTZ (1× à 3×), avec indicateur et réinitialisation ; aucune commande de zoom ONVIF n’est envoyée.
+- Encapsulation temporaire du lecteur vidéo dans une fenêtre de recadrage ; le lecteur retrouve son emplacement et son affichage d’origine à la fermeture du panneau.
+- Création de `maison-dashboard-v80.html` et mise à jour du lanceur.
+- Panneau de pilotage PTZ par caméra, avec vidéo agrandie, joystick tactile/souris NippleJS, vitesse réglable, zoom continu, arrêt explicite et gestion des positions prédéfinies ONVIF.
+- API ONVIF dans le service auxiliaire Python avec configuration indépendante par caméra ; les identifiants sont conservés uniquement dans le registre privé du Raspberry Pi.
 - Commande Audio activé / Audio coupé sur chaque carte caméra, avec un état partagé entre tous les navigateurs et conservé sur le Raspberry Pi.
 - Le service auxiliaire bascule l'unique source go2rtc entre le RTSP original (audio activé) et la variante vidéo seule avec #media=video (audio coupé), en recréant le flux actif.
 - Persistance de la préférence audio dans le registre privé des caméras ; un choix fait pendant un arrêt global est appliqué au prochain démarrage.
-- Création de maison-dashboard-v76.html ; les lecteurs vidéo restent préservés pendant les actualisations ordinaires.
+- Création de maison-dashboard-v77.html ; les lecteurs vidéo restent préservés pendant les actualisations ordinaires.
 
 ### Compatibilité
 - Les caméras déjà enregistrées conservent leur comportement audio actuel après la mise à jour ; l'audio reste activé par défaut jusqu'à une action explicite.
+
+### Corrigé
+- Correction de l'installation ONVIF : récupération de l'archive source `onvif-zeep 0.2.12`, vérification de son empreinte SHA-256 et installation de l'ensemble des ressources WSDL dans `vendor/wsdl`.
 
 Ce fichier retrace les évolutions notables de MyDomoticz, de la plus récente à la plus ancienne. Il décrit les changements du projet, sans détailler les opérations Git ou les statuts des Pull Requests.
 

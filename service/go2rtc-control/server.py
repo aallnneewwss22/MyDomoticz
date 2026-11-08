@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 import secrets
+import sys
 import tempfile
 import threading
 import urllib.error
@@ -16,6 +18,15 @@ from pathlib import Path
 
 import yaml
 
+VENDOR_DIR = Path(__file__).resolve().parent / "vendor"
+if VENDOR_DIR.is_dir():
+    sys.path.insert(0, str(VENDOR_DIR))
+
+try:
+    from onvif import ONVIFCamera
+except ImportError:
+    ONVIFCamera = None
+
 STREAM_NAME = re.compile(r"^[A-Za-z0-9_.-]{1,80}$")
 GO2RTC_API = os.environ.get("GO2RTC_API", "http://127.0.0.1:1984").rstrip("/")
 GO2RTC_CONFIG = Path(os.environ.get("GO2RTC_CONFIG", "/home/pi/go2rtc-test/go2rtc.yaml"))
@@ -25,6 +36,9 @@ DASHBOARD_ORIGIN = os.environ.get("DASHBOARD_ORIGIN", "http://192.168.1.21:8080"
 CONTROL_HOST = os.environ.get("CONTROL_HOST", "0.0.0.0")
 CONTROL_PORT = int(os.environ.get("CONTROL_PORT", "1985"))
 REGISTRY_LOCK = threading.RLock()
+LOGGER = logging.getLogger("go2rtc-control.ptz")
+PTZ_CACHE_LOCK = threading.RLock()
+PTZ_CLIENT_CACHE: dict[tuple[str, int, str, str], tuple[object, str]] = {}
 
 
 class ControlError(Exception):
@@ -93,11 +107,7 @@ def ensure_source_registry() -> None:
 
 
 def load_camera_settings() -> dict[str, dict[str, object]]:
-    """Load camera sources and the shared, persistent audio preference.
-
-    Version 1.1 stored each registry value as a source string. Accept that
-    format unchanged and interpret it as audio disabled until the first write.
-    """
+    """Load private camera sources, shared audio preferences and ONVIF settings."""
     try:
         data = json.loads(SOURCE_REGISTRY.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
@@ -106,17 +116,21 @@ def load_camera_settings() -> dict[str, dict[str, object]]:
         raise ControlError("Registre local des caméras invalide.")
     cameras: dict[str, dict[str, object]] = {}
     for name, entry in data.items():
-        if not isinstance(name, str) or not STREAM_NAME.fullmatch(name):
-            continue
+        if not isinstance(name, str) or not STREAM_NAME.fullmatch(name): continue
         if isinstance(entry, str) and entry.strip():
             cameras[name] = {"source": entry.strip(), "audio_enabled": True}
         elif isinstance(entry, dict):
-            source = entry.get("source")
-            audio_enabled = entry.get("audio_enabled", True)
+            source, audio_enabled = entry.get("source"), entry.get("audio_enabled", True)
             if isinstance(source, str) and source.strip() and isinstance(audio_enabled, bool):
-                cameras[name] = {"source": source.strip(), "audio_enabled": audio_enabled}
+                settings: dict[str, object] = {"source": source.strip(), "audio_enabled": audio_enabled}
+                ptz = entry.get("ptz")
+                if isinstance(ptz, dict):
+                    host, port = ptz.get("host"), ptz.get("port", 80)
+                    username, password = ptz.get("username", ""), ptz.get("password", "")
+                    if isinstance(host, str) and host.strip() and isinstance(port, int) and 1 <= port <= 65535 and isinstance(username, str) and isinstance(password, str):
+                        settings["ptz"] = {"host": host.strip(), "port": port, "username": username, "password": password}
+                cameras[name] = settings
     return cameras
-
 
 def load_sources() -> dict[str, str]:
     """Compatibility helper returning only the original source strings."""
@@ -195,8 +209,133 @@ def stream_exists(name: str) -> bool:
     return False
 
 
+def _ptz_cache_key(settings: dict[str, object]) -> tuple[str, int, str, str]:
+    config = settings.get("ptz")
+    if not isinstance(config, dict):
+        raise ControlError("La connexion ONVIF de cette caméra n'est pas configurée.")
+    return (
+        str(config["host"]),
+        int(config.get("port", 80)),
+        str(config.get("username", "")),
+        str(config.get("password", "")),
+    )
+
+
+def _ptz_invalidate_cache(settings: dict[str, object]) -> None:
+    """Discard a potentially stale ONVIF session after a failed PTZ operation."""
+    try:
+        key = _ptz_cache_key(settings)
+    except (ControlError, KeyError, TypeError, ValueError):
+        return
+    with PTZ_CACHE_LOCK:
+        PTZ_CLIENT_CACHE.pop(key, None)
+
+
+def _ptz_log_exception(operation: str, settings: dict[str, object], exc: Exception) -> None:
+    """Log ONVIF diagnostics without ever exposing configured credentials."""
+    config = settings.get("ptz")
+    config = config if isinstance(config, dict) else {}
+    host = str(config.get("host", "hôte inconnu"))
+    detail = str(exc).replace(chr(13), " ").replace(chr(10), " ")
+    for secret in (config.get("username"), config.get("password")):
+        if isinstance(secret, str) and secret:
+            detail = detail.replace(secret, "[masqué]")
+    if not detail:
+        detail = "(aucun détail fourni par la bibliothèque ONVIF)"
+    LOGGER.warning(
+        "Échec PTZ %s vers %s (%s) : %s",
+        operation,
+        host,
+        type(exc).__name__,
+        detail[:500],
+    )
+
+
+def _ptz_connection(settings: dict[str, object]):
+    if ONVIFCamera is None:
+        raise ControlError("La bibliothèque ONVIF n'est pas installée sur le Raspberry Pi.")
+    key = _ptz_cache_key(settings)
+    with PTZ_CACHE_LOCK:
+        cached = PTZ_CLIENT_CACHE.get(key)
+        if cached is not None:
+            return cached
+        try:
+            camera = ONVIFCamera(key[0], key[1], key[2], key[3])
+            media = camera.create_media_service()
+            profiles = media.GetProfiles()
+            profile = next((item for item in profiles if getattr(item, "PTZConfiguration", None)), None)
+            if profile is None:
+                raise ControlError("Aucun profil ONVIF avec capacités PTZ n'a été trouvé.")
+            result = (camera.create_ptz_service(), profile.token)
+            PTZ_CLIENT_CACHE[key] = result
+            return result
+        except ControlError:
+            raise
+        except Exception as exc:
+            _ptz_log_exception("connexion", settings, exc)
+            raise ControlError("Connexion ONVIF impossible. Consulte le journal go2rtc-control pour le détail technique.") from exc
+
+
+def _ptz_float(value: object, name: str, minimum: float = -1.0, maximum: float = 1.0) -> float:
+    try: number = float(value)
+    except (TypeError, ValueError) as exc: raise ControlError("Valeur PTZ invalide : " + name + ".") from exc
+    if not minimum <= number <= maximum: raise ControlError("Valeur PTZ hors limites : " + name + ".")
+    return number
+
+
+def ptz_move(settings: dict[str, object], payload: dict[str, object]) -> None:
+    """Send one finite relative pan/tilt step; never rely on ContinuousMove."""
+    pan = _ptz_float(payload.get("pan", 0), "pan")
+    tilt = _ptz_float(payload.get("tilt", 0), "tilt")
+    speed = _ptz_float(payload.get("speed", 0.5), "speed", 0.05, 1.0)
+    if abs(pan) < 0.001 and abs(tilt) < 0.001:
+        raise ControlError("Le déplacement demandé est nul.")
+    ptz, profile_token = _ptz_connection(settings)
+    # Pan/Tilt already contains the browser-selected GainPTZ. Values remain
+    # normalized to the camera's GenericTranslation space (-1..1).
+    # The browser sends another finite step only while the joystick is deflected.
+    try:
+        request = ptz.create_type("RelativeMove")
+        request.ProfileToken = profile_token
+        request.Translation = {"PanTilt": {"x": pan, "y": tilt}}
+        request.Speed = {"PanTilt": {"x": speed, "y": speed}}
+        ptz.RelativeMove(request)
+    except Exception as exc:
+        _ptz_invalidate_cache(settings)
+        _ptz_log_exception("RelativeMove", settings, exc)
+        raise ControlError("La commande de déplacement relatif PTZ a échoué. Consulte le journal go2rtc-control pour le détail technique.") from exc
+
+
+def ptz_list_presets(settings: dict[str, object]) -> list[dict[str, str]]:
+    ptz, profile_token = _ptz_connection(settings)
+    try:
+        presets = ptz.GetPresets({"ProfileToken": profile_token})
+        return [{"token": str(item.token), "name": str(getattr(item, "Name", "") or item.token)} for item in (presets or []) if getattr(item, "token", None)]
+    except Exception as exc: raise ControlError("Impossible de lire les positions prédéfinies ONVIF.") from exc
+
+
+def ptz_goto_preset(settings: dict[str, object], token: str) -> None:
+    if not token or len(token) > 128: raise ControlError("Identifiant de position prédéfinie invalide.")
+    ptz, profile_token = _ptz_connection(settings)
+    try:
+        valid_tokens = {item["token"] for item in ptz_list_presets(settings)}
+        if token not in valid_tokens: raise ControlError("Cette position prédéfinie n'existe plus sur la caméra.")
+        ptz.GotoPreset({"ProfileToken": profile_token, "PresetToken": token})
+    except ControlError: raise
+    except Exception as exc: raise ControlError("Le déplacement vers cette position a échoué.") from exc
+
+
+def _read_json_body(handler: BaseHTTPRequestHandler) -> dict[str, object]:
+    try: length = int(handler.headers.get("Content-Length", "0"))
+    except ValueError: length = 0
+    if length <= 0 or length > 4096: raise ControlError("Corps JSON absent ou trop volumineux.")
+    try: payload = json.loads(handler.rfile.read(length).decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc: raise ControlError("Corps JSON invalide.") from exc
+    if not isinstance(payload, dict): raise ControlError("Le corps JSON doit être un objet.")
+    return payload
+
 class Handler(BaseHTTPRequestHandler):
-    server_version = "go2rtc-control/1.2"
+    server_version = "go2rtc-control/1.4"
 
     def log_message(self, fmt: str, *args: object) -> None:
         # Never log query parameters: a start request contains an RTSP source.
@@ -279,21 +418,9 @@ class Handler(BaseHTTPRequestHandler):
                     self.send_json(200, {"enabled": True, "audio_enabled": audio_enabled})
                     return
                 if action == "audio":
-                    try:
-                        length = int(self.headers.get("Content-Length", "0"))
-                    except ValueError:
-                        length = 0
-                    if length <= 0 or length > 1024:
-                        self.send_json(400, {"error": "Paramètre audio absent ou invalide."})
-                        return
-                    try:
-                        payload = json.loads(self.rfile.read(length).decode("utf-8"))
-                    except (UnicodeDecodeError, json.JSONDecodeError):
-                        self.send_json(400, {"error": "Corps JSON invalide."})
-                        return
-                    if not isinstance(payload, dict) or not isinstance(payload.get("enabled"), bool):
-                        self.send_json(400, {"error": "Le champ enabled doit être un booléen."})
-                        return
+                    payload = _read_json_body(self)
+                    if not isinstance(payload.get("enabled"), bool):
+                        raise ControlError("Le champ enabled doit être un booléen.")
                     next_audio = payload["enabled"]
                     if next_audio != audio_enabled:
                         running = stream_exists(name)
@@ -303,11 +430,49 @@ class Handler(BaseHTTPRequestHandler):
                         save_camera_settings(cameras)
                     self.send_json(200, {"enabled": stream_exists(name), "audio_enabled": next_audio})
                     return
+                if action == "ptz-status":
+                    ptz = settings.get("ptz")
+                    self.send_json(200, {"configured": isinstance(ptz, dict), "host": ptz.get("host", "") if isinstance(ptz, dict) else "", "port": ptz.get("port", 80) if isinstance(ptz, dict) else 80})
+                    return
+                if action == "ptz-config":
+                    payload = _read_json_body(self)
+                    host, port = payload.get("host"), payload.get("port", 80)
+                    username, password = payload.get("username", ""), payload.get("password", "")
+                    if not isinstance(host, str) or not host.strip() or len(host.strip()) > 253 or any(char in host for char in "/?#@ \\t\\r\\n"):
+                        raise ControlError("Adresse IP ou nom d’hôte ONVIF invalide.")
+                    if isinstance(port, bool) or not isinstance(port, int) or not 1 <= port <= 65535:
+                        raise ControlError("Port ONVIF invalide.")
+                    if not isinstance(username, str) or not isinstance(password, str):
+                        raise ControlError("Identifiants ONVIF invalides.")
+                    previous = settings.get("ptz", {})
+                    if not username and isinstance(previous, dict): username = str(previous.get("username", ""))
+                    if not password and isinstance(previous, dict): password = str(previous.get("password", ""))
+                    settings["ptz"] = {"host": host.strip(), "port": port, "username": username, "password": password}
+                    save_camera_settings(cameras)
+                    self.send_json(200, {"configured": True, "host": host.strip(), "port": port})
+                    return
+                if action == "ptz-move":
+                    ptz_move(settings, _read_json_body(self))
+                    self.send_json(200, {"ok": True})
+                    return
+                if action == "ptz-presets":
+                    self.send_json(200, {"presets": ptz_list_presets(settings)})
+                    return
+                if action == "ptz-goto":
+                    payload = _read_json_body(self)
+                    token = payload.get("token")
+                    if not isinstance(token, str): raise ControlError("Identifiant de position prédéfinie invalide.")
+                    ptz_goto_preset(settings, token)
+                    self.send_json(200, {"ok": True})
+                    return
                 self.send_json(404, {"error": "Action inconnue."})
         except ControlError as exc:
             self.send_json(502, {"error": str(exc)})
     def do_GET(self) -> None:
-        self.handle_camera("status")
+        action = urllib.parse.urlsplit(self.path).path.rstrip("/").split("/")[-1]
+        if action not in ("status", "ptz-status", "ptz-presets"):
+            action = "status"
+        self.handle_camera(action)
 
     def do_POST(self) -> None:
         action = urllib.parse.urlsplit(self.path).path.rstrip("/").split("/")[-1]

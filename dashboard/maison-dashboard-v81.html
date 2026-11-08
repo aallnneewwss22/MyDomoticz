@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light dark">
-    <title>Ma maison — Domoticz</title>
+    <title>Ma maison — Domoticz v79</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;500;700&display=swap" rel="stylesheet">
@@ -306,6 +306,20 @@
             line-height: 1.4;
         }
 
+        .ptz-settings-group .ptz-settings-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .ptz-settings-group input {
+            font-variant-numeric: tabular-nums;
+        }
+
+        @media (max-width: 520px) {
+            .ptz-settings-group .ptz-settings-grid { grid-template-columns: 1fr; }
+        }
+
         .page-name-edit-row {
             display: grid;
             grid-template-columns: minmax(0, 1fr) 42px 42px;
@@ -422,6 +436,45 @@
         .history-chart { width: 100%; height: 170px; margin-top: 5px; overflow: visible; border: 0; box-shadow: inset 1px 0 #000, inset -1px 0 #000, inset 0 1px #000; background-color: color-mix(in srgb, var(--panel) 96%, #000); background-image: linear-gradient(#000, #000); background-repeat: no-repeat; background-size: 100% 1px; background-position: left calc(100% - 5px); }
         .history-status { min-height: 1.3em; margin: 0; color: var(--muted); font-size: .8rem; }
         .history-stats { display: flex; flex-wrap: wrap; gap: 12px; margin-top: -22px; padding-top: 9px; border-top: 1px solid var(--border); color: var(--muted); font-size: .8rem; }
+
+        .camera-card {
+            min-width: 0;
+            overflow: hidden;
+        }
+
+        .camera-card .device-meta { overflow-wrap: anywhere; }
+        .camera-frame {
+            display: block; width: 100%; aspect-ratio: 16 / 9; margin-top: 9px;
+            border: 0; border-radius: 9px; background: #101722;
+        }
+        .camera-frame.is-hidden { display: none; }
+        .camera-controls { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+        .camera-controls button { min-height: 34px; padding: 5px 9px; font-size: .85rem; }
+        .camera-controls button[aria-pressed="true"] { background: var(--button-selected-bg); color: #fff; }
+        .camera-status { min-height: 1.3em; margin: 5px 0 0; color: var(--muted); font-size: .8rem; }
+
+
+        .ptz-dialog { width: min(calc(100vw - 24px), 1120px); max-width: none; max-height: calc(100vh - 24px); overflow: auto; padding: 18px; }
+        .ptz-shell { display: grid; gap: 14px; }
+        .ptz-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+        .ptz-heading h2 { margin: 0; }
+        .ptz-layout { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(270px, .9fr); gap: 18px; align-items: start; }
+        .ptz-video-slot { min-width: 0; }
+        .ptz-video-viewport { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 10px; background: #101722; }
+        .ptz-video-viewport .camera-frame { position: absolute; inset: 0; display: block; width: 100%; height: 100%; aspect-ratio: auto; margin: 0; border: 0; border-radius: 0; transform: scale(var(--ptz-zoom, 1)); transform-origin: center center; }
+        .ptz-controls-column { display: grid; gap: 12px; min-width: 0; }
+        .ptz-config { display: grid; gap: 10px; }
+        .ptz-config input, .ptz-presets select { width: 100%; min-height: 40px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font: inherit; }
+        .ptz-config[hidden], .ptz-controls[hidden] { display: none !important; }
+        .ptz-config h3, .ptz-controls h3 { margin: 0; font-size: 1rem; }
+        .ptz-joystick-zone { position: relative; width: min(100%, 300px); height: 250px; margin: 0 auto; border: 1px dashed var(--border); border-radius: 18px; background: color-mix(in srgb, var(--bg) 85%, var(--accent)); touch-action: none; }
+        .ptz-zoom-buttons { display: grid; grid-template-columns: 1fr auto 1fr; gap: 7px; align-items: center; }
+        .ptz-zoom-buttons button { min-width: 0; }
+        .ptz-zoom-buttons span { min-width: 4.5em; text-align: center; font-weight: 750; font-variant-numeric: tabular-nums; }
+        .ptz-presets { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 7px; align-items: end; }
+        .ptz-status { min-height: 1.4em; margin: 0; color: var(--muted); font-size: .88rem; }
+        .ptz-config-actions { display: flex; justify-content: flex-end; gap: 8px; }
+        @media (max-width: 720px) { .ptz-dialog { padding: 12px; } .ptz-layout { grid-template-columns: 1fr; } .ptz-joystick-zone { height: 210px; } }
 
         .device-card {
             min-width: 0;
@@ -645,6 +698,51 @@
                         <option value="midnight">Bleu nuit</option>
                     </select>
                 </label>
+                <fieldset class="settings-field page-name-group ptz-settings-group">
+                    <legend>Réglages PTZ — PC</legend>
+                    <div class="ptz-settings-grid">
+                        <label class="settings-field" for="ptz-gain-pc">
+                            <span>GainPTZ</span>
+                            <input id="ptz-gain-pc" type="number" min="0.01" max="1" step="0.01" required>
+                        </label>
+                        <label class="settings-field" for="ptz-speed-pc">
+                            <span>VitesseONVIF</span>
+                            <input id="ptz-speed-pc" type="number" min="0.05" max="1" step="0.05" required>
+                        </label>
+                    </div>
+                </fieldset>
+                <fieldset class="settings-field page-name-group ptz-settings-group">
+                    <legend>Réglages PTZ — Mobile</legend>
+                    <div class="ptz-settings-grid">
+                        <label class="settings-field" for="ptz-gain-mobile">
+                            <span>GainPTZ</span>
+                            <input id="ptz-gain-mobile" type="number" min="0.01" max="1" step="0.01" required>
+                        </label>
+                        <label class="settings-field" for="ptz-speed-mobile">
+                            <span>VitesseONVIF</span>
+                            <input id="ptz-speed-mobile" type="number" min="0.05" max="1" step="0.05" required>
+                        </label>
+                    </div>
+                </fieldset>
+                <p class="settings-help">Le profil PC ou Mobile est sélectionné automatiquement selon le périphérique de pointage principal. Les réglages sont propres à ce navigateur.</p>
+                <label class="settings-field" for="go2rtc-url">
+                    <span>Adresse de go2rtc</span>
+                    <input id="go2rtc-url" name="go2rtc-url" type="url" inputmode="url"
+                           placeholder="Automatique : http://adresse-du-Raspberry:1984">
+                    <p class="settings-help">Laisser vide pour utiliser automatiquement le nom d'hôte du serveur Domoticz avec le port 1984.</p>
+                </label>
+                <label class="settings-field" for="camera-control-url">
+                    <span>Adresse du service de commande des caméras</span>
+                    <input id="camera-control-url" name="camera-control-url" type="url" inputmode="url"
+                           placeholder="Automatique : http://adresse-du-Raspberry:1985">
+                    <p class="settings-help">Laisser vide pour utiliser automatiquement le nom d'hôte de Domoticz avec le port 1985.</p>
+                </label>
+                <label class="settings-field" for="camera-control-token">
+                    <span>Jeton d'accès au service caméra</span>
+                    <input id="camera-control-token" name="camera-control-token" type="password"
+                           autocomplete="new-password" placeholder="Coller le jeton fourni lors de l'installation">
+                    <p class="settings-help">Le jeton est mémorisé dans le stockage local de ce navigateur. Il n'est jamais placé dans le classeur IDX.</p>
+                </label>
                 <fieldset class="settings-field page-name-group">
                     <legend>Noms des pages</legend>
                     <label for="page-name-file">Fichier de configuration</label>
@@ -670,6 +768,40 @@
             </form>
         </dialog>
 
+        <dialog id="ptz-dialog" class="ptz-dialog" aria-labelledby="ptz-title">
+            <div class="ptz-shell">
+                <div class="ptz-heading"><h2 id="ptz-title">Pilotage PTZ</h2><button id="ptz-close" type="button">Fermer</button></div>
+                <div class="ptz-layout">
+                    <div><div id="ptz-video-slot" class="ptz-video-slot"></div><p id="ptz-status" class="ptz-status" role="status" aria-live="polite"></p></div>
+                    <div class="ptz-controls-column">
+                        <form id="ptz-config-form" class="ptz-config" hidden>
+                            <h3>Connexion ONVIF de cette caméra</h3>
+                            <label class="settings-field" for="ptz-host">Adresse IP ou nom d'hôte</label>
+                            <input id="ptz-host" name="host" type="text" required maxlength="253" autocomplete="off" placeholder="192.168.1.50">
+                            <label class="settings-field" for="ptz-port">Port ONVIF</label>
+                            <input id="ptz-port" name="port" type="number" min="1" max="65535" value="80" required>
+                            <label class="settings-field" for="ptz-username">Identifiant ONVIF</label>
+                            <input id="ptz-username" name="username" type="text" autocomplete="off">
+                            <label class="settings-field" for="ptz-password">Mot de passe ONVIF</label>
+                            <input id="ptz-password" name="password" type="password" autocomplete="new-password">
+                            <p class="settings-help">Ces identifiants sont conservés uniquement dans le registre privé du Raspberry Pi. Ils ne sont pas renvoyés au navigateur.</p>
+                            <div class="ptz-config-actions"><button id="ptz-cancel-config" type="button">Annuler</button><button type="submit">Enregistrer la connexion</button></div>
+                        </form>
+                        <div id="ptz-controls" class="ptz-controls" hidden>
+                            <h3>Déplacement</h3>
+                            <div id="ptz-joystick" class="ptz-joystick-zone" aria-label="Joystick de déplacement PTZ"></div>
+                            <h3>Zoom logiciel de l’image</h3>
+                            <div class="ptz-zoom-buttons"><button id="ptz-zoom-out" type="button" aria-label="Diminuer le zoom">− Zoom</button><span id="ptz-zoom-level" aria-live="polite">1,00×</span><button id="ptz-zoom-in" type="button" aria-label="Augmenter le zoom">+ Zoom</button></div>
+                            <button id="ptz-zoom-reset" type="button">Réinitialiser le zoom</button>
+                            <h3>Positions prédéfinies</h3>
+                            <div class="ptz-presets"><label class="settings-field" for="ptz-preset-select">Position mémorisée<select id="ptz-preset-select"><option value="">Aucune position</option></select></label><button id="ptz-goto" type="button">Atteindre</button></div>
+                            <button id="ptz-edit-config" type="button">Modifier la connexion ONVIF</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </dialog>
+
         <div id="grid" class="grid"></div>
         <div id="empty" class="empty hidden">
             Aucun équipement à afficher.
@@ -681,6 +813,7 @@
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/nipplejs@0.10.2/dist/nipplejs.min.js"></script>
     <script>
         (() => {
             "use strict";
@@ -693,6 +826,16 @@
             const AVAILABLE_THEMES = ["auto", "classic", "dark", "nature", "midnight"];
             const PAGE_STORAGE_KEY = "mydomoticz.currentPage";
             const PAGE_NAMES_STORAGE_KEY = "mydomoticz.pageNames";
+            const GO2RTC_STORAGE_KEY = "mydomoticz.go2rtcBaseUrl";
+            const CAMERA_CONTROL_URL_KEY = "mydomoticz.cameraControlUrl";
+            const CAMERA_CONTROL_TOKEN_KEY = "mydomoticz.cameraControlToken";
+            const PTZ_GAIN_PC_KEY = "mydomoticz.ptzGain.pc";
+            const PTZ_GAIN_MOBILE_KEY = "mydomoticz.ptzGain.mobile";
+            const PTZ_SPEED_PC_KEY = "mydomoticz.ptzSpeed.pc";
+            const PTZ_SPEED_MOBILE_KEY = "mydomoticz.ptzSpeed.mobile";
+            const PTZ_DEFAULT_GAIN = 0.08;
+            const PTZ_DEFAULT_SPEED = 0.5;
+            const CAMERA_LOCAL_STOP_PREFIX = "mydomoticz.cameraLocalStop.";
             // Les pages sont découvertes au démarrage à partir des classeurs IDX1.xlsx à IDX9.xlsx.
             // Le suffixe .XLSX est également accepté pour les systèmes de fichiers sensibles à la casse.
             let PAGE_DEFINITIONS = [];
@@ -702,6 +845,7 @@
             let refreshIntervalSeconds = loadRefreshInterval();
             let selectedTheme = loadTheme();
             let savedPageNames = loadPageNames();
+            let go2rtcBaseUrl = loadGo2rtcBaseUrl();
             let draftPageNames = {};
             let selectedPageNameId = "";
             let currentPageId = "";
@@ -719,6 +863,26 @@
                 idxFileName: ""
             };
             const $ = (id) => document.getElementById(id);
+
+            function loadPtzNumber(key, fallback, minimum, maximum) {
+                try {
+                    const stored = localStorage.getItem(key);
+                    const saved = Number(stored);
+                    if (stored !== null && Number.isFinite(saved) && saved >= minimum && saved <= maximum) return saved;
+                } catch (error) {
+                    // Les valeurs par défaut restent utilisables si le stockage local est indisponible.
+                }
+                return fallback;
+            }
+
+            const ptzSettings = {
+                pc: { gain: loadPtzNumber(PTZ_GAIN_PC_KEY, PTZ_DEFAULT_GAIN, 0.01, 1), speed: loadPtzNumber(PTZ_SPEED_PC_KEY, PTZ_DEFAULT_SPEED, 0.05, 1) },
+                mobile: { gain: loadPtzNumber(PTZ_GAIN_MOBILE_KEY, PTZ_DEFAULT_GAIN, 0.01, 1), speed: loadPtzNumber(PTZ_SPEED_MOBILE_KEY, PTZ_DEFAULT_SPEED, 0.05, 1) }
+            };
+
+            function currentPtzProfile() {
+                return window.matchMedia && window.matchMedia("(pointer: coarse)").matches ? "mobile" : "pc";
+            }
 
             function loadRefreshInterval() {
                 try {
@@ -740,6 +904,27 @@
                     // Le thème automatique reste disponible si le stockage local est indisponible.
                 }
                 return "auto";
+            }
+
+            function defaultGo2rtcBaseUrl() {
+                return `${window.location.protocol}//${window.location.hostname}:1984`;
+            }
+
+            function normalizeGo2rtcBaseUrl(value) {
+                const candidate = String(value ?? "").trim() || defaultGo2rtcBaseUrl();
+                const parsed = new URL(candidate);
+                if (!["http:", "https:"].includes(parsed.protocol)) {
+                    throw new Error("L'adresse go2rtc doit commencer par http:// ou https://.");
+                }
+                return parsed.origin;
+            }
+
+            function loadGo2rtcBaseUrl() {
+                try {
+                    return normalizeGo2rtcBaseUrl(localStorage.getItem(GO2RTC_STORAGE_KEY) || "");
+                } catch (error) {
+                    return defaultGo2rtcBaseUrl();
+                }
             }
 
             function loadPageNames() {
@@ -1005,10 +1190,347 @@
                 return card;
             }
 
+            function cameraControlBaseUrl() {
+                const saved = localStorage.getItem(CAMERA_CONTROL_URL_KEY) || "";
+                const candidate = saved.trim() || `${window.location.protocol}//${window.location.hostname}:1985`;
+                const parsed = new URL(candidate);
+                if (!["http:", "https:"].includes(parsed.protocol)) throw new Error("Adresse du service caméra invalide.");
+                return parsed.origin;
+            }
+
+            function cameraControlToken() {
+                try { return localStorage.getItem(CAMERA_CONTROL_TOKEN_KEY) || ""; }
+                catch (error) { return ""; }
+            }
+
+            async function cameraControlRequest(stream, action, payload = null) {
+                const token = cameraControlToken();
+                if (!token) throw new Error("Configure le jeton d'accès dans les paramètres du tableau de bord.");
+                const headers = { Authorization: "Bearer " + token };
+                if (payload !== null) headers["Content-Type"] = "application/json";
+                const response = await fetch(cameraControlBaseUrl() + "/api/cameras/" + encodeURIComponent(stream) + "/" + action, {
+                    method: ["status", "ptz-status", "ptz-presets"].includes(action) ? "GET" : "POST",
+                    headers,
+                    body: payload === null ? undefined : JSON.stringify(payload),
+                    cache: "no-store"
+                });
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok) throw new Error(data.error || "Erreur HTTP " + response.status);
+                return data;
+            }
+
+
+            const ptzDialog = $("ptz-dialog");
+            let ptzSession = null;
+            let ptzJoystick = null;
+            let ptzMoveInFlight = false;
+            let ptzMovePending = Promise.resolve();
+            let ptzLastMoveAt = 0;
+            let ptzMotionPaused = false;
+
+            function ptzSetStatus(message) { $("ptz-status").textContent = message || ""; }
+            function ptzShowConfiguration(show) {
+                $("ptz-config-form").hidden = !show;
+                $("ptz-controls").hidden = show;
+            }
+            function ptzCurrentSpeed() { return ptzSettings[currentPtzProfile()].speed; }
+            function ptzCurrentGain() { return ptzSettings[currentPtzProfile()].gain; }
+            async function ptzSendMove(pan, tilt) {
+                if (!ptzSession || !ptzSession.configured || ptzMotionPaused || ptzMoveInFlight) return;
+                ptzMoveInFlight = true;
+                const pending = cameraControlRequest(ptzSession.config.stream, "ptz-move", { pan, tilt, speed: ptzCurrentSpeed() });
+                ptzMovePending = pending;
+                try { await pending; }
+                catch (error) { ptzSetStatus("Commande PTZ impossible : " + (error.message || "erreur inconnue")); }
+                finally { ptzMoveInFlight = false; }
+            }
+            async function ptzPauseMovement() {
+                // RelativeMove executes a finite step: stopping means no more steps
+                // are sent. The already accepted step is allowed to finish.
+                ptzMotionPaused = true;
+                try { await ptzMovePending.catch(() => {}); }
+                catch (_) { /* ptzSendMove already reports the error */ }
+            }
+            function ptzSetSoftwareZoom(value) {
+                if (!ptzSession || !ptzSession.viewport) return;
+                const zoom = Math.max(1, Math.min(3, Math.round(value * 4) / 4));
+                ptzSession.zoom = zoom;
+                ptzSession.viewport.style.setProperty("--ptz-zoom", String(zoom));
+                $("ptz-zoom-level").textContent = zoom.toFixed(2).replace(".", ",") + "×";
+            }
+            function ptzChangeSoftwareZoom(delta) {
+                if (ptzSession) ptzSetSoftwareZoom(ptzSession.zoom + delta);
+            }
+            function ptzDestroyJoystick() {
+                if (ptzJoystick) { ptzJoystick.destroy(); ptzJoystick = null; }
+            }
+            function ptzInitJoystick() {
+                ptzDestroyJoystick();
+                if (!window.nipplejs) { ptzSetStatus("Le joystick tactile n'a pas pu être chargé. Vérifie l'accès au CDN."); return; }
+                const color = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#2867d8";
+                ptzJoystick = window.nipplejs.create({ zone: $("ptz-joystick"), mode: "static", position: { left: "50%", top: "50%" }, size: 138, color, restOpacity: 0.8 });
+                ptzJoystick.on("start", () => { ptzMotionPaused = false; });
+                ptzJoystick.on("move", (event, data) => {
+                    if (ptzMotionPaused || !data || !data.vector) return;
+                    const now = Date.now();
+                    if (now - ptzLastMoveAt < 260) return;
+                    ptzLastMoveAt = now;
+                    const gain = ptzCurrentGain();
+                    ptzSendMove(-data.vector.x * gain, data.vector.y * gain);
+                });
+                ptzJoystick.on("end", () => ptzPauseMovement());
+            }
+            async function ptzLoadPresets() {
+                if (!ptzSession) return;
+                const select = $("ptz-preset-select");
+                select.replaceChildren();
+                const result = await cameraControlRequest(ptzSession.config.stream, "ptz-presets");
+                const presets = Array.isArray(result.presets) ? result.presets : [];
+                if (!presets.length) {
+                    const option = document.createElement("option"); option.value = ""; option.textContent = "Aucune position mémorisée"; select.append(option);
+                } else {
+                    for (const preset of presets) { const option = document.createElement("option"); option.value = preset.token; option.textContent = preset.name; select.append(option); }
+                }
+            }
+            async function openPtzPanel(config, frame, placeholder) {
+                if (ptzSession) await closePtzPanel();
+                const viewport = document.createElement("div");
+                viewport.className = "ptz-video-viewport";
+                viewport.style.setProperty("--ptz-zoom", "1");
+                ptzSession = { config, frame, placeholder, viewport, zoom: 1, wasHidden: frame.classList.contains("is-hidden"), configured: false };
+                $("ptz-title").textContent = "Pilotage PTZ — " + (config.label || config.stream);
+                $("ptz-video-slot").append(viewport);
+                viewport.append(frame);
+                frame.classList.remove("is-hidden");
+                ptzSetSoftwareZoom(1);
+                ptzMotionPaused = false;
+                $("ptz-host").value = ""; $("ptz-port").value = "80";
+                $("ptz-username").value = ""; $("ptz-password").value = "";
+                ptzShowConfiguration(false);
+                ptzSetStatus("Lecture de la configuration ONVIF…");
+                ptzDialog.showModal();
+                try {
+                    const info = await cameraControlRequest(config.stream, "ptz-status");
+                    ptzSession.configured = Boolean(info.configured);
+                    $("ptz-host").value = info.host || "";
+                    $("ptz-port").value = String(info.port || 80);
+                    ptzShowConfiguration(!ptzSession.configured);
+                    if (ptzSession.configured) {
+                        ptzSetStatus("Connexion ONVIF prête. Le joystick envoie de petits déplacements relatifs ; le zoom agit uniquement sur l’image affichée.");
+                        ptzInitJoystick();
+                        try { await ptzLoadPresets(); } catch (error) { ptzSetStatus("Pilotage disponible ; lecture des positions prédéfinies impossible : " + error.message); }
+                    } else { ptzSetStatus("Renseigne les paramètres ONVIF de cette caméra pour activer le pilotage."); }
+                } catch (error) {
+                    ptzShowConfiguration(true);
+                    ptzSetStatus("Service caméra indisponible : " + (error.message || "vérifie les paramètres"));
+                }
+            }
+            async function closePtzPanel() {
+                if (!ptzSession) { if (ptzDialog.open) ptzDialog.close(); return; }
+                const session = ptzSession;
+                await ptzPauseMovement();
+                ptzDestroyJoystick();
+                if (session.placeholder && session.placeholder.parentNode) {
+                    session.placeholder.parentNode.insertBefore(session.frame, session.placeholder.nextSibling);
+                }
+                if (session.viewport && session.viewport.parentNode) session.viewport.remove();
+                session.frame.classList.toggle("is-hidden", session.wasHidden);
+                ptzSession = null;
+                if (ptzDialog.open) ptzDialog.close();
+            }
+            $("ptz-close").addEventListener("click", closePtzPanel);
+            $("ptz-cancel-config").addEventListener("click", () => {
+                if (ptzSession && ptzSession.configured) ptzShowConfiguration(false);
+                else closePtzPanel();
+            });
+            ptzDialog.addEventListener("cancel", event => { event.preventDefault(); closePtzPanel(); });
+            $("ptz-config-form").addEventListener("submit", async event => {
+                event.preventDefault();
+                if (!ptzSession) return;
+                const payload = { host: $("ptz-host").value.trim(), port: Number($("ptz-port").value), username: $("ptz-username").value, password: $("ptz-password").value };
+                try {
+                    await cameraControlRequest(ptzSession.config.stream, "ptz-config", payload);
+                    ptzSession.configured = true;
+                    $("ptz-password").value = ""; $("ptz-username").value = "";
+                    ptzShowConfiguration(false); ptzInitJoystick();
+                    ptzSetStatus("Connexion ONVIF enregistrée sur le Raspberry Pi.");
+                    try { await ptzLoadPresets(); } catch (error) { ptzSetStatus("Connexion enregistrée ; lecture des positions indisponible : " + error.message); }
+                } catch (error) { ptzSetStatus("Enregistrement impossible : " + (error.message || "erreur inconnue")); }
+            });
+            $("ptz-edit-config").addEventListener("click", () => {
+                if (!ptzSession) return;
+                $("ptz-username").value = ""; $("ptz-password").value = "";
+                ptzShowConfiguration(true); ptzSetStatus("Laisse les identifiants vides pour conserver ceux déjà enregistrés.");
+            });
+            $("ptz-zoom-in").addEventListener("click", () => ptzChangeSoftwareZoom(0.25));
+            $("ptz-zoom-out").addEventListener("click", () => ptzChangeSoftwareZoom(-0.25));
+            $("ptz-zoom-reset").addEventListener("click", () => ptzSetSoftwareZoom(1));
+            $("ptz-goto").addEventListener("click", async () => {
+                if (!ptzSession || !$("ptz-preset-select").value) return;
+                try { await ptzPauseMovement(); await cameraControlRequest(ptzSession.config.stream, "ptz-goto", { token: $("ptz-preset-select").value }); ptzSetStatus("Déplacement vers la position demandée."); }
+                catch (error) { ptzSetStatus("Déplacement impossible : " + error.message); }
+            });
+            $("page-select").addEventListener("change", () => { if (ptzSession) closePtzPanel(); });
+            function createCameraCard(config) {
+                const card = document.createElement("article");
+                card.className = "device-card camera-card";
+                card.dataset.cameraStream = config.stream;
+                const top = document.createElement("div");
+                top.className = "device-top";
+                const icon = document.createElement("div");
+                icon.className = "device-icon";
+                icon.setAttribute("aria-hidden", "true");
+                icon.append(createLucideIcon("camera"));
+                const heading = document.createElement("div");
+                heading.style.minWidth = "0";
+                const name = document.createElement("div");
+                name.className = "device-name";
+                name.textContent = config.label || config.stream;
+                const type = document.createElement("div");
+                type.className = "device-type";
+                type.textContent = `Caméra · flux ${config.stream}`;
+                heading.append(name, type);
+                top.append(icon, heading);
+
+                const frame = document.createElement("iframe");
+                frame.className = "camera-frame";
+                frame.title = `Vidéo : ${config.label || config.stream}`;
+                frame.loading = "lazy";
+                frame.allow = "autoplay; fullscreen; picture-in-picture";
+                frame.allowFullscreen = true;
+                frame.referrerPolicy = "no-referrer";
+                const playerUrl = new URL("/stream.html", go2rtcBaseUrl);
+                playerUrl.searchParams.set("src", config.stream);
+                playerUrl.searchParams.set("mode", "webrtc,mse,hls");
+                frame.src = playerUrl.href;
+                const framePlaceholder = document.createComment("Emplacement du lecteur caméra");
+
+                const controls = document.createElement("div");
+                controls.className = "camera-controls";
+                const status = document.createElement("p");
+                status.className = "camera-status";
+                status.setAttribute("role", "status");
+                status.setAttribute("aria-live", "polite");
+                const buttons = {};
+                let mode = "on";
+                let busy = false;
+                let audioEnabled = false;
+                const audioButton = document.createElement("button");
+                audioButton.type = "button";
+                audioButton.setAttribute("aria-pressed", "false");
+                const updateAudioButton = () => {
+                    audioButton.textContent = audioEnabled ? "Audio activé" : "Audio coupé";
+                    audioButton.setAttribute("aria-pressed", String(audioEnabled));
+                    audioButton.disabled = busy;
+                    audioButton.title = audioEnabled
+                        ? "Désactiver l'audio pour tous les navigateurs"
+                        : "Activer l'audio pour tous les navigateurs";
+                };
+                updateAudioButton();
+                const setMode = (nextMode, message) => {
+                    mode = nextMode;
+                    frame.classList.toggle("is-hidden", mode !== "on");
+                    // Décharger réellement le lecteur dans ce navigateur en arrêt local ou global.
+                    if (mode === "on") {
+                        if (frame.src !== playerUrl.href) frame.src = playerUrl.href;
+                    } else if (frame.src !== "about:blank") {
+                        frame.src = "about:blank";
+                    }
+                    for (const [key, button] of Object.entries(buttons)) {
+                        button.setAttribute("aria-pressed", String(key === mode));
+                        button.disabled = busy;
+                    }
+                    updateAudioButton();
+                    status.textContent = message || ({on:"Caméra en marche", local:"Arrêt local : le flux reste actif sur le serveur", global:"Arrêt global : le flux est arrêté sur go2rtc"})[mode];
+                };
+                const runAction = async (action) => {
+                    if (busy) return;
+                    busy = true;
+                    Object.values(buttons).forEach(button => button.disabled = true);
+                    status.textContent = "Commande en cours…";
+                    try {
+                        if (action === "audio") {
+                            const result = await cameraControlRequest(config.stream, "audio", { enabled: !audioEnabled });
+                            audioEnabled = Boolean(result.audio_enabled);
+                            updateAudioButton();
+                            if (mode === "on") {
+                                // Le remplacement de source côté go2rtc impose une reconnexion volontaire du lecteur.
+                                frame.src = "about:blank";
+                                window.setTimeout(() => {
+                                    if (mode === "on") frame.src = playerUrl.href;
+                                }, 150);
+                            }
+                            status.textContent = audioEnabled
+                                ? "Audio activé pour cette caméra sur tous les navigateurs."
+                                : "Audio coupé pour cette caméra sur tous les navigateurs.";
+                        } else if (action === "local") {
+                            localStorage.setItem(CAMERA_LOCAL_STOP_PREFIX + config.stream, "1");
+                            setMode("local");
+                        } else if (action === "global") {
+                            await cameraControlRequest(config.stream, "stop");
+                            localStorage.removeItem(CAMERA_LOCAL_STOP_PREFIX + config.stream);
+                            setMode("global");
+                        } else {
+                            const current = await cameraControlRequest(config.stream, "status");
+                            if (!current.enabled) await cameraControlRequest(config.stream, "start");
+                            localStorage.removeItem(CAMERA_LOCAL_STOP_PREFIX + config.stream);
+                            frame.src = playerUrl.href;
+                            setMode("on");
+                        }
+                    } catch (error) {
+                        status.textContent = `Commande impossible : ${error.message || "erreur inconnue"}`;
+                    } finally {
+                        busy = false;
+                        Object.values(buttons).forEach(button => button.disabled = false);
+                        updateAudioButton();
+                    }
+                };
+                for (const [key, label] of [["on","Marche"],["local","Arrêt local"],["global","Arrêt global"]]) {
+                    const button = document.createElement("button");
+                    button.type = "button";
+                    button.textContent = label;
+                    button.addEventListener("click", () => runAction(key));
+                    buttons[key] = button;
+                    controls.append(button);
+                }
+                audioButton.addEventListener("click", () => runAction("audio"));
+                controls.append(audioButton);
+                const ptzButton = document.createElement("button");
+                ptzButton.type = "button";
+                ptzButton.textContent = "Pilotage PTZ";
+                ptzButton.title = "Ouvrir le panneau de pilotage de cette caméra";
+                ptzButton.addEventListener("click", () => openPtzPanel(config, frame, framePlaceholder));
+                controls.append(ptzButton);
+                card.append(top, controls, framePlaceholder, frame, status);
+                try {
+                    if (localStorage.getItem(CAMERA_LOCAL_STOP_PREFIX + config.stream) === "1") {
+                        setMode("local");
+                    } else {
+                        setMode("on");
+                    }
+                } catch (error) { setMode("on"); }
+                card.syncCameraStatus = () => cameraControlRequest(config.stream, "status").then(result => {
+                    audioEnabled = Boolean(result.audio_enabled);
+                    updateAudioButton();
+                    if (!result.enabled && mode === "on") {
+                        setMode("global", "Arrêt global : le flux est arrêté sur go2rtc");
+                    }
+                }).catch(error => {
+                    status.textContent = "État du service indisponible : " + (error.message || "vérifie les paramètres");
+                });
+                return card;
+            }
+
             function renderDevices() {
                 const grid = $("grid");
                 const items = [];
                 const devicesByIdx = new Map(state.devices.map((device) => [String(device.idx), device]));
+                // Réutiliser les cartes caméra déjà montées : retirer une iframe du DOM
+                // détruit son lecteur WebRTC/MSE et provoque une reconnexion au prochain rendu.
+                const existingCameras = new Map(
+                    Array.from(grid.querySelectorAll(".camera-card[data-camera-stream]"))
+                        .map(card => [card.dataset.cameraStream, card])
+                );
                 let hasRenderedItem = false;
                 for (const item of state.displayItems) {
                     if (item.breakBefore && hasRenderedItem) {
@@ -1017,12 +1539,32 @@
                         separator.setAttribute("aria-hidden", "true");
                         items.push(separator);
                     }
+                    if (item.type === "camera") {
+                        const existing = existingCameras.get(item.stream);
+                        const cameraCard = existing || createCameraCard(item);
+                        cameraCard.syncCameraStatus?.();
+                        items.push(cameraCard);
+                        hasRenderedItem = true;
+                        continue;
+                    }
                     const device = devicesByIdx.get(item.idx);
                     if (!device) continue;
                     items.push(item.type === "temp" || item.type === "counter" ? createHistoryCard(device, item.label, item.defaultView, item.type) : createDeviceCard(device, item));
                     hasRenderedItem = true;
                 }
-                grid.replaceChildren(...items);
+
+                // Réconciliation positionnelle : les cartes caméra restent dans le DOM
+                // lorsque leur emplacement ne change pas. Seules les cartes ordinaires
+                // sont remplacées à chaque actualisation Domoticz.
+                for (let index = 0; index < items.length; index += 1) {
+                    const desired = items[index];
+                    const current = grid.children[index] || null;
+                    if (current !== desired) grid.insertBefore(desired, current);
+                }
+                while (grid.children.length > items.length) {
+                    grid.lastElementChild.remove();
+                }
+
                 renderLucideIcons();
                 $("empty").classList.toggle("hidden", items.length > 0);
             }
@@ -1409,6 +1951,11 @@
                 throw lastError || new Error("API Domoticz indisponible");
             }
 
+            function normalizeCameraKey(value) {
+                const key = String(value ?? "").trim();
+                return /^[a-zA-Z0-9_.-]{1,80}$/.test(key) ? key : "";
+            }
+
             function normalizeIdx(value) {
                 if (typeof value === "number" && Number.isInteger(value) && value > 0) {
                     return String(value);
@@ -1457,9 +2004,17 @@
                                 continue;
                             }
 
+                            const marker = String(row?.[2] ?? "").trim().toLocaleLowerCase("fr-FR");
+                            if (marker === "caméra" || marker === "camera") {
+                                const stream = normalizeCameraKey(row?.[0]);
+                                if (!stream || displayItems.some((item) => item.type === "camera" && item.stream === stream)) continue;
+                                displayItems.push({ type: "camera", stream, label: String(row?.[1] ?? "").trim(), breakBefore: displayedBreakPending });
+                                displayedBreakPending = false;
+                                continue;
+                            }
+
                             const idx = normalizeIdx(row?.[0]);
                             if (!idx) continue;
-                            const marker = String(row?.[2] ?? "").trim().toLocaleLowerCase("fr-FR");
 
                             if (marker === "virtualsensorslot") {
                                 const label = String(row?.[1] ?? "").trim() || `Action ${idx}`;
@@ -1477,8 +2032,8 @@
                             }
                         }
 
-                        if (displayedIdxs.size === 0 && actions.length === 0) {
-                            throw new Error(`${fileName} ne contient aucun IDX numérique dans la première colonne.`);
+                        if (displayItems.length === 0 && actions.length === 0) {
+                            throw new Error(`${fileName} ne contient aucun équipement, flux caméra ou bouton d'action reconnu.`);
                         }
                         if (pageRequestId !== state.pageRequestId) return false;
 
@@ -1603,6 +2158,12 @@
                 if (expectedPageRequestId !== state.pageRequestId) return;
                 $("refresh").disabled = true;
                 try {
+                    if (state.displayedIdxs.size === 0) {
+                        state.devices = [];
+                        renderDevices();
+                        $("updated").textContent = `Fichier : ${state.idxFileName} · actualisé à ` + new Date().toLocaleTimeString("fr-FR");
+                        return;
+                    }
                     const devices = await fetchDevices();
                     if (expectedPageRequestId !== state.pageRequestId) return;
                     state.devices = devices;
@@ -1612,9 +2173,15 @@
                     if (expectedPageRequestId !== state.pageRequestId) return;
                     $("updated").textContent = valueOrFallback(error?.message, "Erreur inconnue");
                     if (state.devices.length === 0) {
-                        $("grid").replaceChildren();
-                        $("empty").classList.remove("hidden");
-                        $("empty").textContent = "La page n’a pas pu récupérer les équipements. Vérifie que tu es connecté à Domoticz et que l’API JSON est accessible depuis cette page.";
+                        renderDevices();
+                        if (state.displayItems.some((item) => item.type === "camera")) {
+                            $("empty").classList.add("hidden");
+                            $("updated").textContent += " · équipements Domoticz indisponibles";
+                        } else {
+                            $("grid").replaceChildren();
+                            $("empty").classList.remove("hidden");
+                            $("empty").textContent = "La page n’a pas pu récupérer les équipements. Vérifie que tu es connecté à Domoticz et que l’API JSON est accessible depuis cette page.";
+                        }
                     }
                 } finally {
                     if (expectedPageRequestId === state.pageRequestId) $("refresh").disabled = false;
@@ -1668,7 +2235,7 @@
                     $("updated").textContent = valueOrFallback(error?.message, "Erreur inconnue");
                     $("grid").replaceChildren();
                     $("empty").classList.remove("hidden");
-                    $("empty").textContent = `Le fichier ${page.configFiles[0]} n’a pas pu être lu. Place-le dans le même répertoire que cette page HTML et vérifie que la première colonne contient les IDX.`;
+                    $("empty").textContent = `Le fichier ${page.configFiles[0]} n’a pas pu être lu. Place-le dans le même répertoire que cette page HTML et vérifie que la première colonne contient des IDX ou des noms de flux caméra valides.`;
                     $("refresh").disabled = true;
                 }
             }
@@ -1851,6 +2418,13 @@
             $("open-settings").addEventListener("click", () => {
                 refreshInput.value = String(refreshIntervalSeconds);
                 themeSelect.value = selectedTheme;
+                $("go2rtc-url").value = go2rtcBaseUrl === defaultGo2rtcBaseUrl() ? "" : go2rtcBaseUrl;
+                $("camera-control-url").value = localStorage.getItem(CAMERA_CONTROL_URL_KEY) || "";
+                $("camera-control-token").value = cameraControlToken();
+                $("ptz-gain-pc").value = String(ptzSettings.pc.gain);
+                $("ptz-speed-pc").value = String(ptzSettings.pc.speed);
+                $("ptz-gain-mobile").value = String(ptzSettings.mobile.gain);
+                $("ptz-speed-mobile").value = String(ptzSettings.mobile.speed);
                 populatePageNameEditor();
                 $("page-name-status").textContent = "Sélectionne un fichier, modifie son nom puis valide avec +.";
                 settingsDialog.showModal();
@@ -1909,12 +2483,60 @@
                 selectedTheme = AVAILABLE_THEMES.includes(themeSelect.value)
                     ? themeSelect.value
                     : "auto";
+                try {
+                    go2rtcBaseUrl = normalizeGo2rtcBaseUrl($("go2rtc-url").value);
+                } catch (error) {
+                    $("go2rtc-url").setCustomValidity(error.message || "Adresse go2rtc invalide.");
+                    $("go2rtc-url").reportValidity();
+                    return;
+                }
+                $("go2rtc-url").setCustomValidity("");
+                const ptzInputs = [
+                    ["ptz-gain-pc", 0.01, 1, "GainPTZ PC"],
+                    ["ptz-speed-pc", 0.05, 1, "VitesseONVIF PC"],
+                    ["ptz-gain-mobile", 0.01, 1, "GainPTZ Mobile"],
+                    ["ptz-speed-mobile", 0.05, 1, "VitesseONVIF Mobile"]
+                ];
+                for (const [id, minimum, maximum, label] of ptzInputs) {
+                    const input = $(id);
+                    const number = Number(input.value);
+                    if (!Number.isFinite(number) || number < minimum || number > maximum) {
+                        input.setCustomValidity(label + " doit être compris entre " + minimum + " et " + maximum + ".");
+                        input.reportValidity();
+                        return;
+                    }
+                    input.setCustomValidity("");
+                }
+                ptzSettings.pc.gain = Number($("ptz-gain-pc").value);
+                ptzSettings.pc.speed = Number($("ptz-speed-pc").value);
+                ptzSettings.mobile.gain = Number($("ptz-gain-mobile").value);
+                ptzSettings.mobile.speed = Number($("ptz-speed-mobile").value);
+                let cameraControlUrl = "";
+                try {
+                    const candidate = $("camera-control-url").value.trim() || `${window.location.protocol}//${window.location.hostname}:1985`;
+                    const parsed = new URL(candidate);
+                    if (!["http:", "https:"].includes(parsed.protocol)) throw new Error("L'adresse du service caméra doit commencer par http:// ou https://.");
+                    cameraControlUrl = parsed.origin;
+                } catch (error) {
+                    $("camera-control-url").setCustomValidity(error.message || "Adresse du service caméra invalide.");
+                    $("camera-control-url").reportValidity();
+                    return;
+                }
+                $("camera-control-url").setCustomValidity("");
                 applyTheme(selectedTheme);
                 savedPageNames = { ...draftPageNames };
                 try {
                     localStorage.setItem(REFRESH_STORAGE_KEY, String(value));
                     localStorage.setItem(THEME_STORAGE_KEY, selectedTheme);
                     localStorage.setItem(PAGE_NAMES_STORAGE_KEY, JSON.stringify(savedPageNames));
+                    localStorage.setItem(GO2RTC_STORAGE_KEY, go2rtcBaseUrl);
+                    localStorage.setItem(CAMERA_CONTROL_URL_KEY, cameraControlUrl);
+                    localStorage.setItem(PTZ_GAIN_PC_KEY, String(ptzSettings.pc.gain));
+                    localStorage.setItem(PTZ_SPEED_PC_KEY, String(ptzSettings.pc.speed));
+                    localStorage.setItem(PTZ_GAIN_MOBILE_KEY, String(ptzSettings.mobile.gain));
+                    localStorage.setItem(PTZ_SPEED_MOBILE_KEY, String(ptzSettings.mobile.speed));
+                    const enteredToken = $("camera-control-token").value.trim();
+                    if (enteredToken) localStorage.setItem(CAMERA_CONTROL_TOKEN_KEY, enteredToken);
                 } catch (error) {
                     // Les réglages s'appliquent à cette session même si leur mémorisation échoue.
                 }
@@ -1924,6 +2546,7 @@
             });
 
             refreshInput.addEventListener("input", () => refreshInput.setCustomValidity(""));
+            $("go2rtc-url").addEventListener("input", () => $("go2rtc-url").setCustomValidity(""));
 
             async function startDashboard() {
                 $("page-select").disabled = true;
