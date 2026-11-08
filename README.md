@@ -16,7 +16,7 @@ Fonctions du tableau de bord :
 - interface responsive pour PC, tablette et smartphone ;
 - cartes vidéo intégrées pour les lignes marquées caméra, avec lecture des flux go2rtc (WebRTC puis solutions de repli MSE/HLS) ;
 - le bouton de réduction des courbes du header replie les historiques en mode valeur et arrête également tous les flux vidéo actifs de la page ;
-- panneau de pilotage PTZ par caméra : joystick tactile/souris avec déplacements relatifs ONVIF successifs, vitesse réglable, zoom logiciel de l’image (1× à 3×) et positions prédéfinies ONVIF ;
+- panneau de pilotage PTZ par caméra : joystick tactile/souris avec déplacements relatifs ONVIF successifs et inversion des deux axes pour une caméra montée tête en bas, vitesse réglable, zoom logiciel de l’image (1× à 3×) et positions prédéfinies ONVIF ;
 - consultation en lecture seule des équipements Domoticz ;
 - affichage des équipements dont la troisième colonne du classeur associé à la page sélectionnée contient un type reconnu, dans le même ordre que les lignes du classeur ;
 - cartes d'historique de température pour les lignes dont la troisième colonne contient `historique` (sans distinction de casse ni d'espaces superflus), avec périodes 24 heures, 7 jours, 30 jours et 1 an ;
