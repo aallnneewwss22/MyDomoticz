@@ -1488,6 +1488,7 @@
                     } finally {
                         busy = false;
                         Object.values(buttons).forEach(button => button.disabled = false);
+                        ptzButton.disabled = mode !== "on" || busy;
                         updateAudioButton();
                     }
                 };
