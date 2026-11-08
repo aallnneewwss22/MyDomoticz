@@ -619,14 +619,14 @@
     <main>
         <header>
             <button id="collapse-history-cards" class="toolbar-button" type="button"
-                    aria-label="Afficher les valeurs de toutes les cartes" title="Afficher les valeurs de toutes les cartes">
+                    aria-label="Afficher les valeurs et arrêter tous les flux vidéo" title="Afficher les valeurs et arrêter tous les flux vidéo">
                 <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                     <path d="M8 3v3a2 2 0 0 1-2 2H3"></path>
                     <path d="M21 8h-3a2 2 0 0 1-2-2V3"></path>
                     <path d="M3 16h3a2 2 0 0 1 2 2v3"></path>
                     <path d="M16 21v-3a2 2 0 0 1 2-2h3"></path>
                 </svg>
-                <span class="visually-hidden">Afficher les valeurs de toutes les cartes</span>
+                <span class="visually-hidden">Afficher les valeurs et arrêter tous les flux vidéo</span>
             </button>
             <div class="statusbar" id="updated">Aucune actualisation effectuée</div>
 
@@ -2418,6 +2418,9 @@
                         catch (error) { /* Le mode valeur reste appliqué pendant cette session. */ }
                     }
                 });
+
+                // Fermer proprement le panneau PTZ avant de déconnecter son lecteur vidéo.
+                if (ptzSession) await closePtzPanel();
 
                 // Deuxième action : arrêter sur go2rtc tous les flux actifs de la page.
                 const cameraCards = [...document.querySelectorAll(".camera-card[data-camera-stream]")];
