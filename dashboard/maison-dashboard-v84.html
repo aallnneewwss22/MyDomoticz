@@ -467,7 +467,8 @@
         .ptz-camera-settings { display: grid; gap: 8px; margin: 0; padding: 10px; border: 1px solid var(--border); border-radius: 10px; }
         .ptz-camera-settings legend { padding: 0 6px; font-weight: 650; }
         .ptz-camera-settings-buttons { display: grid; gap: 7px; }
-        .ptz-camera-settings button[aria-pressed="true"] { background: var(--button-selected-bg); color: #fff; }
+        .ptz-camera-settings-option { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+        .ptz-camera-settings-option input[type="checkbox"] { width: 18px; min-height: 18px; margin: 0; flex: 0 0 auto; accent-color: var(--accent); }
         .ptz-config input, .ptz-presets select { width: 100%; min-height: 40px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font: inherit; }
         .ptz-config[hidden], .ptz-controls[hidden] { display: none !important; }
         .ptz-config h3 { margin: 0; font-size: 1rem; }
@@ -797,7 +798,7 @@
                             <fieldset class="ptz-camera-settings">
                                 <legend>Réglages PTZ — cette caméra</legend>
                                 <div class="ptz-camera-settings-buttons">
-                                    <button id="ptz-upside-down" type="button" aria-pressed="false">Caméra montée tête en bas</button>
+                                    <label class="ptz-camera-settings-option"><input id="ptz-upside-down" type="checkbox"> <span>Caméra montée tête en bas</span></label>
                                 </div>
                                 <p class="settings-help">Inverse simultanément les mouvements horizontaux et verticaux du joystick pour cette caméra uniquement.</p>
                             </fieldset>
@@ -1260,15 +1261,14 @@
                     // Le réglage reste actif pendant cette session si le stockage est indisponible.
                 }
             }
-            function ptzUpdateOrientationButtons() {
+            function ptzUpdateOrientationCheckbox() {
                 if (!ptzSession) return;
-                $("ptz-upside-down").setAttribute("aria-pressed", String(ptzSession.upsideDown));
+                $("ptz-upside-down").checked = ptzSession.upsideDown;
             }
-            function ptzToggleUpsideDown() {
+            function ptzChangeUpsideDown(event) {
                 if (!ptzSession) return;
-                ptzSession.upsideDown = !ptzSession.upsideDown;
+                ptzSession.upsideDown = event.target.checked;
                 savePtzCameraOrientation();
-                ptzUpdateOrientationButtons();
             }
             function ptzCurrentSpeed() { return ptzSettings[currentPtzProfile()].speed; }
             function ptzCurrentGain() { return ptzSettings[currentPtzProfile()].gain; }
@@ -1303,7 +1303,7 @@
             }
             function ptzInitJoystick() {
                 ptzDestroyJoystick();
-                ptzUpdateOrientationButtons();
+                ptzUpdateOrientationCheckbox();
                 if (!window.nipplejs) { ptzSetStatus("Le joystick tactile n'a pas pu être chargé. Vérifie l'accès au CDN."); return; }
                 const color = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#2867d8";
                 ptzJoystick = window.nipplejs.create({ zone: $("ptz-joystick"), mode: "static", position: { left: "50%", top: "50%" }, size: 138, color, restOpacity: 0.8 });
@@ -1409,7 +1409,7 @@
                     try { await ptzLoadPresets(); } catch (error) { ptzSetStatus("Connexion enregistrée ; lecture des positions indisponible : " + error.message); }
                 } catch (error) { ptzSetStatus("Enregistrement impossible : " + (error.message || "erreur inconnue")); }
             });
-            $("ptz-upside-down").addEventListener("click", ptzToggleUpsideDown);
+            $("ptz-upside-down").addEventListener("change", ptzChangeUpsideDown);
             $("ptz-edit-config").addEventListener("click", () => {
                 if (!ptzSession) return;
                 $("ptz-username").value = ""; $("ptz-password").value = "";
