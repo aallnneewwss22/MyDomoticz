@@ -3,7 +3,7 @@
 ## [Non publié]
 
 ### Ajouté
-- Ajout d’un bouton « Caméra montée tête en bas » dans le panneau PTZ ; il inverse simultanément les deux axes du joystick et mémorise le réglage individuellement par caméra.
+- Ajout d’une case à cocher « Caméra montée tête en bas » dans le panneau PTZ ; il inverse simultanément les deux axes du joystick et mémorise le réglage individuellement par caméra.
 - Création de `maison-dashboard-v84.html` et mise à jour du lanceur.
 
 
