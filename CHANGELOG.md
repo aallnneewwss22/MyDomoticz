@@ -3,6 +3,11 @@
 ## [Non publié]
 
 ### Modifié
+- Le bouton du header qui replie toutes les cartes d'historique en mode valeur déclenche également l'arrêt global de tous les flux vidéo actifs de la page via le service go2rtc ; les flux déjà arrêtés ne reçoivent pas de commande supplémentaire.
+- Le résultat de l'arrêt global (flux arrêtés, déjà arrêtés et éventuelles erreurs) est affiché dans la barre d'état.
+- Création de `maison-dashboard-v83.html` et mise à jour du lanceur.
+
+### Modifié
 - Suppression complète de l’arrêt local des flux caméra : retrait du bouton, de son traitement et de la préférence locale associée. L’arrêt global via go2rtc et le redémarrage restent disponibles.
 - Désactivation du bouton « Pilotage PTZ » lorsque le flux est arrêté ; vérification supplémentaire de l’état réel du flux côté service juste avant l’ouverture du panneau.
 - Allègement du panneau PTZ : retrait des quatre libellés de section/champ demandés, conservation des commandes et ajout d’un nom accessible au sélecteur de positions prédéfinies.
