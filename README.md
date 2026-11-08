@@ -2,12 +2,12 @@
 
 Pages web personnalisées pour Domoticz, développées progressivement et versionnées avec Git.
 
-## Tableau de bord — version courante v78
+## Tableau de bord — version courante v82
 
 Le tableau de bord est fourni sous deux fichiers :
 
 - `dashboard/maison.html` : page d'entrée à installer dans le menu **Custom** de Domoticz ;
-- `dashboard/maison-dashboard-v78.html` : version actuelle du tableau de bord autonome, destinée à s'ouvrir dans son propre onglet.
+- `dashboard/maison-dashboard-v82.html` : version actuelle du tableau de bord autonome, destinée à s'ouvrir dans son propre onglet.
 
 Le suffixe `-vN` du tableau de bord fait partie de la stratégie de cache : chaque évolution du tableau de bord crée un nouveau fichier numéroté afin que le navigateur demande une URL différente.
 
@@ -48,7 +48,7 @@ La colonne E contient directement le nom officiel d'une icône de la bibliothèq
 
 ### Pilotage PTZ ONVIF
 
-Chaque carte caméra dispose d'un bouton **Pilotage PTZ** qui ouvre un panneau avec la vidéo agrandie, un joystick et les commandes de zoom. Les paramètres ONVIF (hôte, port, identifiant et mot de passe) se configurent séparément pour chaque caméra depuis ce panneau. Les identifiants sont conservés uniquement dans le registre privé du service auxiliaire sur le Raspberry Pi. Le service utilise `onvif-zeep` et la bibliothèque JavaScript [NippleJS](https://github.com/yoannmoinet/nipplejs) pour le joystick tactile. Les positions prédéfinies existantes peuvent être rappelées et de nouvelles positions peuvent être mémorisées si la caméra le permet.
+Chaque carte caméra dispose d'un bouton **Pilotage PTZ** qui ouvre un panneau avec la vidéo agrandie, un joystick et les commandes de zoom. Les paramètres ONVIF (hôte, port, identifiant et mot de passe) se configurent séparément pour chaque caméra depuis ce panneau. Les identifiants sont conservés uniquement dans le registre privé du service auxiliaire sur le Raspberry Pi. Le service utilise `onvif-zeep` et la bibliothèque JavaScript [NippleJS](https://github.com/yoannmoinet/nipplejs) pour le joystick tactile. Les positions prédéfinies déjà enregistrées sur la caméra peuvent être rappelées. Le pilotage PTZ n'est accessible que lorsque le flux vidéo est actif.
 
 ### Caméras RTSP avec go2rtc
 
@@ -70,7 +70,7 @@ Les deux classeurs doivent être placés à côté du HTML dans `/home/pi/domoti
 
 1. Sauvegarder le répertoire `www/templates` de Domoticz.
 2. Copier `dashboard/maison.html` vers `www/templates/maison.html`.
-3. Copier le dernier fichier numéroté du tableau de bord — actuellement `dashboard/maison-dashboard-v78.html` — vers `www/templates/maison-dashboard-v78.html`, dans le même répertoire.
+3. Copier le dernier fichier numéroté du tableau de bord — actuellement `dashboard/maison-dashboard-v82.html` — vers `www/templates/maison-dashboard-v82.html`, dans le même répertoire.
 4. Activer le menu **Custom** dans les paramètres Domoticz si cette option est disponible dans la version installée.
 5. Recharger l'interface Domoticz puis ouvrir **Custom → maison**.
 
@@ -83,7 +83,7 @@ Le fichier autonome doit rester à côté du lanceur dans `www/templates`, car l
 Lorsqu'une Pull Request modifie le tableau de bord, GitHub Actions construit l'artefact `maison-dashboard-raspberry-pi`. Il contient à la racine du ZIP :
 
 - `maison.html` ;
-- le fichier versionné actuellement référencé par le lanceur, par exemple `maison-dashboard-v78.html` ;
+- le fichier versionné actuellement référencé par le lanceur, par exemple `maison-dashboard-v82.html` ;
 - `LISEZ-MOI.txt`, qui rappelle le chemin de destination et les fichiers à copier.
 
 Pour le récupérer, ouvrir la Pull Request, suivre son exécution dans **Checks** ou **Actions**, puis télécharger l'artefact `maison-dashboard-raspberry-pi` depuis le détail de l'exécution réussie. Décompresser le ZIP et copier les deux fichiers HTML dans `/home/pi/domoticz/www/templates` sur le Raspberry Pi. Les classeurs `IDX2.xlsx` et `IDX1.xlsx` ne sont pas inclus : ils restent à gérer séparément et doivent être conservés dans le répertoire `templates`.
