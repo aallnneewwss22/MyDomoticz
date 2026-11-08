@@ -2,6 +2,11 @@
 
 ## [Non publié]
 
+### Ajouté
+- Ajout de deux commandes d’inversion indépendantes gauche/droite et haut/bas dans le panneau PTZ ; les réglages sont mémorisés individuellement par caméra et ne modifient que les mouvements du joystick.
+- Création de `maison-dashboard-v84.html` et mise à jour du lanceur.
+
+
 ### Modifié
 - Le bouton du header qui replie toutes les cartes d'historique en mode valeur déclenche également l'arrêt global de tous les flux vidéo actifs de la page via le service go2rtc ; les flux déjà arrêtés ne reçoivent pas de commande supplémentaire.
 - Le résultat de l'arrêt global (flux arrêtés, déjà arrêtés et éventuelles erreurs) est affiché dans la barre d'état.
