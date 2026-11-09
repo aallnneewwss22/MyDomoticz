@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light dark">
-    <title>Ma maison — Domoticz v82</title>
+    <title>Ma maison — Domoticz v85</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;500;700&display=swap" rel="stylesheet">
@@ -237,6 +237,34 @@
             gap: 16px;
         }
 
+        /* Dans la boîte Paramètres, seul le contenu défile : le titre et les actions restent visibles. */
+        #settings-dialog {
+            max-height: calc(100vh - 32px);
+            max-height: calc(100dvh - 32px);
+            overflow: hidden;
+        }
+
+        #settings-form {
+            display: flex;
+            flex-direction: column;
+            max-height: calc(100vh - 76px);
+            max-height: calc(100dvh - 76px);
+            min-height: 0;
+        }
+
+        .settings-scroll-area {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            padding: 2px 4px 2px 0;
+        }
+
+        #settings-form > h2,
+        #settings-form > .dialog-actions {
+            flex: 0 0 auto;
+        }
+
         .actions-list {
             display: grid;
             grid-template-columns: repeat(3, max-content);
@@ -464,6 +492,11 @@
         .ptz-video-viewport .camera-frame { position: absolute; inset: 0; display: block; width: 100%; height: 100%; aspect-ratio: auto; margin: 0; border: 0; border-radius: 0; transform: scale(var(--ptz-zoom, 1)); transform-origin: center center; }
         .ptz-controls-column { display: grid; gap: 12px; min-width: 0; }
         .ptz-config { display: grid; gap: 10px; }
+        .ptz-camera-settings { display: grid; gap: 8px; margin: 0; padding: 10px; border: 1px solid var(--border); border-radius: 10px; }
+        .ptz-camera-settings legend { padding: 0 6px; font-weight: 650; }
+        .ptz-camera-settings-buttons { display: grid; gap: 7px; }
+        .ptz-camera-settings-option { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+        .ptz-camera-settings-option input[type="checkbox"] { width: 18px; min-height: 18px; margin: 0; flex: 0 0 auto; accent-color: var(--accent); }
         .ptz-config input, .ptz-presets select { width: 100%; min-height: 40px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font: inherit; }
         .ptz-config[hidden], .ptz-controls[hidden] { display: none !important; }
         .ptz-config h3 { margin: 0; font-size: 1rem; }
@@ -619,14 +652,14 @@
     <main>
         <header>
             <button id="collapse-history-cards" class="toolbar-button" type="button"
-                    aria-label="Afficher les valeurs de toutes les cartes" title="Afficher les valeurs de toutes les cartes">
+                    aria-label="Afficher les valeurs et arrêter tous les flux vidéo" title="Afficher les valeurs et arrêter tous les flux vidéo">
                 <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                     <path d="M8 3v3a2 2 0 0 1-2 2H3"></path>
                     <path d="M21 8h-3a2 2 0 0 1-2-2V3"></path>
                     <path d="M3 16h3a2 2 0 0 1 2 2v3"></path>
                     <path d="M16 21v-3a2 2 0 0 1 2-2h3"></path>
                 </svg>
-                <span class="visually-hidden">Afficher les valeurs de toutes les cartes</span>
+                <span class="visually-hidden">Afficher les valeurs et arrêter tous les flux vidéo</span>
             </button>
             <div class="statusbar" id="updated">Aucune actualisation effectuée</div>
 
@@ -684,6 +717,7 @@
         <dialog id="settings-dialog" aria-labelledby="settings-title">
             <form id="settings-form" class="settings-form">
                 <h2 id="settings-title">Paramètres du tableau de bord</h2>
+                <div class="settings-scroll-area">
                 <label class="settings-field" for="refresh-interval">
                     <span>Période de rafraîchissement (secondes)</span>
                     <input id="refresh-interval" name="refresh-interval" type="number"
@@ -762,6 +796,7 @@
                     </p>
                 </fieldset>
                 <p class="settings-help">La période, le thème et les noms des pages sont mémorisés dans ce navigateur.</p>
+                </div>
                 <div class="dialog-actions">
                     <button id="cancel-settings" type="button">Annuler</button>
                     <button type="submit">Enregistrer</button>
@@ -790,6 +825,13 @@
                         </form>
                         <div id="ptz-controls" class="ptz-controls" hidden>
                             <div id="ptz-joystick" class="ptz-joystick-zone" aria-label="Joystick de déplacement PTZ"></div>
+                            <fieldset class="ptz-camera-settings">
+                                <legend>Réglages PTZ — cette caméra</legend>
+                                <div class="ptz-camera-settings-buttons">
+                                    <label class="ptz-camera-settings-option"><input id="ptz-upside-down" type="checkbox"> <span>Caméra montée tête en bas</span></label>
+                                </div>
+                                <p class="settings-help">Inverse simultanément les mouvements horizontaux et verticaux du joystick pour cette caméra uniquement.</p>
+                            </fieldset>
                             <div class="ptz-zoom-buttons"><button id="ptz-zoom-out" type="button" aria-label="Diminuer le zoom">− Zoom</button><span id="ptz-zoom-level" aria-live="polite">1,00×</span><button id="ptz-zoom-in" type="button" aria-label="Augmenter le zoom">+ Zoom</button></div>
                             <button id="ptz-zoom-reset" type="button">Réinitialiser le zoom</button>
                             <div class="ptz-presets"><select id="ptz-preset-select" aria-label="Position prédéfinie mémorisée"><option value="">Aucune position</option></select><button id="ptz-goto" type="button">Atteindre</button></div>
@@ -1230,6 +1272,34 @@
                 $("ptz-config-form").hidden = !show;
                 $("ptz-controls").hidden = show;
             }
+            function ptzCameraOrientationStorageKey(stream) {
+                return "mydomoticz.ptzOrientation." + encodeURIComponent(String(stream));
+            }
+            function loadPtzCameraOrientation(stream) {
+                try {
+                    const saved = JSON.parse(localStorage.getItem(ptzCameraOrientationStorageKey(stream)) || "{}");
+                    return saved.upsideDown === true;
+                } catch (error) {
+                    return false;
+                }
+            }
+            function savePtzCameraOrientation() {
+                if (!ptzSession) return;
+                try {
+                    localStorage.setItem(ptzCameraOrientationStorageKey(ptzSession.config.stream), JSON.stringify({ upsideDown: ptzSession.upsideDown }));
+                } catch (error) {
+                    // Le réglage reste actif pendant cette session si le stockage est indisponible.
+                }
+            }
+            function ptzUpdateOrientationCheckbox() {
+                if (!ptzSession) return;
+                $("ptz-upside-down").checked = ptzSession.upsideDown;
+            }
+            function ptzChangeUpsideDown(event) {
+                if (!ptzSession) return;
+                ptzSession.upsideDown = event.target.checked;
+                savePtzCameraOrientation();
+            }
             function ptzCurrentSpeed() { return ptzSettings[currentPtzProfile()].speed; }
             function ptzCurrentGain() { return ptzSettings[currentPtzProfile()].gain; }
             async function ptzSendMove(pan, tilt) {
@@ -1263,6 +1333,7 @@
             }
             function ptzInitJoystick() {
                 ptzDestroyJoystick();
+                ptzUpdateOrientationCheckbox();
                 if (!window.nipplejs) { ptzSetStatus("Le joystick tactile n'a pas pu être chargé. Vérifie l'accès au CDN."); return; }
                 const color = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#2867d8";
                 ptzJoystick = window.nipplejs.create({ zone: $("ptz-joystick"), mode: "static", position: { left: "50%", top: "50%" }, size: 138, color, restOpacity: 0.8 });
@@ -1273,7 +1344,8 @@
                     if (now - ptzLastMoveAt < 260) return;
                     ptzLastMoveAt = now;
                     const gain = ptzCurrentGain();
-                    ptzSendMove(-data.vector.x * gain, data.vector.y * gain);
+                    const direction = ptzSession.upsideDown ? -1 : 1;
+                    ptzSendMove(-data.vector.x * gain * direction, data.vector.y * gain * direction);
                 });
                 ptzJoystick.on("end", () => ptzPauseMovement());
             }
@@ -1307,7 +1379,7 @@
                 const viewport = document.createElement("div");
                 viewport.className = "ptz-video-viewport";
                 viewport.style.setProperty("--ptz-zoom", "1");
-                ptzSession = { config, frame, placeholder, viewport, zoom: 1, wasHidden: frame.classList.contains("is-hidden"), configured: false };
+                ptzSession = { config, frame, placeholder, viewport, zoom: 1, wasHidden: frame.classList.contains("is-hidden"), configured: false, upsideDown: loadPtzCameraOrientation(config.stream) };
                 $("ptz-title").textContent = "Pilotage PTZ — " + (config.label || config.stream);
                 $("ptz-video-slot").append(viewport);
                 viewport.append(frame);
@@ -1367,6 +1439,7 @@
                     try { await ptzLoadPresets(); } catch (error) { ptzSetStatus("Connexion enregistrée ; lecture des positions indisponible : " + error.message); }
                 } catch (error) { ptzSetStatus("Enregistrement impossible : " + (error.message || "erreur inconnue")); }
             });
+            $("ptz-upside-down").addEventListener("change", ptzChangeUpsideDown);
             $("ptz-edit-config").addEventListener("click", () => {
                 if (!ptzSession) return;
                 $("ptz-username").value = ""; $("ptz-password").value = "";
@@ -2402,7 +2475,10 @@
                 }
             }, { passive: false });
 
-            $("collapse-history-cards").addEventListener("click", () => {
+            $("collapse-history-cards").addEventListener("click", async () => {
+                const button = $("collapse-history-cards");
+                if (button.disabled) return;
+                // Première action : replier toutes les cartes d'historique en mode valeur.
                 document.querySelectorAll('.history-card[data-view="history"]').forEach((card) => {
                     card.dataset.view = "value";
                     const valueButton = card.querySelector('.history-view-toggle button[aria-label="Afficher la valeur"]');
@@ -2411,13 +2487,37 @@
                     historyButton?.setAttribute("aria-pressed", "false");
                     const deviceIdx = card.querySelector(".device-type")?.textContent.match(/IDX\s+(\d+)/)?.[1];
                     if (deviceIdx) {
-                        try {
-                            localStorage.setItem(`domoticz-history-view-${deviceIdx}`, "value");
-                        } catch (error) {
-                            // Le mode valeur reste appliqué pendant cette session.
-                        }
+                        try { localStorage.setItem(`domoticz-history-view-${deviceIdx}`, "value"); }
+                        catch (error) { /* Le mode valeur reste appliqué pendant cette session. */ }
                     }
                 });
+
+                // Fermer proprement le panneau PTZ avant de déconnecter son lecteur vidéo.
+                if (ptzSession) await closePtzPanel();
+
+                // Deuxième action : arrêter sur go2rtc tous les flux actifs de la page.
+                const cameraCards = [...document.querySelectorAll(".camera-card[data-camera-stream]")];
+                if (!cameraCards.length) return;
+                button.disabled = true;
+                button.title = "Arrêt global des flux vidéo en cours…";
+                button.setAttribute("aria-label", "Arrêt global des flux vidéo en cours");
+                const results = await Promise.allSettled(cameraCards.map(async card => {
+                    const stream = card.dataset.cameraStream;
+                    const current = await cameraControlRequest(stream, "status");
+                    if (current.enabled) await cameraControlRequest(stream, "stop");
+                    await card.syncCameraStatus?.();
+                    return Boolean(current.enabled);
+                }));
+                const stopped = results.filter(item => item.status === "fulfilled" && item.value).length;
+                const alreadyStopped = results.filter(item => item.status === "fulfilled" && !item.value).length;
+                const failed = results.length - stopped - alreadyStopped;
+                const summary = failed
+                    ? `Arrêt global : ${stopped} flux arrêté(s), ${alreadyStopped} déjà arrêté(s), ${failed} erreur(s).`
+                    : `Arrêt global terminé : ${stopped} flux arrêté(s), ${alreadyStopped} déjà arrêté(s).`;
+                $("updated").textContent = summary;
+                button.disabled = false;
+                button.title = "Afficher les valeurs et arrêter tous les flux vidéo";
+                button.setAttribute("aria-label", "Afficher les valeurs et arrêter tous les flux vidéo");
             });
 
             $("refresh").addEventListener("click", () => refreshDevices());
