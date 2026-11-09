@@ -52,6 +52,8 @@ Après un échec de déplacement ou d'arrêt, la session ONVIF correspondante es
 
 Chaque caméra conserve un état audio commun à tous les navigateurs, dans le registre privé /var/lib/go2rtc-control/cameras.json. Le bouton Audio activé / Audio coupé modifie la source du flux go2rtc unique :
 
+Chaque caméra conserve également une résolution vidéo commune à tous les navigateurs dans ce même registre privé : **1080p** utilise le chemin RTSP `/stream1`, **720p** utilise `/stream2`. Le service remplace directement la source du flux go2rtc existant, sans transcodage, puis le lecteur se reconnecte. Le réglage est réappliqué après un arrêt global ou un redémarrage du service. Les sources RTSP dont le chemin ne se termine pas par `/stream1` ou `/stream2` restent utilisables en 1080p, mais ne peuvent pas être basculées en 720p.
+
 - Audio activé : source RTSP originale, sans modification.
 - Audio coupé : ajout de #media=video à la source afin que go2rtc ne récupère que la vidéo.
 - Si le flux est en marche, le service le supprime puis le recrée avec la variante choisie ; le lecteur doit donc se reconnecter.
