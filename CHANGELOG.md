@@ -2,6 +2,13 @@
 
 ## [Non publié]
 
+### Ajouté
+- Sélecteur 720p / 1080p indépendant pour chaque caméra ; le service local remplace directement la source RTSP `/stream2` ou `/stream1`, sans transcodage.
+- Persistance du choix de résolution dans le registre privé du Raspberry Pi, partagée entre navigateurs et réappliquée au redémarrage du flux.
+- Tests unitaires de sélection du chemin RTSP, de conservation des paramètres d'URL et de persistance de la résolution.
+- Création de `maison-dashboard-v86.html` et mise à jour du lanceur.
+
+
 ### Modifié
 - Dans la boîte de dialogue Paramètres, le contenu défile indépendamment tandis que les boutons Annuler et Enregistrer restent visibles en permanence.
 - Création de `maison-dashboard-v85.html` et mise à jour du lanceur.

@@ -87,14 +87,36 @@ class CameraAudioSettingsTests(unittest.TestCase):
         settings = module.load_camera_settings()
         self.assertEqual(settings["salon"]["source"], "rtsp://camera/live")
         self.assertTrue(settings["salon"]["audio_enabled"])
+        self.assertEqual(settings["salon"]["quality"], "1080p")
 
     def test_audio_preference_is_persisted_in_private_registry(self):
         expected = {
-            "salon": {"source": "rtsp://camera/live", "audio_enabled": False}
+            "salon": {"source": "rtsp://camera/live", "audio_enabled": False, "quality": "720p"}
         }
         module.save_camera_settings(expected)
         self.assertEqual(module.load_camera_settings(), expected)
         self.assertEqual(module.SOURCE_REGISTRY.stat().st_mode & 0o777, 0o600)
+
+    def test_quality_preference_defaults_and_persists(self):
+        module.SOURCE_REGISTRY.write_text(json.dumps({"salon": {"source": "rtsp://camera/stream1", "audio_enabled": True}}), encoding="utf-8")
+        settings = module.load_camera_settings()
+        self.assertEqual(settings["salon"]["quality"], "1080p")
+        settings["salon"]["quality"] = "720p"
+        module.save_camera_settings(settings)
+        self.assertEqual(module.load_camera_settings()["salon"]["quality"], "720p")
+
+    def test_quality_selects_native_rtsp_stream_and_preserves_query_fragment(self):
+        source = "rtsp://user:password@camera:554/live/stream1?profile=main#tcp"
+        self.assertEqual(module.source_for_quality(source, "720p"), "rtsp://user:password@camera:554/live/stream2?profile=main#tcp")
+        self.assertEqual(module.source_for_quality(source, "1080p"), source)
+
+    def test_quality_rejects_unsupported_source_path(self):
+        with self.assertRaises(module.ControlError):
+            module.source_for_quality("rtsp://camera/live", "720p")
+
+    def test_quality_rejects_unknown_value(self):
+        with self.assertRaises(module.ControlError):
+            module.source_for_quality("rtsp://camera/stream1", "480p")
 
     def test_video_only_source_adds_media_fragment(self):
         self.assertEqual(
