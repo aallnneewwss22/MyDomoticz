@@ -2,6 +2,11 @@
 
 ## [Non publié]
 
+### Modifié
+- Dans la boîte de dialogue Paramètres, le contenu défile indépendamment tandis que les boutons Annuler et Enregistrer restent visibles en permanence.
+- Création de `maison-dashboard-v85.html` et mise à jour du lanceur.
+
+
 ### Ajouté
 - Ajout d’une case à cocher « Caméra montée tête en bas » dans le panneau PTZ ; il inverse simultanément les deux axes du joystick et mémorise le réglage individuellement par caméra.
 - Création de `maison-dashboard-v84.html` et mise à jour du lanceur.
