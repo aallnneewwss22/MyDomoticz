@@ -107,7 +107,7 @@ def ensure_source_registry() -> None:
 
 
 def load_camera_settings() -> dict[str, dict[str, object]]:
-    """Load private camera sources, shared audio preferences and ONVIF settings."""
+    """Load private camera sources, shared audio/video preferences and ONVIF settings."""
     try:
         data = json.loads(SOURCE_REGISTRY.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
@@ -118,11 +118,14 @@ def load_camera_settings() -> dict[str, dict[str, object]]:
     for name, entry in data.items():
         if not isinstance(name, str) or not STREAM_NAME.fullmatch(name): continue
         if isinstance(entry, str) and entry.strip():
-            cameras[name] = {"source": entry.strip(), "audio_enabled": True}
+            cameras[name] = {"source": entry.strip(), "audio_enabled": True, "quality": "1080p"}
         elif isinstance(entry, dict):
             source, audio_enabled = entry.get("source"), entry.get("audio_enabled", True)
+            quality = entry.get("quality", "1080p")
+            if quality not in ("720p", "1080p"):
+                quality = "1080p"
             if isinstance(source, str) and source.strip() and isinstance(audio_enabled, bool):
-                settings: dict[str, object] = {"source": source.strip(), "audio_enabled": audio_enabled}
+                settings: dict[str, object] = {"source": source.strip(), "audio_enabled": audio_enabled, "quality": quality}
                 ptz = entry.get("ptz")
                 if isinstance(ptz, dict):
                     host, port = ptz.get("host"), ptz.get("port", 80)
@@ -138,7 +141,7 @@ def load_sources() -> dict[str, str]:
 
 
 def save_camera_settings(cameras: dict[str, dict[str, object]]) -> None:
-    """Persist camera sources and audio preferences atomically with private permissions."""
+    """Persist camera sources and audio/video preferences atomically with private permissions."""
     SOURCE_REGISTRY.parent.mkdir(parents=True, exist_ok=True)
     fd, temporary_name = tempfile.mkstemp(prefix=".cameras-", dir=str(SOURCE_REGISTRY.parent))
     temporary = Path(temporary_name)
@@ -156,6 +159,21 @@ def save_camera_settings(cameras: dict[str, dict[str, object]]) -> None:
             temporary.unlink()
         except FileNotFoundError:
             pass
+
+
+def source_for_quality(source: str, quality: str) -> str:
+    """Select the camera native RTSP stream without transcoding."""
+    if quality not in ("720p", "1080p"):
+        raise ControlError("Qualité vidéo invalide.")
+    base, separator, fragment = source.partition("#")
+    parsed = urllib.parse.urlsplit(base)
+    if not re.search(r"/stream[12]$", parsed.path):
+        if quality == "1080p":
+            return source
+        raise ControlError("Cette source RTSP ne permet pas de sélectionner 720p : son chemin doit se terminer par /stream1 ou /stream2.")
+    stream_path = "/stream2" if quality == "720p" else "/stream1"
+    selected = urllib.parse.urlunsplit(parsed._replace(path=re.sub(r"/stream[12]$", stream_path, parsed.path)))
+    return selected + ("#" + fragment if separator else "")
 
 
 def source_for_audio(source: str, audio_enabled: bool) -> str:
@@ -335,7 +353,7 @@ def _read_json_body(handler: BaseHTTPRequestHandler) -> dict[str, object]:
     return payload
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "go2rtc-control/1.4"
+    server_version = "go2rtc-control/1.5"
 
     def log_message(self, fmt: str, *args: object) -> None:
         # Never log query parameters: a start request contains an RTSP source.
@@ -402,8 +420,9 @@ class Handler(BaseHTTPRequestHandler):
                 settings = cameras[name]
                 source = str(settings["source"])
                 audio_enabled = bool(settings["audio_enabled"])
+                quality = str(settings.get("quality", "1080p"))
                 if action == "status":
-                    self.send_json(200, {"enabled": stream_exists(name), "audio_enabled": audio_enabled})
+                    self.send_json(200, {"enabled": stream_exists(name), "audio_enabled": audio_enabled, "quality": quality})
                     return
                 if action == "stop":
                     # DELETE also removes the YAML stream definition. The private
@@ -411,11 +430,25 @@ class Handler(BaseHTTPRequestHandler):
                     status, _ = go2rtc_request("DELETE", "/api/streams?" + urllib.parse.urlencode({"src": name}))
                     if status not in (200, 204, 404):
                         raise ControlError(f"Arrêt refusé par go2rtc (HTTP {status}).")
-                    self.send_json(200, {"enabled": False, "audio_enabled": audio_enabled})
+                    self.send_json(200, {"enabled": False, "audio_enabled": audio_enabled, "quality": quality})
                     return
                 if action == "start":
-                    replace_stream_source(name, source_for_audio(source, audio_enabled))
-                    self.send_json(200, {"enabled": True, "audio_enabled": audio_enabled})
+                    replace_stream_source(name, source_for_audio(source_for_quality(source, quality), audio_enabled))
+                    self.send_json(200, {"enabled": True, "audio_enabled": audio_enabled, "quality": quality})
+                    return
+                if action == "quality":
+                    payload = _read_json_body(self)
+                    next_quality = payload.get("quality")
+                    if next_quality not in ("720p", "1080p"):
+                        raise ControlError("Le champ quality doit valoir 720p ou 1080p.")
+                    selected_source = source_for_quality(source, next_quality)
+                    if next_quality != quality:
+                        running = stream_exists(name)
+                        if running:
+                            replace_stream_source(name, source_for_audio(selected_source, audio_enabled))
+                        settings["quality"] = next_quality
+                        save_camera_settings(cameras)
+                    self.send_json(200, {"enabled": stream_exists(name), "audio_enabled": audio_enabled, "quality": next_quality})
                     return
                 if action == "audio":
                     payload = _read_json_body(self)
@@ -425,10 +458,10 @@ class Handler(BaseHTTPRequestHandler):
                     if next_audio != audio_enabled:
                         running = stream_exists(name)
                         if running:
-                            replace_stream_source(name, source_for_audio(source, next_audio))
+                            replace_stream_source(name, source_for_audio(source_for_quality(source, quality), next_audio))
                         settings["audio_enabled"] = next_audio
                         save_camera_settings(cameras)
-                    self.send_json(200, {"enabled": stream_exists(name), "audio_enabled": next_audio})
+                    self.send_json(200, {"enabled": stream_exists(name), "audio_enabled": next_audio, "quality": quality})
                     return
                 if action == "ptz-status":
                     ptz = settings.get("ptz")

@@ -41,3 +41,12 @@ Le lecteur intégré utilise la page universelle /stream.html de go2rtc et deman
 - Si le tableau de bord est servi en HTTPS, go2rtc doit également être accessible en HTTPS : les navigateurs bloquent généralement les contenus HTTP chargés depuis une page HTTPS.
 
 Références : [site officiel](https://go2rtc.org/), [lecteur web](https://github.com/AlexxIT/go2rtc/blob/master/www/README.md), [configuration WebRTC](https://go2rtc.org/internal/webrtc/).
+
+
+## 5. Choisir la résolution native
+
+Chaque carte caméra propose un sélecteur **720p / 1080p**. Le service local conserve ce choix individuellement dans son registre privé, partagé entre les navigateurs. Il sélectionne directement le chemin RTSP natif correspondant :
+- **720p** : suffixe `/stream2` ;
+- **1080p** : suffixe `/stream1`.
+
+Le changement remplace la source du flux go2rtc existant et reconnecte le lecteur ; aucun transcodage FFmpeg n'est effectué. Le réglage est conservé lors d'un arrêt global et réappliqué au prochain démarrage. Pour sélectionner 720p, la source RTSP doit se terminer par `/stream1` ou `/stream2`. Les autres sources RTSP restent compatibles en 1080p, mais ne peuvent pas basculer vers 720p par cette commande. La résolution initiale par défaut est 1080p pour les registres existants.
