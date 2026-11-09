@@ -114,6 +114,10 @@ class CameraAudioSettingsTests(unittest.TestCase):
         with self.assertRaises(module.ControlError):
             module.source_for_quality("rtsp://camera/live", "720p")
 
+    def test_1080p_keeps_non_tapo_source_unchanged(self):
+        source = "rtsp://camera/live"
+        self.assertEqual(module.source_for_quality(source, "1080p"), source)
+
     def test_quality_rejects_unknown_value(self):
         with self.assertRaises(module.ControlError):
             module.source_for_quality("rtsp://camera/stream1", "480p")

@@ -49,4 +49,4 @@ Chaque carte caméra propose un sélecteur **720p / 1080p**. Le service local co
 - **720p** : suffixe `/stream2` ;
 - **1080p** : suffixe `/stream1`.
 
-Le changement remplace la source du flux go2rtc existant et reconnecte le lecteur ; aucun transcodage FFmpeg n'est effectué. Le réglage est conservé lors d'un arrêt global et réappliqué au prochain démarrage. Les sources RTSP doivent donc se terminer par `/stream1` ou `/stream2`. La résolution initiale par défaut est 1080p pour les registres existants.
+Le changement remplace la source du flux go2rtc existant et reconnecte le lecteur ; aucun transcodage FFmpeg n'est effectué. Le réglage est conservé lors d'un arrêt global et réappliqué au prochain démarrage. Pour sélectionner 720p, la source RTSP doit se terminer par `/stream1` ou `/stream2`. Les autres sources RTSP restent compatibles en 1080p, mais ne peuvent pas basculer vers 720p par cette commande. La résolution initiale par défaut est 1080p pour les registres existants.

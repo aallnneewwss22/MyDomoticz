@@ -141,7 +141,7 @@ def load_sources() -> dict[str, str]:
 
 
 def save_camera_settings(cameras: dict[str, dict[str, object]]) -> None:
-    """Persist camera sources and audio preferences atomically with private permissions."""
+    """Persist camera sources and audio/video preferences atomically with private permissions."""
     SOURCE_REGISTRY.parent.mkdir(parents=True, exist_ok=True)
     fd, temporary_name = tempfile.mkstemp(prefix=".cameras-", dir=str(SOURCE_REGISTRY.parent))
     temporary = Path(temporary_name)
@@ -168,7 +168,9 @@ def source_for_quality(source: str, quality: str) -> str:
     base, separator, fragment = source.partition("#")
     parsed = urllib.parse.urlsplit(base)
     if not re.search(r"/stream[12]$", parsed.path):
-        raise ControlError("La source RTSP doit se terminer par /stream1 ou /stream2 pour changer de résolution.")
+        if quality == "1080p":
+            return source
+        raise ControlError("Cette source RTSP ne permet pas de sélectionner 720p : son chemin doit se terminer par /stream1 ou /stream2.")
     stream_path = "/stream2" if quality == "720p" else "/stream1"
     selected = urllib.parse.urlunsplit(parsed._replace(path=re.sub(r"/stream[12]$", stream_path, parsed.path)))
     return selected + ("#" + fragment if separator else "")
