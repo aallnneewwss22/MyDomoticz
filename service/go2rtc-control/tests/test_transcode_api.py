@@ -195,6 +195,24 @@ class TranscodeHTTPApiTests(unittest.TestCase):
         self.assertEqual(status, 409)
         self.assertEqual(result["result"], "blocked")
 
+    def test_native_stream_stop_is_blocked_during_session(self):
+        self.request(
+            "POST", "/api/cameras/salon/transcode/acquire", {"profile": PROFILE}
+        )
+        status, result = self.request("POST", "/api/cameras/salon/stop", {})
+        self.assertEqual(status, 409)
+        self.assertEqual(result["result"], "blocked")
+
+    def test_native_audio_source_change_is_blocked_during_session(self):
+        self.request(
+            "POST", "/api/cameras/salon/transcode/acquire", {"profile": PROFILE}
+        )
+        status, result = self.request(
+            "POST", "/api/cameras/salon/audio", {"enabled": False}
+        )
+        self.assertEqual(status, 409)
+        self.assertEqual(result["result"], "blocked")
+
     def test_engine_unavailable_returns_503_without_creating_session(self):
         def unavailable(camera_id, profile):
             raise SessionUnavailable("Moteur non disponible pour ce test.")
