@@ -60,7 +60,7 @@ class TranscodeHTTPApiTests(unittest.TestCase):
             patch.object(server_module, "TRANSCODE_ENGINE_AVAILABLE", True),
             patch.object(server_module, "read_token", return_value=TOKEN),
             patch.object(server_module, "load_camera_settings", return_value={
-                "salon": {"source": "rtsp://camera.invalid/live",
+                "salon": {"source": "rtsp://camera.invalid/stream1",
                           "audio_enabled": True, "quality": "1080p"}
             }),
         ]
