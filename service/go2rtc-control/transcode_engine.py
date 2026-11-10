@@ -135,6 +135,9 @@ class FFmpegTranscodeEngine:
             raise TranscodeEngineError(
                 "Le flux de destination existe déjà ; refus de le remplacer."
             )
+        # Mark ownership before the API call: go2rtc may create the in-memory
+        # stream and then fail while persisting its temporary empty definition.
+        self._owned_streams.add(camera_id)
         query = urllib.parse.urlencode({"name": name, "src": ""})
         request = urllib.request.Request(
             self.go2rtc_api + "/api/streams?" + query, method="PUT"
@@ -145,21 +148,32 @@ class FFmpegTranscodeEngine:
                     raise TranscodeEngineError(
                         f"Création du flux de destination refusée (HTTP {response.status})."
                     )
+            if not self._stream_visible(camera_id):
+                raise TranscodeEngineError(
+                    "Le flux de destination créé n'est pas visible dans go2rtc."
+                )
         except urllib.error.HTTPError as exc:
+            self._cleanup_failed_creation(camera_id)
             raise TranscodeEngineError(
                 f"Création du flux de destination refusée (HTTP {exc.code})."
             ) from exc
         except (urllib.error.URLError, TimeoutError, OSError) as exc:
+            self._cleanup_failed_creation(camera_id)
             raise TranscodeEngineError(
                 "Impossible de créer le flux de destination dans go2rtc."
             ) from exc
-        if not self._stream_visible(camera_id):
-            # The API may have accepted the request but failed to expose the stream.
+        except TranscodeEngineError:
+            self._cleanup_failed_creation(camera_id)
+            raise
+
+    def _cleanup_failed_creation(self, camera_id: str) -> None:
+        try:
             self._delete_output_stream(camera_id)
-            raise TranscodeEngineError(
-                "Le flux de destination créé n'est pas visible dans go2rtc."
+        except TranscodeEngineError:
+            LOGGER.exception(
+                "Échec du nettoyage du flux de destination %s après une création incomplète.",
+                output_stream_name(camera_id),
             )
-        self._owned_streams.add(camera_id)
 
     def _delete_output_stream(self, camera_id: str) -> None:
         if camera_id not in self._owned_streams:
