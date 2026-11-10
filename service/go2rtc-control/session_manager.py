@@ -285,13 +285,17 @@ class SessionManager:
                 "session_count": len(state["sessions"]),
             }
 
-    def assert_native_quality_change_allowed(self, camera_id: str) -> None:
-        """Raise while a profile is reserved or any session remains."""
+    def assert_native_source_change_allowed(self, camera_id: str) -> None:
+        """Raise while a transcode profile reserves the native camera source."""
         with self.camera_guard(camera_id):
             state = self._camera_state(camera_id)
             if (state["sessions"] or state["active_profile"] is not None
                     or state["state"] in ("starting", "stopping", "error")):
-                raise SessionConflict("Le changement de résolution native est bloqué pendant le transcodage.")
+                raise SessionConflict("La modification de la source native est bloquée pendant le transcodage.")
+
+    def assert_native_quality_change_allowed(self, camera_id: str) -> None:
+        """Backward-compatible explicit guard for native resolution changes."""
+        self.assert_native_source_change_allowed(camera_id)
 
     def start_reaper(self) -> None:
         """Start the five-second expiration sweep in a daemon thread."""
