@@ -187,7 +187,15 @@ class SessionManager:
                 if ready is not True or not self._producer_health(camera_id):
                     raise SessionUnavailable("Le transcodeur n'a pas confirmé sa disponibilité.")
             except Exception as exc:
-                state["state"] = "error"
+                # A failed start must not leave a phantom reservation. Ask the
+                # producer adapter to clean up any partially created resource.
+                try:
+                    self._stop_producer(camera_id)
+                except Exception as cleanup_exc:
+                    state["state"] = "error"
+                    state["last_error"] = "Démarrage et nettoyage du transcodeur impossibles."
+                    raise SessionUnavailable(state["last_error"]) from cleanup_exc
+                state["state"] = "idle"
                 state["active_profile"] = None
                 state["last_error"] = "Démarrage du transcodeur impossible."
                 if isinstance(exc, SessionUnavailable):
