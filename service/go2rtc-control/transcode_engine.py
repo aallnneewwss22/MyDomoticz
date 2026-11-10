@@ -1,14 +1,15 @@
 """FFmpeg process adapter for on-demand per-camera H.264 transcoding."""
 from __future__ import annotations
 
+import json
 import logging
 import shutil
 import subprocess
 import threading
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
-import json
 from typing import Callable
 
 LOGGER = logging.getLogger("go2rtc-control.transcode")
@@ -73,7 +74,7 @@ def build_ffmpeg_command(
 
 
 class FFmpegTranscodeEngine:
-    """Own at most one FFmpeg process for each logical camera."""
+    """Own one FFmpeg process and its temporary go2rtc destination per camera."""
 
     def __init__(
         self,
@@ -97,6 +98,7 @@ class FFmpegTranscodeEngine:
         self.startup_timeout = startup_timeout
         self._lock = threading.RLock()
         self._processes: dict[str, subprocess.Popen] = {}
+        self._owned_streams: set[str] = set()
 
     def _stream_visible(self, camera_id: str) -> bool:
         request = urllib.request.Request(self.go2rtc_api + "/api/streams", method="GET")
@@ -111,6 +113,76 @@ class FFmpegTranscodeEngine:
         if isinstance(payload, list):
             return any(isinstance(item, dict) and item.get("name") == name for item in payload)
         return False
+
+    def _stream_has_producer(self, camera_id: str) -> bool:
+        name = output_stream_name(camera_id)
+        query = urllib.parse.urlencode({"src": name})
+        request = urllib.request.Request(
+            self.go2rtc_api + "/api/streams?" + query, method="GET"
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=2) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+        except (OSError, urllib.error.URLError, TimeoutError, UnicodeDecodeError, json.JSONDecodeError):
+            return False
+        producers = payload.get("producers") if isinstance(payload, dict) else None
+        return isinstance(producers, list) and bool(producers)
+
+    def _create_output_stream(self, camera_id: str) -> None:
+        """Register an empty ingest destination before FFmpeg connects to RTSP."""
+        name = output_stream_name(camera_id)
+        if self._stream_visible(camera_id):
+            raise TranscodeEngineError(
+                "Le flux de destination existe déjà ; refus de le remplacer."
+            )
+        query = urllib.parse.urlencode({"name": name, "src": ""})
+        request = urllib.request.Request(
+            self.go2rtc_api + "/api/streams?" + query, method="PUT"
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=8) as response:
+                if not 200 <= response.status < 300:
+                    raise TranscodeEngineError(
+                        f"Création du flux de destination refusée (HTTP {response.status})."
+                    )
+        except urllib.error.HTTPError as exc:
+            raise TranscodeEngineError(
+                f"Création du flux de destination refusée (HTTP {exc.code})."
+            ) from exc
+        except (urllib.error.URLError, TimeoutError, OSError) as exc:
+            raise TranscodeEngineError(
+                "Impossible de créer le flux de destination dans go2rtc."
+            ) from exc
+        if not self._stream_visible(camera_id):
+            # The API may have accepted the request but failed to expose the stream.
+            self._delete_output_stream(camera_id)
+            raise TranscodeEngineError(
+                "Le flux de destination créé n'est pas visible dans go2rtc."
+            )
+        self._owned_streams.add(camera_id)
+
+    def _delete_output_stream(self, camera_id: str) -> None:
+        if camera_id not in self._owned_streams:
+            return
+        name = output_stream_name(camera_id)
+        query = urllib.parse.urlencode({"src": name})
+        request = urllib.request.Request(
+            self.go2rtc_api + "/api/streams?" + query, method="DELETE"
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=8):
+                pass
+        except urllib.error.HTTPError as exc:
+            if exc.code != 404:
+                raise TranscodeEngineError(
+                    f"Suppression du flux de destination refusée (HTTP {exc.code})."
+                ) from exc
+        except (urllib.error.URLError, TimeoutError, OSError) as exc:
+            raise TranscodeEngineError(
+                "Impossible de supprimer le flux de destination dans go2rtc."
+            ) from exc
+        finally:
+            self._owned_streams.discard(camera_id)
 
     def available(self) -> bool:
         """Check FFmpeg's binary and the required hardware encoder declaration."""
@@ -141,6 +213,7 @@ class FFmpegTranscodeEngine:
                 binary, camera_id, profile,
                 rtsp_host=self.rtsp_host, rtsp_port=self.rtsp_port,
             )
+            self._create_output_stream(camera_id)
             try:
                 process = self._popen(
                     command,
@@ -150,6 +223,7 @@ class FFmpegTranscodeEngine:
                     close_fds=True,
                 )
             except OSError as exc:
+                self._delete_output_stream(camera_id)
                 raise TranscodeEngineError("Impossible de lancer FFmpeg.") from exc
             self._processes[camera_id] = process
 
@@ -158,25 +232,27 @@ class FFmpegTranscodeEngine:
             if process.poll() is not None:
                 self.stop(camera_id)
                 raise TranscodeEngineError("FFmpeg s'est arrêté pendant son initialisation.")
-            if self._stream_visible(camera_id):
+            if self._stream_has_producer(camera_id):
                 return True
             self._sleep(POLL_INTERVAL_SECONDS)
         self.stop(camera_id)
-        raise TranscodeEngineError("Le flux RTSP transcodé n'est pas apparu dans go2rtc.")
+        raise TranscodeEngineError(
+            "FFmpeg n'a pas publié de producteur dans le flux RTSP de go2rtc."
+        )
 
     def stop(self, camera_id: str) -> None:
         with self._lock:
             process = self._processes.pop(camera_id, None)
-        if process is None:
-            return
-        if process.poll() is not None:
-            return
-        process.terminate()
         try:
-            process.wait(timeout=STOP_TIMEOUT_SECONDS)
-        except subprocess.TimeoutExpired:
-            process.kill()
-            process.wait(timeout=STOP_TIMEOUT_SECONDS)
+            if process is not None and process.poll() is None:
+                process.terminate()
+                try:
+                    process.wait(timeout=STOP_TIMEOUT_SECONDS)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait(timeout=STOP_TIMEOUT_SECONDS)
+        finally:
+            self._delete_output_stream(camera_id)
 
     def health(self, camera_id: str) -> bool:
         with self._lock:
@@ -185,7 +261,7 @@ class FFmpegTranscodeEngine:
 
     def close(self) -> None:
         with self._lock:
-            camera_ids = list(self._processes)
+            camera_ids = set(self._processes) | set(self._owned_streams)
         for camera_id in camera_ids:
             try:
                 self.stop(camera_id)
