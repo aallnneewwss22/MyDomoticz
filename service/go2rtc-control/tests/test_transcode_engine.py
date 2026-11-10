@@ -82,26 +82,34 @@ class BuildCommandTests(unittest.TestCase):
 
 class EngineLifecycleTests(unittest.TestCase):
     def make_engine(self, process, **kwargs):
+        events = []
         engine = FFmpegTranscodeEngine(
             ffmpeg_bin="/usr/bin/ffmpeg",
-            popen=lambda *args, **options: process,
+            popen=lambda *args, **options: (events.append("ffmpeg-start"), process)[1],
             startup_timeout=0.1,
             sleep=lambda delay: None,
             **kwargs,
         )
-        engine._stream_visible = lambda camera_id: True
+        engine._create_output_stream = lambda camera_id: events.append("stream-create")
+        engine._delete_output_stream = lambda camera_id: events.append("stream-delete")
+        engine._stream_has_producer = lambda camera_id: True
+        engine.test_events = events
         return engine
 
     @patch("transcode_engine.shutil.which", return_value="/usr/bin/ffmpeg")
-    def test_start_creates_one_process_and_health_tracks_it(self, _which):
+    def test_start_creates_destination_before_ffmpeg_and_deletes_after_stop(self, _which):
         process = FakeProcess()
         engine = self.make_engine(process)
         self.assertTrue(engine.start("salon", PROFILE))
+        self.assertEqual(engine.test_events, ["stream-create", "ffmpeg-start"])
         self.assertTrue(engine.health("salon"))
         engine.stop("salon")
         self.assertTrue(process.terminated)
         self.assertTrue(process.waited)
         self.assertFalse(engine.health("salon"))
+        self.assertEqual(
+            engine.test_events, ["stream-create", "ffmpeg-start", "stream-delete"]
+        )
 
     @patch("transcode_engine.shutil.which", return_value="/usr/bin/ffmpeg")
     def test_start_rejects_a_second_process_for_same_camera(self, _which):
@@ -115,16 +123,20 @@ class EngineLifecycleTests(unittest.TestCase):
     def test_start_fails_if_ffmpeg_exits_before_stream_is_ready(self, _which):
         process = FakeProcess(exit_code=1)
         engine = self.make_engine(process)
-        engine._stream_visible = lambda camera_id: False
+        engine._stream_has_producer = lambda camera_id: False
         with self.assertRaises(TranscodeEngineError):
             engine.start("salon", PROFILE)
         self.assertFalse(engine.health("salon"))
+        self.assertEqual(
+            engine.test_events, ["stream-create", "ffmpeg-start", "stream-delete"]
+        )
 
     @patch("transcode_engine.shutil.which", return_value=None)
     def test_start_fails_cleanly_when_ffmpeg_is_missing(self, _which):
         engine = self.make_engine(FakeProcess())
         with self.assertRaises(TranscodeEngineError):
             engine.start("salon", PROFILE)
+        self.assertEqual(engine.test_events, [])
 
     @patch("transcode_engine.shutil.which", return_value="/usr/bin/ffmpeg")
     def test_stop_is_idempotent(self, _which):
@@ -134,6 +146,7 @@ class EngineLifecycleTests(unittest.TestCase):
         engine.stop("salon")
         engine.stop("salon")
         self.assertTrue(process.terminated)
+        self.assertEqual(engine.test_events.count("stream-delete"), 1)
 
 
 if __name__ == "__main__":
