@@ -49,7 +49,7 @@ class BuildCommandTests(unittest.TestCase):
     def test_command_uses_local_native_and_output_rtsp_paths(self):
         command = build_ffmpeg_command("/usr/bin/ffmpeg", "salon", PROFILE)
         joined = " ".join(command)
-        self.assertIn("rtsp://127.0.0.1:8554/salon", joined)
+        self.assertIn("rtsp://127.0.0.1:8554/salon?video", joined)
         self.assertIn("rtsp://127.0.0.1:8554/salon_transcode", joined)
 
     def test_command_disables_audio_and_uses_hardware_h264(self):
