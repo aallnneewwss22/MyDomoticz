@@ -100,6 +100,6 @@ Les routes de session sont ajoutées sous `/api/cameras/{identifiant_logique}/tr
 - `GET status` : retourne l'état de coordination ;
 - `GET health` : retourne l'état de santé du producteur.
 
-Les appels utilisent le jeton Bearer du service ; heartbeat et release exigent en plus le jeton propre à la session. Les profils doivent utiliser la qualité native actuellement sélectionnée dans le registre. Un changement de qualité native est refusé tant qu'une session réserve le transcodage.
+Les appels utilisent le jeton Bearer du service ; heartbeat et release exigent en plus le jeton propre à la session. Les profils doivent utiliser la qualité native actuellement sélectionnée dans le registre. Toute modification de la source native (qualité, arrêt global ou bascule audio qui remplace la source) est refusée tant qu'une session réserve le transcodage.
 
 **État de cette étape :** le contrat HTTP et sa validation sont intégrés, mais le moteur FFmpeg/go2rtc n'est pas encore raccordé. Tant que ce moteur n'est pas installé, `acquire` répond HTTP 503 sans créer de session. Les routes sont préparées pour le raccordement du moteur dans la livraison suivante.
