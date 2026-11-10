@@ -93,7 +93,8 @@ class Go2rtcProducerDetectionTests(unittest.TestCase):
         response.status = 200
         urlopen.return_value.__enter__.return_value = response
         engine = self.make_engine()
-        engine._stream_visible = lambda camera_id: False
+        visibility_checks = iter((False, True))
+        engine._stream_visible = lambda camera_id: next(visibility_checks)
         engine._stream_has_placeholder = lambda camera_id: True
 
         engine._create_output_stream("salon")
