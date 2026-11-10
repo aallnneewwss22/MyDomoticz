@@ -452,6 +452,7 @@ class Handler(BaseHTTPRequestHandler):
                     self.send_json(200, {"enabled": stream_exists(name), "audio_enabled": audio_enabled, "quality": quality})
                     return
                 if action == "stop":
+                    SESSION_MANAGER.assert_native_source_change_allowed(name)
                     # DELETE also removes the YAML stream definition. The private
                     # registry remains the source of truth for the next start.
                     status, _ = go2rtc_request("DELETE", "/api/streams?" + urllib.parse.urlencode({"src": name}))
@@ -460,6 +461,7 @@ class Handler(BaseHTTPRequestHandler):
                     self.send_json(200, {"enabled": False, "audio_enabled": audio_enabled, "quality": quality})
                     return
                 if action == "start":
+                    SESSION_MANAGER.assert_native_source_change_allowed(name)
                     replace_stream_source(name, source_for_audio(source_for_quality(source, quality), audio_enabled))
                     self.send_json(200, {"enabled": True, "audio_enabled": audio_enabled, "quality": quality})
                     return
@@ -470,7 +472,7 @@ class Handler(BaseHTTPRequestHandler):
                         raise ControlError("Le champ quality doit valoir 720p ou 1080p.")
                     selected_source = source_for_quality(source, next_quality)
                     if next_quality != quality:
-                        SESSION_MANAGER.assert_native_quality_change_allowed(name)
+                        SESSION_MANAGER.assert_native_source_change_allowed(name)
                         running = stream_exists(name)
                         if running:
                             replace_stream_source(name, source_for_audio(selected_source, audio_enabled))
@@ -484,6 +486,7 @@ class Handler(BaseHTTPRequestHandler):
                         raise ControlError("Le champ enabled doit être un booléen.")
                     next_audio = payload["enabled"]
                     if next_audio != audio_enabled:
+                        SESSION_MANAGER.assert_native_source_change_allowed(name)
                         running = stream_exists(name)
                         if running:
                             replace_stream_source(name, source_for_audio(source_for_quality(source, quality), next_audio))
