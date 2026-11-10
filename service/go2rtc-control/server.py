@@ -51,7 +51,8 @@ def _transcode_engine_not_installed(camera_id: str, profile: dict[str, object]) 
 
 
 def _transcode_stop_not_installed(camera_id: str) -> None:
-    raise SessionUnavailable("Le moteur de transcodage n'est pas encore intégré.")
+    # No producer can exist while the engine adapter is absent.
+    return None
 
 
 def _transcode_health_not_installed(camera_id: str) -> bool:
@@ -618,11 +619,9 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         parts = urllib.parse.urlsplit(self.path).path.rstrip("/").split("/")
-        if len(parts) == 6 and parts[:2] == ["", "api"]:
-            action = parts[5]
-            if parts[4] == "transcode" and action in ("status", "health"):
-                self.handle_transcode(action)
-                return
+        if len(parts) == 6 and parts[:2] == ["", "api"] and parts[4] == "transcode":
+            self.handle_transcode(parts[5])
+            return
         action = parts[-1]
         if action not in ("status", "ptz-status", "ptz-presets"):
             action = "status"
@@ -630,11 +629,9 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         parts = urllib.parse.urlsplit(self.path).path.rstrip("/").split("/")
-        if len(parts) == 6 and parts[:2] == ["", "api"]:
-            action = parts[5]
-            if parts[4] == "transcode" and action in ("acquire", "heartbeat", "release"):
-                self.handle_transcode(action)
-                return
+        if len(parts) == 6 and parts[:2] == ["", "api"] and parts[4] == "transcode":
+            self.handle_transcode(parts[5])
+            return
         action = parts[-1]
         self.handle_camera(action)
 
