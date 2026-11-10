@@ -132,9 +132,12 @@ class FFmpegTranscodeEngine:
         """Register an empty ingest destination before FFmpeg connects to RTSP."""
         name = output_stream_name(camera_id)
         if self._stream_visible(camera_id):
-            raise TranscodeEngineError(
-                "Le flux de destination existe déjà ; refus de le remplacer."
-            )
+            if self._stream_has_producer(camera_id):
+                raise TranscodeEngineError(
+                    "Le flux de destination existe déjà et possède un producteur ; refus de le remplacer."
+                )
+            # Recover an empty destination left behind by an abrupt service stop.
+            self._delete_stream(camera_id)
         # Mark ownership before the API call: go2rtc may create the in-memory
         # stream and then fail while persisting its temporary empty definition.
         self._owned_streams.add(camera_id)
@@ -175,9 +178,7 @@ class FFmpegTranscodeEngine:
                 output_stream_name(camera_id),
             )
 
-    def _delete_output_stream(self, camera_id: str) -> None:
-        if camera_id not in self._owned_streams:
-            return
+    def _delete_stream(self, camera_id: str) -> None:
         name = output_stream_name(camera_id)
         query = urllib.parse.urlencode({"src": name})
         request = urllib.request.Request(
@@ -195,8 +196,12 @@ class FFmpegTranscodeEngine:
             raise TranscodeEngineError(
                 "Impossible de supprimer le flux de destination dans go2rtc."
             ) from exc
-        finally:
-            self._owned_streams.discard(camera_id)
+
+    def _delete_output_stream(self, camera_id: str) -> None:
+        if camera_id not in self._owned_streams:
+            return
+        self._delete_stream(camera_id)
+        self._owned_streams.discard(camera_id)
 
     def available(self) -> bool:
         """Check FFmpeg's binary and the required hardware encoder declaration."""
