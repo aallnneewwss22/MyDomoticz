@@ -158,12 +158,21 @@ class SessionManagerTests(unittest.TestCase):
             self.manager.acquire("salon", invalid)
         self.assertEqual(self.producer.starts, [])
 
-    def test_failed_start_creates_no_session(self):
+    def test_failed_start_creates_no_session_and_returns_to_idle(self):
         self.producer.fail_start = True
         with self.assertRaises(SessionUnavailable):
             self.manager.acquire("salon", PROFILE_1080)
         self.assertEqual(self.manager.status("salon")["session_count"], 0)
-        self.assertEqual(self.manager.status("salon")["state"], "error")
+        self.assertEqual(self.manager.status("salon")["state"], "idle")
+
+    def test_start_can_be_retried_after_a_clean_failure(self):
+        self.producer.fail_start = True
+        with self.assertRaises(SessionUnavailable):
+            self.manager.acquire("salon", PROFILE_1080)
+        self.producer.fail_start = False
+        result = self.manager.acquire("salon", PROFILE_1080)
+        self.assertEqual(result["result"], "started")
+        self.assertEqual(self.manager.status("salon")["session_count"], 1)
 
     def test_failed_stop_keeps_profile_reserved_and_blocks_quality_change(self):
         session = self.manager.acquire("salon", PROFILE_1080)
