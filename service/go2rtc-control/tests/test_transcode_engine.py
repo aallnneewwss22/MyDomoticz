@@ -1,7 +1,11 @@
 """Unit tests for the FFmpeg transcode process adapter."""
 import subprocess
+import sys
 import unittest
+from pathlib import Path
 from unittest.mock import patch
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from transcode_engine import (
     FFmpegTranscodeEngine,
