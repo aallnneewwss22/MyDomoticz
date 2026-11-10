@@ -28,6 +28,7 @@ apt-get install -y python3-yaml python3-zeep python3-pip
 
 install -d -o root -g "${SERVICE_USER}" -m 0750 "${INSTALL_DIR}" "${ETC_DIR}"
 install -o root -g root -m 0644 "${SCRIPT_DIR}/server.py" "${INSTALL_DIR}/server.py"
+install -o root -g root -m 0644 "${SCRIPT_DIR}/session_manager.py" "${INSTALL_DIR}/session_manager.py"
 install -d -o root -g root -m 0755 "${INSTALL_DIR}/vendor"
 pip3 install --disable-pip-version-check --no-deps --target "${INSTALL_DIR}/vendor" "onvif-zeep==0.2.12"
 
