@@ -80,6 +80,82 @@ class BuildCommandTests(unittest.TestCase):
             build_ffmpeg_command("/usr/bin/ffmpeg", "../salon", PROFILE)
 
 
+
+class Go2rtcProducerDetectionTests(unittest.TestCase):
+    def make_engine(self):
+        return FFmpegTranscodeEngine()
+
+    @patch("transcode_engine.urllib.request.urlopen")
+    def test_webrtc_placeholder_is_not_reported_as_ffmpeg_producer(self, urlopen):
+        payload = {
+            "salon_transcode": {
+                "producers": [{"url": "webrtc:"}],
+                "consumers": [],
+            }
+        }
+        response = unittest.mock.MagicMock()
+        response.__enter__.return_value.read.return_value = json.dumps(payload).encode()
+        urlopen.return_value = response
+
+        engine = self.make_engine()
+        self.assertFalse(engine._stream_has_producer("salon"))
+        self.assertTrue(engine._stream_has_placeholder("salon"))
+        self.assertTrue(engine._stream_can_be_reclaimed("salon"))
+
+    @patch("transcode_engine.urllib.request.urlopen")
+    def test_rtsp_tcp_publisher_is_detected_as_ffmpeg_producer(self, urlopen):
+        payload = {
+            "salon_transcode": {
+                "producers": [
+                    {"url": "webrtc:"},
+                    {
+                        "format_name": "rtsp",
+                        "protocol": "rtsp+tcp",
+                        "id": "publisher-1",
+                    },
+                ],
+                "consumers": [],
+            }
+        }
+        response = unittest.mock.MagicMock()
+        response.__enter__.return_value.read.return_value = __import__("json").dumps(payload).encode()
+        urlopen.return_value = response
+
+        engine = self.make_engine()
+        self.assertTrue(engine._stream_has_producer("salon"))
+        self.assertTrue(engine._stream_has_placeholder("salon"))
+        self.assertFalse(engine._stream_can_be_reclaimed("salon"))
+
+    @patch("transcode_engine.urllib.request.urlopen")
+    def test_foreign_producer_prevents_destination_reclamation(self, urlopen):
+        payload = {
+            "salon_transcode": {
+                "producers": [{"url": "rtsp://other-source/stream"}],
+                "consumers": [],
+            }
+        }
+        response = unittest.mock.MagicMock()
+        response.__enter__.return_value.read.return_value = __import__("json").dumps(payload).encode()
+        urlopen.return_value = response
+
+        engine = self.make_engine()
+        self.assertFalse(engine._stream_can_be_reclaimed("salon"))
+
+    @patch("transcode_engine.urllib.request.urlopen")
+    def test_empty_stale_destination_can_be_reclaimed(self, urlopen):
+        payload = {
+            "salon_transcode": {
+                "producers": [],
+                "consumers": [],
+            }
+        }
+        response = unittest.mock.MagicMock()
+        response.__enter__.return_value.read.return_value = __import__("json").dumps(payload).encode()
+        urlopen.return_value = response
+
+        self.assertTrue(self.make_engine()._stream_can_be_reclaimed("salon"))
+
+
 class EngineLifecycleTests(unittest.TestCase):
     def make_engine(self, process, **kwargs):
         events = []
