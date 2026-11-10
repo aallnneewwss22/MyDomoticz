@@ -16,7 +16,13 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
 import yaml
+from session_manager import (
+    SessionConflict, SessionError, SessionManager,
+    SessionUnauthorized, SessionUnavailable,
+)
 
 VENDOR_DIR = Path(__file__).resolve().parent / "vendor"
 if VENDOR_DIR.is_dir():
@@ -37,6 +43,27 @@ CONTROL_HOST = os.environ.get("CONTROL_HOST", "0.0.0.0")
 CONTROL_PORT = int(os.environ.get("CONTROL_PORT", "1985"))
 REGISTRY_LOCK = threading.RLock()
 LOGGER = logging.getLogger("go2rtc-control.ptz")
+TRANSCODE_ENGINE_AVAILABLE = False
+
+
+def _transcode_engine_not_installed(camera_id: str, profile: dict[str, object]) -> bool:
+    raise SessionUnavailable("Le moteur de transcodage n'est pas encore intégré.")
+
+
+def _transcode_stop_not_installed(camera_id: str) -> None:
+    # No producer can exist while the engine adapter is absent.
+    return None
+
+
+def _transcode_health_not_installed(camera_id: str) -> bool:
+    return False
+
+
+SESSION_MANAGER = SessionManager(
+    _transcode_engine_not_installed,
+    _transcode_stop_not_installed,
+    _transcode_health_not_installed,
+)
 PTZ_CACHE_LOCK = threading.RLock()
 PTZ_CLIENT_CACHE: dict[tuple[str, int, str, str], tuple[object, str]] = {}
 
@@ -412,7 +439,7 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(400, {"error": "Nom de flux invalide."})
             return
         try:
-            with REGISTRY_LOCK:
+            with SESSION_MANAGER.camera_guard(name), REGISTRY_LOCK:
                 cameras = load_camera_settings()
                 if name not in cameras:
                     self.send_json(404, {"error": "Caméra absente du registre local."})
@@ -425,6 +452,7 @@ class Handler(BaseHTTPRequestHandler):
                     self.send_json(200, {"enabled": stream_exists(name), "audio_enabled": audio_enabled, "quality": quality})
                     return
                 if action == "stop":
+                    SESSION_MANAGER.assert_native_source_change_allowed(name)
                     # DELETE also removes the YAML stream definition. The private
                     # registry remains the source of truth for the next start.
                     status, _ = go2rtc_request("DELETE", "/api/streams?" + urllib.parse.urlencode({"src": name}))
@@ -433,6 +461,7 @@ class Handler(BaseHTTPRequestHandler):
                     self.send_json(200, {"enabled": False, "audio_enabled": audio_enabled, "quality": quality})
                     return
                 if action == "start":
+                    SESSION_MANAGER.assert_native_source_change_allowed(name)
                     replace_stream_source(name, source_for_audio(source_for_quality(source, quality), audio_enabled))
                     self.send_json(200, {"enabled": True, "audio_enabled": audio_enabled, "quality": quality})
                     return
@@ -443,6 +472,7 @@ class Handler(BaseHTTPRequestHandler):
                         raise ControlError("Le champ quality doit valoir 720p ou 1080p.")
                     selected_source = source_for_quality(source, next_quality)
                     if next_quality != quality:
+                        SESSION_MANAGER.assert_native_source_change_allowed(name)
                         running = stream_exists(name)
                         if running:
                             replace_stream_source(name, source_for_audio(selected_source, audio_enabled))
@@ -456,6 +486,7 @@ class Handler(BaseHTTPRequestHandler):
                         raise ControlError("Le champ enabled doit être un booléen.")
                     next_audio = payload["enabled"]
                     if next_audio != audio_enabled:
+                        SESSION_MANAGER.assert_native_source_change_allowed(name)
                         running = stream_exists(name)
                         if running:
                             replace_stream_source(name, source_for_audio(source_for_quality(source, quality), next_audio))
@@ -499,20 +530,117 @@ class Handler(BaseHTTPRequestHandler):
                     self.send_json(200, {"ok": True})
                     return
                 self.send_json(404, {"error": "Action inconnue."})
+        except SessionConflict as exc:
+            self.send_json(409, {"error": str(exc), "result": "blocked"})
         except ControlError as exc:
             self.send_json(502, {"error": str(exc)})
+
+    def handle_transcode(self, action: str) -> None:
+        if not self.authorized():
+            return
+        parts = urllib.parse.urlsplit(self.path).path.strip("/").split("/")
+        if len(parts) != 5 or parts[:2] != ["api", "cameras"] or parts[3] != "transcode" or parts[4] != action:
+            self.send_json(404, {"error": "Route de transcodage inconnue."})
+            return
+        camera_id = urllib.parse.unquote(parts[2])
+        if not STREAM_NAME.fullmatch(camera_id):
+            self.send_json(400, {"error": "Identifiant logique de caméra invalide."})
+            return
+        expected_method = "GET" if action in ("status", "health") else "POST"
+        if self.command != expected_method:
+            self.send_json(405, {"error": "Méthode HTTP non autorisée."})
+            return
+        try:
+            # Use the existing logical camera ID from cameras.json. Keep the
+            # per-camera lock while reading its native quality and changing
+            # session state, so quality changes cannot race an acquire.
+            with SESSION_MANAGER.camera_guard(camera_id):
+                with REGISTRY_LOCK:
+                    cameras = load_camera_settings()
+                    if camera_id not in cameras:
+                        self.send_json(404, {"error": "Caméra absente du registre local."})
+                        return
+                    native_quality = str(cameras[camera_id].get("quality", "1080p"))
+
+                if action == "acquire":
+                    payload = _read_json_body(self)
+                    profile = payload.get("profile")
+                    if not isinstance(profile, dict):
+                        raise SessionError("Le champ profile doit être un objet.")
+                    if profile.get("source") != native_quality:
+                        self.send_json(409, {
+                            "result": "native_quality_mismatch",
+                            "requested_source": profile.get("source"),
+                            "native_quality": native_quality,
+                            "error": "Le profil doit utiliser la résolution native actuellement sélectionnée.",
+                        })
+                        return
+                    result = SESSION_MANAGER.acquire(camera_id, profile)
+                    if result.get("result") == "profile_conflict":
+                        self.send_json(409, result)
+                    else:
+                        self.send_json(200, result)
+                    return
+
+                if action in ("heartbeat", "release"):
+                    payload = _read_json_body(self)
+                    session_id, token = payload.get("session_id"), payload.get("session_token")
+                    if not isinstance(session_id, str) or not session_id or len(session_id) > 128:
+                        raise SessionError("Identifiant de session invalide.")
+                    if not isinstance(token, str) or not token or len(token) > 256:
+                        raise SessionError("Jeton de session invalide.")
+                    if action == "heartbeat":
+                        result = SESSION_MANAGER.heartbeat(camera_id, session_id, token)
+                        self.send_json(410 if result.get("result") == "session_expired" else 200, result)
+                    else:
+                        self.send_json(200, SESSION_MANAGER.release(camera_id, session_id, token))
+                    return
+
+                if action == "status":
+                    result = SESSION_MANAGER.status(camera_id)
+                    result["engine_available"] = TRANSCODE_ENGINE_AVAILABLE
+                    self.send_json(200, result)
+                    return
+
+                if action == "health":
+                    result = SESSION_MANAGER.health(camera_id)
+                    result["engine_available"] = TRANSCODE_ENGINE_AVAILABLE
+                    self.send_json(200, result)
+                    return
+
+                self.send_json(404, {"error": "Action de transcodage inconnue."})
+        except SessionUnauthorized as exc:
+            self.send_json(401, {"error": str(exc)})
+        except SessionConflict as exc:
+            self.send_json(409, {"error": str(exc), "result": "blocked"})
+        except SessionUnavailable as exc:
+            self.send_json(503, {"error": str(exc), "result": "error"})
+        except SessionError as exc:
+            self.send_json(400, {"error": str(exc)})
+        except ControlError as exc:
+            self.send_json(502, {"error": str(exc)})
+
     def do_GET(self) -> None:
-        action = urllib.parse.urlsplit(self.path).path.rstrip("/").split("/")[-1]
+        parts = urllib.parse.urlsplit(self.path).path.rstrip("/").split("/")
+        if len(parts) == 6 and parts[:2] == ["", "api"] and parts[4] == "transcode":
+            self.handle_transcode(parts[5])
+            return
+        action = parts[-1]
         if action not in ("status", "ptz-status", "ptz-presets"):
             action = "status"
         self.handle_camera(action)
 
     def do_POST(self) -> None:
-        action = urllib.parse.urlsplit(self.path).path.rstrip("/").split("/")[-1]
+        parts = urllib.parse.urlsplit(self.path).path.rstrip("/").split("/")
+        if len(parts) == 6 and parts[:2] == ["", "api"] and parts[4] == "transcode":
+            self.handle_transcode(parts[5])
+            return
+        action = parts[-1]
         self.handle_camera(action)
 
 
 if __name__ == "__main__":
     read_token()
     ensure_source_registry()
+    SESSION_MANAGER.start_reaper()
     ThreadingHTTPServer((CONTROL_HOST, CONTROL_PORT), Handler).serve_forever()

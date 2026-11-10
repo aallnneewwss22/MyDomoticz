@@ -187,7 +187,15 @@ class SessionManager:
                 if ready is not True or not self._producer_health(camera_id):
                     raise SessionUnavailable("Le transcodeur n'a pas confirmé sa disponibilité.")
             except Exception as exc:
-                state["state"] = "error"
+                # A failed start must not leave a phantom reservation. Ask the
+                # producer adapter to clean up any partially created resource.
+                try:
+                    self._stop_producer(camera_id)
+                except Exception as cleanup_exc:
+                    state["state"] = "error"
+                    state["last_error"] = "Démarrage et nettoyage du transcodeur impossibles."
+                    raise SessionUnavailable(state["last_error"]) from cleanup_exc
+                state["state"] = "idle"
                 state["active_profile"] = None
                 state["last_error"] = "Démarrage du transcodeur impossible."
                 if isinstance(exc, SessionUnavailable):
@@ -277,13 +285,17 @@ class SessionManager:
                 "session_count": len(state["sessions"]),
             }
 
-    def assert_native_quality_change_allowed(self, camera_id: str) -> None:
-        """Raise while a profile is reserved or any session remains."""
+    def assert_native_source_change_allowed(self, camera_id: str) -> None:
+        """Raise while a transcode profile reserves the native camera source."""
         with self.camera_guard(camera_id):
             state = self._camera_state(camera_id)
             if (state["sessions"] or state["active_profile"] is not None
                     or state["state"] in ("starting", "stopping", "error")):
-                raise SessionConflict("Le changement de résolution native est bloqué pendant le transcodage.")
+                raise SessionConflict("La modification de la source native est bloquée pendant le transcodage.")
+
+    def assert_native_quality_change_allowed(self, camera_id: str) -> None:
+        """Backward-compatible explicit guard for native resolution changes."""
+        self.assert_native_source_change_allowed(camera_id)
 
     def start_reaper(self) -> None:
         """Start the five-second expiration sweep in a daemon thread."""
