@@ -203,6 +203,14 @@ class TranscodeHTTPApiTests(unittest.TestCase):
         self.assertEqual(status, 409)
         self.assertEqual(result["result"], "blocked")
 
+    def test_native_stream_start_is_blocked_during_session(self):
+        self.request(
+            "POST", "/api/cameras/salon/transcode/acquire", {"profile": PROFILE}
+        )
+        status, result = self.request("POST", "/api/cameras/salon/start", {})
+        self.assertEqual(status, 409)
+        self.assertEqual(result["result"], "blocked")
+
     def test_native_audio_source_change_is_blocked_during_session(self):
         self.request(
             "POST", "/api/cameras/salon/transcode/acquire", {"profile": PROFILE}
