@@ -94,7 +94,7 @@ sudo systemctl restart go2rtc-control
 
 Le moteur est piloté directement par le service Python : il ne demande pas à go2rtc d'exécuter une commande exec:. Il n'est donc pas nécessaire d'activer les sources exec: ni une autorisation d'exécution arbitraire dans go2rtc.
 
-Lorsqu'une première session est acquise, le service démarre un unique processus FFmpeg pour la caméra. FFmpeg lit le flux natif déjà publié par go2rtc sur son RTSP local (127.0.0.1:8554/{identifiant_logique}) et publie le résultat sous {identifiant_logique}_transcode. Il n'accède jamais directement à l'URL de la caméra. Le flux natif n'est ni remplacé ni modifié.
+Lorsqu'une première session est acquise, le service démarre un unique processus FFmpeg pour la caméra. FFmpeg lit uniquement la piste vidéo du flux natif déjà publié par go2rtc sur son RTSP local (127.0.0.1:8554/{identifiant_logique}?video) et publie le résultat sous {identifiant_logique}_transcode. Il n'accède jamais directement à l'URL de la caméra. Le flux natif n'est ni remplacé ni modifié.
 
 La commande est construite comme une liste d'arguments système, sans shell. Elle applique :
 - la résolution choisie, avec conservation du ratio et bandes de remplissage si nécessaire ;
@@ -104,7 +104,7 @@ La commande est construite comme une liste d'arguments système, sans shell. Ell
 - un GOP d'environ deux secondes ;
 - aucune piste audio (-an).
 
-La sélection -map 0:v:0 et -an garantissent que le flux publié ne contient pas d'audio. Si l'audio de la caméra est déjà coupé dans le registre, la source native go2rtc est elle-même sélectionnée avec #media=video, en amont. Si l'audio natif reste activé, FFmpeg ne publie toujours aucune piste audio, mais go2rtc peut avoir reçu la piste audio de la caméra dans le flux natif.
+La requête RTSP locale ?video demande à go2rtc de ne transmettre à FFmpeg que la piste vidéo. Les options -map 0:v:0 et -an constituent une seconde protection : le flux publié ne contient aucune piste audio. Ainsi, l'audio est écarté avant l'entrée FFmpeg, même si le flux natif principal conserve l'audio pour les autres usages.
 
 Paramètres du service dans /etc/go2rtc-control/go2rtc-control.env :
 - TRANSCODE_FFMPEG=/usr/bin/ffmpeg
