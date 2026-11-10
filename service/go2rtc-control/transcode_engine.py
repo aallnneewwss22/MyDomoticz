@@ -114,34 +114,61 @@ class FFmpegTranscodeEngine:
             return any(isinstance(item, dict) and item.get("name") == name for item in payload)
         return False
 
-    def _stream_has_producer(self, camera_id: str) -> bool:
-        name = output_stream_name(camera_id)
-        query = urllib.parse.urlencode({"src": name})
-        request = urllib.request.Request(
-            self.go2rtc_api + "/api/streams?" + query, method="GET"
-        )
+    def _stream_producers(self, camera_id: str) -> list[dict[str, object]] | None:
+        """Return the producer records for this stream, or None if unreadable."""
+        request = urllib.request.Request(self.go2rtc_api + "/api/streams", method="GET")
         try:
             with urllib.request.urlopen(request, timeout=2) as response:
                 payload = json.loads(response.read().decode("utf-8"))
         except (OSError, urllib.error.URLError, TimeoutError, UnicodeDecodeError, json.JSONDecodeError):
+            return None
+        stream = payload.get(output_stream_name(camera_id)) if isinstance(payload, dict) else None
+        if not isinstance(stream, dict):
+            return None
+        producers = stream.get("producers")
+        if not isinstance(producers, list):
+            return None
+        return [item for item in producers if isinstance(item, dict)]
+
+    def _stream_has_producer(self, camera_id: str) -> bool:
+        """Only a real RTSP publisher means that FFmpeg has attached."""
+        producers = self._stream_producers(camera_id)
+        return producers is not None and any(
+            item.get("format_name") == "rtsp"
+            and item.get("protocol") in ("rtsp+tcp", "rtsp+udp")
+            for item in producers
+        )
+
+    def _stream_can_be_reclaimed(self, camera_id: str) -> bool:
+        """Allow recovery only for an empty stream or our inert webrtc: placeholder."""
+        producers = self._stream_producers(camera_id)
+        if producers is None:
             return False
-        producers = payload.get("producers") if isinstance(payload, dict) else None
-        return isinstance(producers, list) and bool(producers)
+        return not producers or all(item.get("url") == "webrtc:" for item in producers)
+
+    def _stream_has_placeholder(self, camera_id: str) -> bool:
+        producers = self._stream_producers(camera_id)
+        return producers is not None and any(
+            item.get("url") == "webrtc:" for item in producers
+        )
 
     def _create_output_stream(self, camera_id: str) -> None:
         """Register an empty ingest destination before FFmpeg connects to RTSP."""
         name = output_stream_name(camera_id)
         if self._stream_visible(camera_id):
-            if self._stream_has_producer(camera_id):
+            if not self._stream_can_be_reclaimed(camera_id):
                 raise TranscodeEngineError(
-                    "Le flux de destination existe déjà et possède un producteur ; refus de le remplacer."
+                    "Le flux de destination existe déjà avec un producteur étranger ; refus de le remplacer."
                 )
-            # Recover an empty destination left behind by an abrupt service stop.
+            # Recover an empty destination or an inert webrtc: placeholder left
+            # behind by an abrupt service stop.
             self._delete_stream(camera_id)
         # Mark ownership before the API call: go2rtc may create the in-memory
         # stream and then fail while persisting its temporary empty definition.
         self._owned_streams.add(camera_id)
-        query = urllib.parse.urlencode({"name": name, "src": ""})
+        # go2rtc rejects an empty src. The inert webrtc: source creates a
+        # publishable destination without opening a camera or starting FFmpeg.
+        query = urllib.parse.urlencode({"name": name, "src": "webrtc:"})
         request = urllib.request.Request(
             self.go2rtc_api + "/api/streams?" + query, method="PUT"
         )
@@ -154,6 +181,10 @@ class FFmpegTranscodeEngine:
             if not self._stream_visible(camera_id):
                 raise TranscodeEngineError(
                     "Le flux de destination créé n'est pas visible dans go2rtc."
+                )
+            if not self._stream_has_placeholder(camera_id):
+                raise TranscodeEngineError(
+                    "Le flux de destination ne possède pas le producteur WebRTC d'attente attendu."
                 )
         except urllib.error.HTTPError as exc:
             self._cleanup_failed_creation(camera_id)
