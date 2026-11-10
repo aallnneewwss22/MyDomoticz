@@ -4,6 +4,7 @@ import subprocess
 import sys
 import unittest
 from pathlib import Path
+import urllib.parse
 from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -98,11 +99,7 @@ class Go2rtcProducerDetectionTests(unittest.TestCase):
         engine._create_output_stream("salon")
 
         request = urlopen.call_args.args[0]
-        query = __import__("urllib.parse", fromlist=["parse_qs"]).parse_qs(
-            __import__("urllib.parse", fromlist=["urlparse"]).urlparse(
-                request.full_url
-            ).query
-        )
+        query = urllib.parse.parse_qs(urllib.parse.urlparse(request.full_url).query)
         self.assertEqual(request.get_method(), "PUT")
         self.assertEqual(query["name"], ["salon_transcode"])
         self.assertEqual(query["src"], ["webrtc:"])
@@ -140,7 +137,7 @@ class Go2rtcProducerDetectionTests(unittest.TestCase):
                 "consumers": [],
             }
         }
-        response = unittest.mock.MagicMock()
+        response = MagicMock()
         response.__enter__.return_value.read.return_value = json.dumps(payload).encode()
         urlopen.return_value = response
 
@@ -158,7 +155,7 @@ class Go2rtcProducerDetectionTests(unittest.TestCase):
             }
         }
         response = unittest.mock.MagicMock()
-        response.__enter__.return_value.read.return_value = __import__("json").dumps(payload).encode()
+        response.__enter__.return_value.read.return_value = json.dumps(payload).encode()
         urlopen.return_value = response
 
         engine = self.make_engine()
