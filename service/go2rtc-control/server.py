@@ -526,8 +526,11 @@ class Handler(BaseHTTPRequestHandler):
                     self.send_json(200, {"ok": True})
                     return
                 self.send_json(404, {"error": "Action inconnue."})
+        except SessionConflict as exc:
+            self.send_json(409, {"error": str(exc), "result": "blocked"})
         except ControlError as exc:
             self.send_json(502, {"error": str(exc)})
+
     def handle_transcode(self, action: str) -> None:
         if not self.authorized():
             return
@@ -615,9 +618,9 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         parts = urllib.parse.urlsplit(self.path).path.rstrip("/").split("/")
-        if len(parts) == 5 and parts[:2] == ["", "api"]:
-            action = parts[4]
-            if parts[3] == "transcode" and action in ("status", "health"):
+        if len(parts) == 6 and parts[:2] == ["", "api"]:
+            action = parts[5]
+            if parts[4] == "transcode" and action in ("status", "health"):
                 self.handle_transcode(action)
                 return
         action = parts[-1]
@@ -627,9 +630,9 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         parts = urllib.parse.urlsplit(self.path).path.rstrip("/").split("/")
-        if len(parts) == 5 and parts[:2] == ["", "api"]:
-            action = parts[4]
-            if parts[3] == "transcode" and action in ("acquire", "heartbeat", "release"):
+        if len(parts) == 6 and parts[:2] == ["", "api"]:
+            action = parts[5]
+            if parts[4] == "transcode" and action in ("acquire", "heartbeat", "release"):
                 self.handle_transcode(action)
                 return
         action = parts[-1]
