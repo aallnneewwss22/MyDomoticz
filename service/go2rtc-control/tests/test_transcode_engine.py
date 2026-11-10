@@ -1,9 +1,10 @@
 """Unit tests for the FFmpeg transcode process adapter."""
+import json
 import subprocess
 import sys
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -86,6 +87,28 @@ class Go2rtcProducerDetectionTests(unittest.TestCase):
         return FFmpegTranscodeEngine()
 
     @patch("transcode_engine.urllib.request.urlopen")
+    def test_creation_uses_inert_webrtc_source(self, urlopen):
+        response = MagicMock()
+        response.status = 200
+        urlopen.return_value.__enter__.return_value = response
+        engine = self.make_engine()
+        engine._stream_visible = lambda camera_id: False
+        engine._stream_has_placeholder = lambda camera_id: True
+
+        engine._create_output_stream("salon")
+
+        request = urlopen.call_args.args[0]
+        query = __import__("urllib.parse", fromlist=["parse_qs"]).parse_qs(
+            __import__("urllib.parse", fromlist=["urlparse"]).urlparse(
+                request.full_url
+            ).query
+        )
+        self.assertEqual(request.get_method(), "PUT")
+        self.assertEqual(query["name"], ["salon_transcode"])
+        self.assertEqual(query["src"], ["webrtc:"])
+        self.assertIn("salon", engine._owned_streams)
+
+    @patch("transcode_engine.urllib.request.urlopen")
     def test_webrtc_placeholder_is_not_reported_as_ffmpeg_producer(self, urlopen):
         payload = {
             "salon_transcode": {
@@ -93,7 +116,7 @@ class Go2rtcProducerDetectionTests(unittest.TestCase):
                 "consumers": [],
             }
         }
-        response = unittest.mock.MagicMock()
+        response = MagicMock()
         response.__enter__.return_value.read.return_value = json.dumps(payload).encode()
         urlopen.return_value = response
 
@@ -118,7 +141,7 @@ class Go2rtcProducerDetectionTests(unittest.TestCase):
             }
         }
         response = unittest.mock.MagicMock()
-        response.__enter__.return_value.read.return_value = __import__("json").dumps(payload).encode()
+        response.__enter__.return_value.read.return_value = json.dumps(payload).encode()
         urlopen.return_value = response
 
         engine = self.make_engine()
