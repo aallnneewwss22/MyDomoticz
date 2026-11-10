@@ -49,7 +49,7 @@ def build_ffmpeg_command(
     if width <= 0 or height <= 0 or fps <= 0 or bitrate <= 0:
         raise TranscodeEngineError("Profil FFmpeg invalide.")
     gop = max(1, round(fps * 2))
-    input_url = f"rtsp://{rtsp_host}:{rtsp_port}/{camera_id}"
+    input_url = f"rtsp://{rtsp_host}:{rtsp_port}/{camera_id}?video"
     output_url = f"rtsp://{rtsp_host}:{rtsp_port}/{output_stream_name(camera_id)}"
     video_filter = (
         f"scale={width}:{height}:force_original_aspect_ratio=decrease,"
