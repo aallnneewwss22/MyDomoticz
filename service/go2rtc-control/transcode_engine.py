@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import logging
-import os
 import shutil
 import subprocess
 import threading
@@ -147,7 +146,7 @@ class FFmpegTranscodeEngine:
                     command,
                     stdin=subprocess.DEVNULL,
                     stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
+                    stderr=None,
                     close_fds=True,
                 )
             except OSError as exc:
