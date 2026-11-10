@@ -10,7 +10,6 @@ import secrets
 import sys
 import tempfile
 import threading
-import atexit
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -24,7 +23,7 @@ from session_manager import (
     SessionConflict, SessionError, SessionManager,
     SessionUnauthorized, SessionUnavailable,
 )
-from transcode_engine import FFmpegTranscodeEngine, TranscodeEngineError
+from transcode_engine import FFmpegTranscodeEngine
 
 VENDOR_DIR = Path(__file__).resolve().parent / "vendor"
 if VENDOR_DIR.is_dir():
