@@ -175,6 +175,16 @@ class TranscodeHTTPApiTests(unittest.TestCase):
         )
         self.assertEqual(status, 401)
 
+    def test_transcode_routes_reject_wrong_http_methods(self):
+        status, _ = self.request(
+            "GET", "/api/cameras/salon/transcode/acquire"
+        )
+        self.assertEqual(status, 405)
+        status, _ = self.request(
+            "POST", "/api/cameras/salon/transcode/status", {}
+        )
+        self.assertEqual(status, 405)
+
     def test_native_quality_change_is_blocked_during_session(self):
         self.request(
             "POST", "/api/cameras/salon/transcode/acquire", {"profile": PROFILE}
