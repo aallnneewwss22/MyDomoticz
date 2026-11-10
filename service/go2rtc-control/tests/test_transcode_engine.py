@@ -90,8 +90,16 @@ class EngineLifecycleTests(unittest.TestCase):
             sleep=lambda delay: None,
             **kwargs,
         )
-        engine._create_output_stream = lambda camera_id: events.append("stream-create")
-        engine._delete_output_stream = lambda camera_id: events.append("stream-delete")
+        owned = set()
+        def create_stream(camera_id):
+            events.append("stream-create")
+            owned.add(camera_id)
+        def delete_stream(camera_id):
+            if camera_id in owned:
+                events.append("stream-delete")
+                owned.remove(camera_id)
+        engine._create_output_stream = create_stream
+        engine._delete_output_stream = delete_stream
         engine._stream_has_producer = lambda camera_id: True
         engine.test_events = events
         return engine
