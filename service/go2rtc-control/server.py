@@ -23,6 +23,7 @@ from session_manager import (
     SessionConflict, SessionError, SessionManager,
     SessionUnauthorized, SessionUnavailable,
 )
+from transcode_engine import FFmpegTranscodeEngine
 
 VENDOR_DIR = Path(__file__).resolve().parent / "vendor"
 if VENDOR_DIR.is_dir():
@@ -41,29 +42,26 @@ TOKEN_FILE = Path(os.environ.get("TOKEN_FILE", "/etc/go2rtc-control/token"))
 DASHBOARD_ORIGIN = os.environ.get("DASHBOARD_ORIGIN", "http://192.168.1.21:8080").rstrip("/")
 CONTROL_HOST = os.environ.get("CONTROL_HOST", "0.0.0.0")
 CONTROL_PORT = int(os.environ.get("CONTROL_PORT", "1985"))
+TRANSCODE_FFMPEG = os.environ.get("TRANSCODE_FFMPEG", "/usr/bin/ffmpeg")
+TRANSCODE_RTSP_HOST = os.environ.get("TRANSCODE_RTSP_HOST", "127.0.0.1")
+TRANSCODE_RTSP_PORT = int(os.environ.get("TRANSCODE_RTSP_PORT", "8554"))
 REGISTRY_LOCK = threading.RLock()
 LOGGER = logging.getLogger("go2rtc-control.ptz")
-TRANSCODE_ENGINE_AVAILABLE = False
-
-
-def _transcode_engine_not_installed(camera_id: str, profile: dict[str, object]) -> bool:
-    raise SessionUnavailable("Le moteur de transcodage n'est pas encore intégré.")
-
-
-def _transcode_stop_not_installed(camera_id: str) -> None:
-    # No producer can exist while the engine adapter is absent.
-    return None
-
-
-def _transcode_health_not_installed(camera_id: str) -> bool:
-    return False
-
+TRANSCODE_ENGINE = FFmpegTranscodeEngine(
+    ffmpeg_bin=TRANSCODE_FFMPEG,
+    rtsp_host=TRANSCODE_RTSP_HOST,
+    rtsp_port=TRANSCODE_RTSP_PORT,
+    go2rtc_api=GO2RTC_API,
+)
+TRANSCODE_ENGINE_AVAILABLE = TRANSCODE_ENGINE.available()
 
 SESSION_MANAGER = SessionManager(
-    _transcode_engine_not_installed,
-    _transcode_stop_not_installed,
-    _transcode_health_not_installed,
+    TRANSCODE_ENGINE.start,
+    TRANSCODE_ENGINE.stop,
+    TRANSCODE_ENGINE.health,
 )
+
+
 PTZ_CACHE_LOCK = threading.RLock()
 PTZ_CLIENT_CACHE: dict[tuple[str, int, str, str], tuple[object, str]] = {}
 
@@ -643,4 +641,10 @@ if __name__ == "__main__":
     read_token()
     ensure_source_registry()
     SESSION_MANAGER.start_reaper()
-    ThreadingHTTPServer((CONTROL_HOST, CONTROL_PORT), Handler).serve_forever()
+    server = ThreadingHTTPServer((CONTROL_HOST, CONTROL_PORT), Handler)
+    try:
+        server.serve_forever()
+    finally:
+        server.server_close()
+        SESSION_MANAGER.close()
+        TRANSCODE_ENGINE.close()

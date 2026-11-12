@@ -90,16 +90,41 @@ sudo systemctl restart go2rtc-control
 ```
 
 
-## API de sessions de transcodage (préparation)
+## Moteur de transcodage H.264
 
-Les routes de session sont ajoutées sous `/api/cameras/{identifiant_logique}/transcode/` :
+Le moteur est piloté directement par le service Python : il ne demande pas à go2rtc d'exécuter une commande exec:. Il n'est donc pas nécessaire d'activer les sources exec: ni une autorisation d'exécution arbitraire dans go2rtc.
 
-- `POST acquire` : demande un profil et crée/rejoint une session ;
-- `POST heartbeat` : renouvelle le bail de la session ;
-- `POST release` : libère la session ;
-- `GET status` : retourne l'état de coordination ;
-- `GET health` : retourne l'état de santé du producteur.
+Lorsqu'une première session est acquise, le service démarre un unique processus FFmpeg pour la caméra. FFmpeg lit uniquement la piste vidéo du flux natif déjà publié par go2rtc sur son RTSP local (127.0.0.1:8554/{identifiant_logique}?video) et publie le résultat sous {identifiant_logique}_transcode. Il n'accède jamais directement à l'URL de la caméra. Le flux natif n'est ni remplacé ni modifié.
+
+La commande est construite comme une liste d'arguments système, sans shell. Elle applique :
+- la résolution choisie, avec conservation du ratio et bandes de remplissage si nécessaire ;
+- la cadence choisie, y compris les cadences lentes (0,2 et 0,5 image/s) ;
+- l'encodeur matériel h264_v4l2m2m ;
+- le débit cible configuré en kbit/s, avec plafond et tampon ;
+- un GOP d'environ deux secondes ;
+- aucune piste audio (-an).
+
+La requête RTSP locale ?video demande à go2rtc de ne transmettre à FFmpeg que la piste vidéo. Les options -map 0:v:0 et -an constituent une seconde protection : le flux publié ne contient aucune piste audio. Ainsi, l'audio est écarté avant l'entrée FFmpeg, même si le flux natif principal conserve l'audio pour les autres usages.
+
+Paramètres du service dans /etc/go2rtc-control/go2rtc-control.env :
+- TRANSCODE_FFMPEG=/usr/bin/ffmpeg
+- TRANSCODE_RTSP_HOST=127.0.0.1
+- TRANSCODE_RTSP_PORT=8554
+
+Ces valeurs sont ajoutées à une installation existante sans écraser les paramètres déjà définis. Le port doit correspondre au port RTSP d'écoute de go2rtc. Le binaire FFmpeg doit exposer l'encodeur h264_v4l2m2m ; le service vérifie sa présence au démarrage. Cette vérification ne remplace pas un test réel du matériel.
+
+Avant de lancer FFmpeg, le service crée dynamiquement dans go2rtc une destination `{identifiant_logique}_transcode` via l'API avec la source inerte `webrtc:`. go2rtc refuse une source vide ; cette source WebRTC crée un point de publication sans ouvrir de caméra ni démarrer un processus FFmpeg supplémentaire. FFmpeg publie ensuite son flux vidéo par RTSP vers cette destination. Le service ignore le producteur WebRTC d'attente et attend explicitement l'apparition d'un producteur dont le format est RTSP et le protocole `rtsp+tcp` ou `rtsp+udp` avant de confirmer l'acquisition. Cette entrée temporaire est supprimée après l'arrêt de FFmpeg, à la dernière libération de session ou à l'expiration du bail. Le YAML go2rtc n'a donc aucune déclaration manuelle à prévoir ; l'API go2rtc peut enregistrer temporairement la destination dans sa configuration, puis la retirer lors du nettoyage. Si FFmpeg s'arrête ou si le producteur n'apparaît pas, l'acquisition échoue et le gestionnaire nettoie le processus ainsi que la destination temporaire. À l'arrêt du service Python, les processus FFmpeg qu'il possède et les destinations qu'il a créées sont également nettoyés.
+
+Le flux RTSP de sortie est destiné à être lu par les clients du réseau local. Le port RTSP de go2rtc doit rester limité au réseau de confiance ; ne l'expose pas directement à Internet.
+
+## API de sessions de transcodage
+
+Les routes de session sont ajoutées sous /api/cameras/{identifiant_logique}/transcode/ :
+
+- POST acquire : demande un profil et crée/rejoint une session ;
+- POST heartbeat : renouvelle le bail de la session ;
+- POST release : libère la session ;
+- GET status : retourne l'état de coordination ;
+- GET health : retourne l'état de santé du producteur.
 
 Les appels utilisent le jeton Bearer du service ; heartbeat et release exigent en plus le jeton propre à la session. Les profils doivent utiliser la qualité native actuellement sélectionnée dans le registre. Toute modification de la source native (qualité, arrêt global ou bascule audio qui remplace la source) est refusée tant qu'une session réserve le transcodage.
-
-**État de cette étape :** le contrat HTTP et sa validation sont intégrés, mais le moteur FFmpeg/go2rtc n'est pas encore raccordé. Tant que ce moteur n'est pas installé, `acquire` répond HTTP 503 sans créer de session. Les routes sont préparées pour le raccordement du moteur dans la livraison suivante.

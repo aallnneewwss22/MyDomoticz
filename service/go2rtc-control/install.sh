@@ -29,6 +29,7 @@ apt-get install -y python3-yaml python3-zeep python3-pip
 install -d -o root -g "${SERVICE_USER}" -m 0750 "${INSTALL_DIR}" "${ETC_DIR}"
 install -o root -g root -m 0644 "${SCRIPT_DIR}/server.py" "${INSTALL_DIR}/server.py"
 install -o root -g root -m 0644 "${SCRIPT_DIR}/session_manager.py" "${INSTALL_DIR}/session_manager.py"
+install -o root -g root -m 0644 "${SCRIPT_DIR}/transcode_engine.py" "${INSTALL_DIR}/transcode_engine.py"
 install -d -o root -g root -m 0755 "${INSTALL_DIR}/vendor"
 pip3 install --disable-pip-version-check --no-deps --target "${INSTALL_DIR}/vendor" "onvif-zeep==0.2.12"
 
@@ -69,12 +70,18 @@ TOKEN_FILE=${ETC_DIR}/token
 DASHBOARD_ORIGIN=${DASHBOARD_ORIGIN}
 CONTROL_HOST=0.0.0.0
 CONTROL_PORT=1985
+TRANSCODE_FFMPEG=/usr/bin/ffmpeg
+TRANSCODE_RTSP_HOST=127.0.0.1
+TRANSCODE_RTSP_PORT=8554
 EOF
   chown root:"${SERVICE_USER}" "${ETC_DIR}/go2rtc-control.env"
   chmod 0640 "${ETC_DIR}/go2rtc-control.env"
-elif ! grep -q '^SOURCE_REGISTRY=' "${ETC_DIR}/go2rtc-control.env"; then
-  # Upgrade path: preserve the existing token and all current settings.
-  printf '\nSOURCE_REGISTRY=/var/lib/go2rtc-control/cameras.json\n' >> "${ETC_DIR}/go2rtc-control.env"
+else
+  # Add engine defaults without replacing existing user-defined settings.
+  grep -q '^SOURCE_REGISTRY=' "${ETC_DIR}/go2rtc-control.env" || printf '\nSOURCE_REGISTRY=/var/lib/go2rtc-control/cameras.json\n' >> "${ETC_DIR}/go2rtc-control.env"
+  grep -q '^TRANSCODE_FFMPEG=' "${ETC_DIR}/go2rtc-control.env" || printf 'TRANSCODE_FFMPEG=/usr/bin/ffmpeg\n' >> "${ETC_DIR}/go2rtc-control.env"
+  grep -q '^TRANSCODE_RTSP_HOST=' "${ETC_DIR}/go2rtc-control.env" || printf 'TRANSCODE_RTSP_HOST=127.0.0.1\n' >> "${ETC_DIR}/go2rtc-control.env"
+  grep -q '^TRANSCODE_RTSP_PORT=' "${ETC_DIR}/go2rtc-control.env" || printf 'TRANSCODE_RTSP_PORT=8554\n' >> "${ETC_DIR}/go2rtc-control.env"
 fi
 
 systemctl daemon-reload
