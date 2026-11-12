@@ -308,5 +308,57 @@ class EngineLifecycleTests(unittest.TestCase):
         self.assertNotIn("salon", engine._udp_ports)
 
 
+
+    @patch("transcode_engine.shutil.which", return_value="/usr/bin/ffmpeg")
+    def test_encoder_launch_exception_stops_relay_and_cleans_resources(self, _which):
+        events = []
+        relay = FakeProcess(label="relay", events=events)
+        owned = set()
+
+        def popen(command, **_options):
+            if "copy" in command:
+                events.append("relay-start")
+                return relay
+            events.append("encoder-launch-failed")
+            raise OSError("simulated encoder launch failure")
+
+        engine = FFmpegTranscodeEngine(
+            ffmpeg_bin="/usr/bin/ffmpeg",
+            popen=popen,
+            udp_port_allocator=lambda: 12345,
+        )
+
+        def create_stream(camera_id):
+            events.append("stream-create")
+            owned.add(camera_id)
+
+        def delete_stream(camera_id):
+            if camera_id in owned:
+                events.append("stream-delete")
+                owned.remove(camera_id)
+
+        engine._create_output_stream = create_stream
+        engine._delete_output_stream = delete_stream
+
+        with self.assertRaises(TranscodeEngineError):
+            engine.start("salon", PROFILE)
+
+        self.assertTrue(relay.terminated)
+        self.assertIn("relay-stop", events)
+        self.assertEqual(events[-1], "stream-delete")
+        self.assertNotIn("salon", engine._udp_ports)
+        self.assertFalse(engine.health("salon"))
+        self.assertNotIn("salon", owned)
+
+    def test_udp_port_allocator_retries_a_port_already_in_use_by_engine(self):
+        ports = iter((12345, 12345, 12346))
+        engine = FFmpegTranscodeEngine(
+            udp_port_allocator=lambda: next(ports)
+        )
+
+        self.assertEqual(engine._reserve_udp_port("salon"), 12345)
+        self.assertEqual(engine._reserve_udp_port("cuisine"), 12346)
+        self.assertEqual(engine._udp_ports, {"salon": 12345, "cuisine": 12346})
+
 if __name__ == "__main__":
     unittest.main()
