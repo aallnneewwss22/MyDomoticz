@@ -1,6 +1,10 @@
 name: Package go2rtc control service
 
 on:
+  push:
+    paths:
+      - "service/go2rtc-control/**"
+      - ".github/workflows/package-go2rtc-control.yml"
   pull_request:
     branches:
       - main
