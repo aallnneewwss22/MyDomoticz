@@ -280,8 +280,7 @@ class EngineLifecycleTests(unittest.TestCase):
             engine.start("salon", PROFILE)
         self.assertTrue(relay.terminated)
         self.assertFalse(engine.health("salon"))
-        self.assertEqual(events[-3:], ["relay-stop", "stream-delete"][-3:]) if False else None
-        self.assertIn("stream-delete", events)
+        self.assertEqual(events[-2:], ["relay-stop", "stream-delete"])
         self.assertNotIn("salon", engine._udp_ports)
 
     @patch("transcode_engine.shutil.which", return_value=None)
