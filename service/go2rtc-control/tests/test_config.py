@@ -129,6 +129,31 @@ class CameraAudioSettingsTests(unittest.TestCase):
         )
         self.assertEqual(module.SOURCE_REGISTRY.stat().st_mode & 0o777, 0o600)
 
+    def test_migration_preserves_existing_camera_preferences_and_ptz(self):
+        original = {
+            "source": "rtsp://camera/stream1",
+            "audio_enabled": False,
+            "quality": "720p",
+            "ptz": {
+                "host": "192.0.2.10",
+                "port": 8080,
+                "username": "operator",
+                "password": "private-test-value",
+            },
+        }
+        module.SOURCE_REGISTRY.write_text(
+            json.dumps({"salon": original}),
+            encoding="utf-8",
+        )
+        module.ensure_source_registry()
+        migrated = json.loads(module.SOURCE_REGISTRY.read_text(encoding="utf-8"))["salon"]
+        self.assertEqual(migrated["source"], original["source"])
+        self.assertFalse(migrated["audio_enabled"])
+        self.assertEqual(migrated["quality"], "720p")
+        self.assertEqual(migrated["ptz"], original["ptz"])
+        self.assertEqual(migrated["default_profile_id"], "native")
+        self.assertEqual(list(migrated["profiles"]), ["native"])
+
     def test_custom_profiles_survive_registry_round_trip(self):
         profile_id = "0123456789abcdef0123456789abcdef"
         settings = {
