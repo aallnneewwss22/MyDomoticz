@@ -55,7 +55,7 @@ def normalize_camera_profiles(
         raise CameraProfileError("La liste des profils de la caméra doit être un objet JSON.")
 
     native = profiles.get(NATIVE_PROFILE_ID)
-    if native is not None and native != NATIVE_PROFILE:
+    if NATIVE_PROFILE_ID in profiles and native != NATIVE_PROFILE:
         raise CameraProfileError("Le profil Natif est réservé et ne peut pas être modifié.")
 
     native_width, native_height = NATIVE_DIMENSIONS[str(native_quality)]
