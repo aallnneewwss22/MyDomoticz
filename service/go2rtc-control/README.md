@@ -90,6 +90,31 @@ sudo systemctl restart go2rtc-control
 ```
 
 
+## Modèle des profils vidéo par caméra
+
+Le registre privé `/var/lib/go2rtc-control/cameras.json` accueille désormais un modèle de profils vidéo propre à chaque caméra. Cette évolution prépare les prochaines étapes de l'API et de l'interface ; cette version n'ajoute pas encore de commande de gestion des profils et ne modifie pas le démarrage des flux.
+
+Chaque caméra possède obligatoirement le profil réservé `native` :
+- nom fixe **Natif** ;
+- type `native` ;
+- profil par défaut, enregistré dans `default_profile_id` ;
+- aucune résolution de sortie ni paramètre FFmpeg, car le flux original est utilisé sans transcodage.
+
+Les profils personnalisés sont enregistrés dans l'objet `profiles`, avec un identifiant interne stable (32 caractères hexadécimaux) distinct de leur nom visible. Leur nom est unique, sans distinction de casse, dans la caméra concernée (64 caractères maximum). Deux caméras peuvent réutiliser le même nom.
+
+Un profil de type `transcode` conserve :
+- `width` et `height` : l'une des résolutions prises en charge (1920×1080, 1280×720, 854×480 ou 640×360), sans dépasser la résolution native actuellement choisie pour la caméra ;
+- `fps` : l'une des cadences prises en charge par le moteur (15, 10, 5, 2, 1, 0,5 ou 0,2 image/s) ;
+- `bitrate_kbps` : débit cible compris entre 50 et 2000 kbit/s.
+
+La résolution native de la caméra (`quality`) et sa préférence audio (`audio_enabled`) restent des propriétés de la caméra, indépendantes des profils. Les identifiants et paramètres PTZ existants restent également dans leur emplacement actuel.
+
+### Migration du registre existant
+
+Au démarrage du service, les entrées caméra existantes sans modèle de profils reçoivent automatiquement le profil Natif et `default_profile_id: "native"`. La migration convertit les anciennes entrées sources textuelles en objets structurés et conserve la source RTSP, la préférence audio, la résolution native et les paramètres PTZ existants.
+
+L'écriture reste atomique et le registre conserve ses permissions privées (fichier 0600). Un registre qui contient des profils personnalisés invalides est signalé comme invalide : les profils ne sont pas silencieusement supprimés ou remplacés. Les mises à jour ultérieures devront continuer à préserver les identifiants internes des profils.
+
 ## Moteur de transcodage H.264 à deux processus
 
 Le moteur est piloté par le service Python : il n'utilise ni source `exec:` ni exécution de commande arbitraire dans go2rtc. Le service possède les deux processus FFmpeg et la destination go2rtc temporaire pour chaque caméra.
