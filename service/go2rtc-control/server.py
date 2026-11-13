@@ -203,7 +203,12 @@ def migrate_camera_profiles() -> None:
             if (
                 isinstance(source, str) and source.strip()
                 and isinstance(audio_enabled, bool)
-                and ("profiles" not in entry or "default_profile_id" not in entry)
+                and (
+                    "profiles" not in entry
+                    or not isinstance(entry.get("profiles"), dict)
+                    or "native" not in entry.get("profiles", {})
+                    or "default_profile_id" not in entry
+                )
             ):
                 needs_migration = True
 
