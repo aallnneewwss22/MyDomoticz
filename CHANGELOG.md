@@ -3,6 +3,10 @@
 ## [Non publié]
 
 ### Ajouté
+- Modèle de profils vidéo persistants et indépendants par caméra, avec profil Natif obligatoire et sélectionné par défaut.
+- Migration automatique des registres caméra existants vers le modèle de profils, en préservant les sources RTSP, préférences audio, résolutions natives et paramètres PTZ.
+- Validation des identifiants stables, noms uniques, résolutions sans suréchantillonnage, cadences et débits des profils personnalisés.
+- Tests unitaires du modèle, de la migration et de la persistance des profils.
 - Sélecteur 720p / 1080p indépendant pour chaque caméra ; le service local remplace directement la source RTSP `/stream2` ou `/stream1`, sans transcodage.
 - Persistance du choix de résolution dans le registre privé du Raspberry Pi, partagée entre navigateurs et réappliquée au redémarrage du flux.
 - Tests unitaires de sélection du chemin RTSP, de conservation des paramètres d'URL et de persistance de la résolution.

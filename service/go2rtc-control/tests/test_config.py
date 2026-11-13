@@ -91,7 +91,13 @@ class CameraAudioSettingsTests(unittest.TestCase):
 
     def test_audio_preference_is_persisted_in_private_registry(self):
         expected = {
-            "salon": {"source": "rtsp://camera/live", "audio_enabled": False, "quality": "720p"}
+            "salon": {
+                "source": "rtsp://camera/live",
+                "audio_enabled": False,
+                "quality": "720p",
+                "default_profile_id": "native",
+                "profiles": {"native": {"id": "native", "name": "Natif", "type": "native"}},
+            }
         }
         module.save_camera_settings(expected)
         self.assertEqual(module.load_camera_settings(), expected)
@@ -104,6 +110,102 @@ class CameraAudioSettingsTests(unittest.TestCase):
         settings["salon"]["quality"] = "720p"
         module.save_camera_settings(settings)
         self.assertEqual(module.load_camera_settings()["salon"]["quality"], "720p")
+
+
+    def test_legacy_registry_is_migrated_to_native_profile(self):
+        module.SOURCE_REGISTRY.write_text(
+            json.dumps({"salon": "rtsp://camera/live"}),
+            encoding="utf-8",
+        )
+        module.ensure_source_registry()
+        persisted = json.loads(module.SOURCE_REGISTRY.read_text(encoding="utf-8"))
+        self.assertEqual(persisted["salon"]["source"], "rtsp://camera/live")
+        self.assertTrue(persisted["salon"]["audio_enabled"])
+        self.assertEqual(persisted["salon"]["quality"], "1080p")
+        self.assertEqual(persisted["salon"]["default_profile_id"], "native")
+        self.assertEqual(
+            persisted["salon"]["profiles"],
+            {"native": {"id": "native", "name": "Natif", "type": "native"}},
+        )
+        self.assertEqual(module.SOURCE_REGISTRY.stat().st_mode & 0o777, 0o600)
+
+    def test_migration_preserves_existing_camera_preferences_and_ptz(self):
+        original = {
+            "source": "rtsp://camera/stream1",
+            "audio_enabled": False,
+            "quality": "720p",
+            "ptz": {
+                "host": "192.0.2.10",
+                "port": 8080,
+                "username": "operator",
+                "password": "private-test-value",
+            },
+        }
+        module.SOURCE_REGISTRY.write_text(
+            json.dumps({"salon": original}),
+            encoding="utf-8",
+        )
+        module.ensure_source_registry()
+        migrated = json.loads(module.SOURCE_REGISTRY.read_text(encoding="utf-8"))["salon"]
+        self.assertEqual(migrated["source"], original["source"])
+        self.assertFalse(migrated["audio_enabled"])
+        self.assertEqual(migrated["quality"], "720p")
+        self.assertEqual(migrated["ptz"], original["ptz"])
+        self.assertEqual(migrated["default_profile_id"], "native")
+        self.assertEqual(list(migrated["profiles"]), ["native"])
+
+    def test_custom_profiles_survive_registry_round_trip(self):
+        profile_id = "0123456789abcdef0123456789abcdef"
+        settings = {
+            "salon": {
+                "source": "rtsp://camera/stream1",
+                "audio_enabled": False,
+                "quality": "1080p",
+                "default_profile_id": "native",
+                "profiles": {
+                    profile_id: {
+                        "name": "Consultation mobile",
+                        "type": "transcode",
+                        "width": 854,
+                        "height": 480,
+                        "fps": 10,
+                        "bitrate_kbps": 200,
+                    }
+                },
+            }
+        }
+        module.save_camera_settings(settings)
+        loaded = module.load_camera_settings()
+        self.assertEqual(loaded["salon"]["default_profile_id"], "native")
+        self.assertEqual(loaded["salon"]["profiles"][profile_id]["name"], "Consultation mobile")
+        self.assertEqual(loaded["salon"]["profiles"][profile_id]["fps"], 10.0)
+        self.assertFalse(loaded["salon"]["audio_enabled"])
+
+    def test_invalid_persisted_profiles_are_not_silently_discarded(self):
+        profile_id = "0123456789abcdef0123456789abcdef"
+        module.SOURCE_REGISTRY.write_text(
+            json.dumps({
+                "salon": {
+                    "source": "rtsp://camera/live",
+                    "audio_enabled": True,
+                    "quality": "720p",
+                    "default_profile_id": "native",
+                    "profiles": {
+                        profile_id: {
+                            "name": "Upscale",
+                            "type": "transcode",
+                            "width": 1920,
+                            "height": 1080,
+                            "fps": 10,
+                            "bitrate_kbps": 200,
+                        }
+                    },
+                }
+            }),
+            encoding="utf-8",
+        )
+        with self.assertRaises(module.ControlError):
+            module.load_camera_settings()
 
     def test_quality_selects_native_rtsp_stream_and_preserves_query_fragment(self):
         source = "rtsp://user:password@camera:554/live/stream1?profile=main#tcp"
