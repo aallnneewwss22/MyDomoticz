@@ -786,6 +786,12 @@ class Handler(BaseHTTPRequestHandler):
             return
         action = parts[-1]
         self.handle_camera(action)
+ 
+    def do_PUT(self) -> None:
+        self.handle_profiles()
+
+    def do_DELETE(self) -> None:
+        self.handle_profiles()
 
 
 if __name__ == "__main__":
@@ -799,9 +805,3 @@ if __name__ == "__main__":
         server.server_close()
         SESSION_MANAGER.close()
         TRANSCODE_ENGINE.close()
-
-    def do_PUT(self) -> None:
-        self.handle_profiles()
-
-    def do_DELETE(self) -> None:
-        self.handle_profiles()
