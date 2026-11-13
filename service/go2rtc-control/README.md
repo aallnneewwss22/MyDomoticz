@@ -90,32 +90,32 @@ sudo systemctl restart go2rtc-control
 ```
 
 
-## Moteur de transcodage H.264
+## Moteur de transcodage H.264 à deux processus
 
-Le moteur est piloté directement par le service Python : il ne demande pas à go2rtc d'exécuter une commande exec:. Il n'est donc pas nécessaire d'activer les sources exec: ni une autorisation d'exécution arbitraire dans go2rtc.
+Le moteur est piloté par le service Python : il n'utilise ni source `exec:` ni exécution de commande arbitraire dans go2rtc. Le service possède les deux processus FFmpeg et la destination go2rtc temporaire pour chaque caméra.
 
-Lorsqu'une première session est acquise, le service démarre un unique processus FFmpeg pour la caméra. FFmpeg lit uniquement la piste vidéo du flux natif déjà publié par go2rtc sur son RTSP local (127.0.0.1:8554/{identifiant_logique}?video) et publie le résultat sous {identifiant_logique}_transcode. Il n'accède jamais directement à l'URL de la caméra. Le flux natif n'est ni remplacé ni modifié.
+Lorsqu'une première session est acquise, le service crée dynamiquement la destination `{identifiant_logique}_transcode` dans go2rtc avec la source inerte `webrtc:`. Cette source d'attente ne contacte aucune caméra. Il démarre ensuite les deux processus dans cet ordre :
 
-La commande est construite comme une liste d'arguments système, sans shell. Elle applique :
-- la résolution choisie, avec conservation du ratio et bandes de remplissage si nécessaire ;
-- la cadence choisie, y compris les cadences lentes (0,2 et 0,5 image/s) ;
-- l'encodeur matériel h264_v4l2m2m ;
-- le débit cible configuré en kbit/s, avec plafond et tampon ;
-- un GOP d'environ deux secondes ;
-- aucune piste audio (-an).
+1. **Relais FFmpeg** : écoute un port UDP local propre à la caméra, reçoit le MPEG-TS, copie la vidéo H.264 sans la réencoder et publie le résultat en RTSP vers go2rtc.
+2. **Encodeur FFmpeg** : lit le flux natif local go2rtc via `rtsp://127.0.0.1:8554/{identifiant_logique}?video`, écarte l'audio, applique la cadence demandée, encode en H.264 matériel avec `h264_v4l2m2m` et envoie le MPEG-TS sur le port UDP local du relais.
 
-La requête RTSP locale ?video demande à go2rtc de ne transmettre à FFmpeg que la piste vidéo. Les options -map 0:v:0 et -an constituent une seconde protection : le flux publié ne contient aucune piste audio. Ainsi, l'audio est écarté avant l'entrée FFmpeg, même si le flux natif principal conserve l'audio pour les autres usages.
+Le flux natif n'est jamais remplacé et FFmpeg ne se connecte jamais directement à l'URL RTSP de la caméra. Le relais est démarré avant l'encodeur afin que son récepteur UDP soit prêt avant l'arrivée des paquets. À l'arrêt, le service arrête d'abord l'encodeur, puis le relais et enfin supprime la destination temporaire.
 
-Paramètres du service dans /etc/go2rtc-control/go2rtc-control.env :
-- TRANSCODE_FFMPEG=/usr/bin/ffmpeg
-- TRANSCODE_RTSP_HOST=127.0.0.1
-- TRANSCODE_RTSP_PORT=8554
+### Résolution, cadence et débit
 
-Ces valeurs sont ajoutées à une installation existante sans écraser les paramètres déjà définis. Le port doit correspondre au port RTSP d'écoute de go2rtc. Le binaire FFmpeg doit exposer l'encodeur h264_v4l2m2m ; le service vérifie sa présence au démarrage. Cette vérification ne remplace pas un test réel du matériel.
+Le profil conserve la résolution native sélectionnée, la cadence et le débit cible. Lorsque la sortie demandée correspond exactement à la résolution native (1920×1080 pour `1080p`, 1280×720 pour `720p`), le filtre ne fait que régler la cadence : aucun redimensionnement logiciel n'est appliqué. Les autres dimensions restent possibles avec le filtre logiciel `scale/pad`, mais elles peuvent réduire fortement les performances sur un Raspberry Pi 3B.
 
-Avant de lancer FFmpeg, le service crée dynamiquement dans go2rtc une destination `{identifiant_logique}_transcode` via l'API avec la source inerte `webrtc:`. go2rtc refuse une source vide ; cette source WebRTC crée un point de publication sans ouvrir de caméra ni démarrer un processus FFmpeg supplémentaire. FFmpeg publie ensuite son flux vidéo par RTSP vers cette destination. Le service ignore le producteur WebRTC d'attente et attend explicitement l'apparition d'un producteur dont le format est RTSP et le protocole `rtsp+tcp` ou `rtsp+udp` avant de confirmer l'acquisition. Cette entrée temporaire est supprimée après l'arrêt de FFmpeg, à la dernière libération de session ou à l'expiration du bail. Le YAML go2rtc n'a donc aucune déclaration manuelle à prévoir ; l'API go2rtc peut enregistrer temporairement la destination dans sa configuration, puis la retirer lors du nettoyage. Si FFmpeg s'arrête ou si le producteur n'apparaît pas, l'acquisition échoue et le gestionnaire nettoie le processus ainsi que la destination temporaire. À l'arrêt du service Python, les processus FFmpeg qu'il possède et les destinations qu'il a créées sont également nettoyés.
+Le débit cible est exprimé en kbit/s, avec plafond et tampon calculés à partir de cette valeur. Le débit réellement observé dépend du mouvement et de la complexité de la scène ; une scène presque immobile ne permet pas de prédire le débit d'une scène en mouvement. Le GOP est réglé à environ deux secondes.
 
-Le flux RTSP de sortie est destiné à être lu par les clients du réseau local. Le port RTSP de go2rtc doit rester limité au réseau de confiance ; ne l'expose pas directement à Internet.
+### Transport local et disponibilité
+
+Le port UDP est alloué dynamiquement sur l'interface de boucle locale ; il n'a pas besoin d'être ouvert sur le réseau local ni sur Internet. Chaque caméra active possède son propre port et son propre couple de processus. Le relais utilise `-c:v copy` : il ne consomme pas de ressources d'encodage supplémentaires.
+
+La requête RTSP `?video` demande à go2rtc de ne transmettre à l'encodeur que la piste vidéo. Les options `-map 0:v:0` et `-an` constituent une seconde protection : le MPEG-TS et le flux RTSP publié ne contiennent aucune piste audio.
+
+Le service attend l'apparition d'un véritable producteur RTSP dans go2rtc avant de confirmer l'acquisition. Le producteur WebRTC d'attente ne suffit pas. Si l'un des deux processus s'arrête pendant le démarrage, les processus déjà lancés, le port UDP réservé et la destination temporaire sont nettoyés.
+
+Le binaire FFmpeg doit exposer l'encodeur `h264_v4l2m2m`. Cette vérification au démarrage ne remplace pas un test réel du matériel. Le port RTSP de go2rtc doit rester limité au réseau de confiance.
 
 ## API de sessions de transcodage
 

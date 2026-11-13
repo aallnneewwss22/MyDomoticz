@@ -165,6 +165,24 @@ class SessionManagerTests(unittest.TestCase):
         self.assertEqual(self.manager.status("salon")["session_count"], 0)
         self.assertEqual(self.manager.status("salon")["state"], "idle")
 
+    def test_failed_start_logs_original_exception(self):
+        def failing_start(camera_id, profile):
+            raise RuntimeError("diagnostic test failure")
+
+        manager = SessionManager(
+            failing_start, self.producer.stop, self.producer.health,
+            clock=self.clock,
+        )
+        with self.assertLogs("go2rtc-control.sessions", level="ERROR") as captured:
+            with self.assertRaises(SessionUnavailable):
+                manager.acquire("salon", PROFILE_1080)
+
+        output = "\n".join(captured.output)
+        self.assertIn("Échec du démarrage du transcodeur", output)
+        self.assertIn("diagnostic test failure", output)
+        self.assertEqual(manager.status("salon")["state"], "idle")
+        self.assertEqual(manager.status("salon")["session_count"], 0)
+
     def test_start_can_be_retried_after_a_clean_failure(self):
         self.producer.fail_start = True
         with self.assertRaises(SessionUnavailable):
