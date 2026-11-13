@@ -2,12 +2,12 @@
 
 Pages web personnalisées pour Domoticz, développées progressivement et versionnées avec Git.
 
-## Tableau de bord — version courante v85
+## Tableau de bord — version courante v87
 
 Le tableau de bord est fourni sous deux fichiers :
 
 - `dashboard/maison.html` : page d'entrée à installer dans le menu **Custom** de Domoticz ;
-- `dashboard/maison-dashboard-v85.html` : version actuelle du tableau de bord autonome, destinée à s'ouvrir dans son propre onglet.
+- `dashboard/maison-dashboard-v87.html` : version actuelle du tableau de bord autonome, destinée à s'ouvrir dans son propre onglet.
 
 Le suffixe `-vN` du tableau de bord fait partie de la stratégie de cache : chaque évolution du tableau de bord crée un nouveau fichier numéroté afin que le navigateur demande une URL différente.
 
@@ -15,6 +15,7 @@ Fonctions du tableau de bord :
 
 - interface responsive pour PC, tablette et smartphone ;
 - boîte de dialogue Paramètres avec contenu défilant et boutons Annuler/Enregistrer toujours visibles ;
+- gestion des profils vidéo depuis chaque carte caméra (création, modification, suppression et préférence mémorisée par caméra ; le lecteur reste natif dans cette étape) ;
 - cartes vidéo intégrées pour les lignes marquées caméra, avec lecture des flux go2rtc (WebRTC puis solutions de repli MSE/HLS) ;
 - le bouton de réduction des courbes du header replie les historiques en mode valeur et arrête également tous les flux vidéo actifs de la page ;
 - panneau de pilotage PTZ par caméra : joystick tactile/souris avec déplacements relatifs ONVIF successifs et case à cocher permettant l’inversion des deux axes pour une caméra montée tête en bas, vitesse réglable, zoom logiciel de l’image (1× à 3×) et positions prédéfinies ONVIF ;
