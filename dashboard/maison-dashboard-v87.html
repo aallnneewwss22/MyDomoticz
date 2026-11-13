@@ -1393,11 +1393,11 @@
                     cameraProfileRenderEditor();
                     cameraProfileSetStatus("Profils chargés. Le flux actuel reste natif tant que l'application du transcodage n'est pas activée.");
                     $("camera-profile-new").disabled = false;
-                    cameraProfilesDialog.showModal();
+                    if (!cameraProfilesDialog.open) cameraProfilesDialog.showModal();
                 } catch (error) {
                     cameraProfileSetStatus("Impossible de charger les profils : " + (error.message || "erreur inconnue"));
                     $("camera-profile-new").disabled = false;
-                    cameraProfilesDialog.showModal();
+                    if (!cameraProfilesDialog.open) cameraProfilesDialog.showModal();
                 }
             }
             $("camera-profiles-close").addEventListener("click", () => cameraProfilesDialog.close());
@@ -1437,8 +1437,8 @@
                 if (!id || id === "native" || !window.confirm("Supprimer ce profil vidéo ?")) return;
                 $("camera-profile-delete").disabled = true;
                 try {
-                    await cameraProfileRequest(cameraProfileState.stream, "DELETE", id);
-                    await cameraProfilesReload("native");
+                    const deletion = await cameraProfileRequest(cameraProfileState.stream, "DELETE", id);
+                    await cameraProfilesReload(deletion.selected_profile_id || "native");
                     cameraProfileSetStatus("Profil supprimé. Le profil Natif est sélectionné si le profil supprimé était préféré.");
                 } catch (error) { cameraProfileSetStatus("Suppression impossible : " + (error.message || "erreur inconnue")); }
                 finally { $("camera-profile-delete").disabled = false; }
