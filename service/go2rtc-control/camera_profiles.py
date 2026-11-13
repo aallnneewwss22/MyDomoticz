@@ -47,7 +47,7 @@ def normalize_camera_profiles(
     target bitrate; the API will combine them with the current native source
     when it later requests a transcode session.
     """
-    if native_quality not in NATIVE_DIMENSIONS:
+    if not isinstance(native_quality, str) or native_quality not in NATIVE_DIMENSIONS:
         raise CameraProfileError("La résolution native de la caméra est invalide.")
     if profiles is None:
         profiles = {}
