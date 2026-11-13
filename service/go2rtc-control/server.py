@@ -24,6 +24,7 @@ from session_manager import (
     SessionUnauthorized, SessionUnavailable,
 )
 from transcode_engine import FFmpegTranscodeEngine
+from camera_profiles import CameraProfileError, normalize_camera_profiles
 
 VENDOR_DIR = Path(__file__).resolve().parent / "vendor"
 if VENDOR_DIR.is_dir():
@@ -124,11 +125,11 @@ def _write_registry_atomically(sources: dict[str, str]) -> None:
 
 
 def ensure_source_registry() -> None:
-    """Migrate YAML sources on first start; preserve registry on every later start."""
-    if SOURCE_REGISTRY.exists():
-        return
-    sources = load_go2rtc_sources()
-    _write_registry_atomically(sources)
+    """Initialize the private registry and migrate existing cameras to the profile model."""
+    if not SOURCE_REGISTRY.exists():
+        sources = load_go2rtc_sources()
+        _write_registry_atomically(sources)
+    migrate_camera_profiles()
 
 
 def load_camera_settings() -> dict[str, dict[str, object]]:
@@ -143,14 +144,30 @@ def load_camera_settings() -> dict[str, dict[str, object]]:
     for name, entry in data.items():
         if not isinstance(name, str) or not STREAM_NAME.fullmatch(name): continue
         if isinstance(entry, str) and entry.strip():
-            cameras[name] = {"source": entry.strip(), "audio_enabled": True, "quality": "1080p"}
+            try:
+                profiles, default_profile_id = normalize_camera_profiles(None, None, "1080p")
+            except CameraProfileError as exc:
+                raise ControlError(f"Profils vidéo invalides pour {name}: {exc}") from exc
+            cameras[name] = {
+                "source": entry.strip(), "audio_enabled": True, "quality": "1080p",
+                "default_profile_id": default_profile_id, "profiles": profiles,
+            }
         elif isinstance(entry, dict):
             source, audio_enabled = entry.get("source"), entry.get("audio_enabled", True)
             quality = entry.get("quality", "1080p")
             if quality not in ("720p", "1080p"):
                 quality = "1080p"
             if isinstance(source, str) and source.strip() and isinstance(audio_enabled, bool):
-                settings: dict[str, object] = {"source": source.strip(), "audio_enabled": audio_enabled, "quality": quality}
+                try:
+                    profiles, default_profile_id = normalize_camera_profiles(
+                        entry.get("profiles"), entry.get("default_profile_id"), quality
+                    )
+                except CameraProfileError as exc:
+                    raise ControlError(f"Profils vidéo invalides pour {name}: {exc}") from exc
+                settings: dict[str, object] = {
+                    "source": source.strip(), "audio_enabled": audio_enabled, "quality": quality,
+                    "default_profile_id": default_profile_id, "profiles": profiles,
+                }
                 ptz = entry.get("ptz")
                 if isinstance(ptz, dict):
                     host, port = ptz.get("host"), ptz.get("port", 80)
@@ -165,15 +182,62 @@ def load_sources() -> dict[str, str]:
     return {name: str(settings["source"]) for name, settings in load_camera_settings().items()}
 
 
+def migrate_camera_profiles() -> None:
+    """Persist the mandatory native profile for every supported legacy camera."""
+    try:
+        raw = json.loads(SOURCE_REGISTRY.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ControlError("Registre local des caméras illisible.") from exc
+    if not isinstance(raw, dict):
+        raise ControlError("Registre local des caméras invalide.")
+
+    needs_migration = False
+    for name, entry in raw.items():
+        if not isinstance(name, str) or not STREAM_NAME.fullmatch(name):
+            continue
+        if isinstance(entry, str) and entry.strip():
+            needs_migration = True
+        elif isinstance(entry, dict):
+            source = entry.get("source")
+            audio_enabled = entry.get("audio_enabled", True)
+            if (
+                isinstance(source, str) and source.strip()
+                and isinstance(audio_enabled, bool)
+                and ("profiles" not in entry or "default_profile_id" not in entry)
+            ):
+                needs_migration = True
+
+    # Validate existing profile data even when no migration is needed.
+    cameras = load_camera_settings()
+    if needs_migration:
+        save_camera_settings(cameras)
+
+
 def save_camera_settings(cameras: dict[str, dict[str, object]]) -> None:
-    """Persist camera sources and audio/video preferences atomically with private permissions."""
+    """Persist normalized camera settings atomically with private permissions."""
+    normalized_cameras: dict[str, dict[str, object]] = {}
+    for name, settings in cameras.items():
+        if not isinstance(settings, dict):
+            raise ControlError("Configuration de caméra invalide.")
+        entry = dict(settings)
+        quality = entry.get("quality", "1080p")
+        try:
+            profiles, default_profile_id = normalize_camera_profiles(
+                entry.get("profiles"), entry.get("default_profile_id"), quality
+            )
+        except CameraProfileError as exc:
+            raise ControlError(f"Profils vidéo invalides pour {name}: {exc}") from exc
+        entry["profiles"] = profiles
+        entry["default_profile_id"] = default_profile_id
+        normalized_cameras[name] = entry
+
     SOURCE_REGISTRY.parent.mkdir(parents=True, exist_ok=True)
     fd, temporary_name = tempfile.mkstemp(prefix=".cameras-", dir=str(SOURCE_REGISTRY.parent))
     temporary = Path(temporary_name)
     try:
         os.fchmod(fd, 0o600)
         with os.fdopen(fd, "w", encoding="utf-8") as handle:
-            json.dump(cameras, handle, ensure_ascii=False, indent=2)
+            json.dump(normalized_cameras, handle, ensure_ascii=False, indent=2)
             handle.write("\n")
             handle.flush()
             os.fsync(handle.fileno())
