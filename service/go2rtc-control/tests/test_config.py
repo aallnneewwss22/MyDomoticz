@@ -188,7 +188,7 @@ class CameraAudioSettingsTests(unittest.TestCase):
                 "salon": {
                     "source": "rtsp://camera/live",
                     "audio_enabled": True,
-                    "quality": "1080p",
+                    "quality": "720p",
                     "default_profile_id": "native",
                     "profiles": {
                         profile_id: {
