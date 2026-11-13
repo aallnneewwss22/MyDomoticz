@@ -187,6 +187,12 @@ class SessionManager:
                 if ready is not True or not self._producer_health(camera_id):
                     raise SessionUnavailable("Le transcodeur n'a pas confirmé sa disponibilité.")
             except Exception as exc:
+                # Keep the public API message generic, but retain the original
+                # failure and traceback in the service journal for diagnosis.
+                LOGGER.exception(
+                    "Échec du démarrage du transcodeur pour la caméra %s.",
+                    camera_id,
+                )
                 # A failed start must not leave a phantom reservation. Ask the
                 # producer adapter to clean up any partially created resource.
                 try:
