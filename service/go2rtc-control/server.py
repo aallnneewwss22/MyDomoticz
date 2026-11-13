@@ -24,7 +24,10 @@ from session_manager import (
     SessionUnauthorized, SessionUnavailable,
 )
 from transcode_engine import FFmpegTranscodeEngine
-from camera_profiles import CameraProfileError, normalize_camera_profiles
+from camera_profiles import (
+    CameraProfileError, create_camera_profile, delete_camera_profile,
+    normalize_camera_profiles, update_camera_profile, validate_selected_profile,
+)
 
 VENDOR_DIR = Path(__file__).resolve().parent / "vendor"
 if VENDOR_DIR.is_dir():
@@ -150,7 +153,7 @@ def load_camera_settings() -> dict[str, dict[str, object]]:
                 raise ControlError(f"Profils vidéo invalides pour {name}: {exc}") from exc
             cameras[name] = {
                 "source": entry.strip(), "audio_enabled": True, "quality": "1080p",
-                "default_profile_id": default_profile_id, "profiles": profiles,
+                "default_profile_id": default_profile_id, "profiles": profiles, "selected_profile_id": "native",
             }
         elif isinstance(entry, dict):
             source, audio_enabled = entry.get("source"), entry.get("audio_enabled", True)
@@ -162,11 +165,15 @@ def load_camera_settings() -> dict[str, dict[str, object]]:
                     profiles, default_profile_id = normalize_camera_profiles(
                         entry.get("profiles"), entry.get("default_profile_id"), quality
                     )
+                    selected_profile_id = validate_selected_profile(
+                        profiles, entry.get("selected_profile_id")
+                    )
                 except CameraProfileError as exc:
                     raise ControlError(f"Profils vidéo invalides pour {name}: {exc}") from exc
                 settings: dict[str, object] = {
                     "source": source.strip(), "audio_enabled": audio_enabled, "quality": quality,
                     "default_profile_id": default_profile_id, "profiles": profiles,
+                    "selected_profile_id": selected_profile_id,
                 }
                 ptz = entry.get("ptz")
                 if isinstance(ptz, dict):
@@ -208,6 +215,7 @@ def migrate_camera_profiles() -> None:
                     or not isinstance(entry.get("profiles"), dict)
                     or "native" not in entry.get("profiles", {})
                     or "default_profile_id" not in entry
+                    or "selected_profile_id" not in entry
                 )
             ):
                 needs_migration = True
@@ -234,6 +242,10 @@ def save_camera_settings(cameras: dict[str, dict[str, object]]) -> None:
             raise ControlError(f"Profils vidéo invalides pour {name}: {exc}") from exc
         entry["profiles"] = profiles
         entry["default_profile_id"] = default_profile_id
+        try:
+            entry["selected_profile_id"] = validate_selected_profile(profiles, entry.get("selected_profile_id"))
+        except CameraProfileError as exc:
+            raise ControlError(f"Profil sélectionné invalide pour {name}: {exc}") from exc
         normalized_cameras[name] = entry
 
     SOURCE_REGISTRY.parent.mkdir(parents=True, exist_ok=True)
@@ -488,7 +500,7 @@ class Handler(BaseHTTPRequestHandler):
             return
         self.send_response(204)
         self.send_header("Access-Control-Allow-Origin", DASHBOARD_ORIGIN)
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Authorization, Content-Type")
         self.send_header("Access-Control-Max-Age", "600")
         self.send_header("Vary", "Origin")
@@ -602,6 +614,68 @@ class Handler(BaseHTTPRequestHandler):
         except ControlError as exc:
             self.send_json(502, {"error": str(exc)})
 
+    def handle_profiles(self) -> None:
+        """Authenticated CRUD API for one camera's stored video profiles."""
+        if not self.authorized():
+            return
+        parts = urllib.parse.urlsplit(self.path).path.strip("/").split("/")
+        if len(parts) not in (4, 5) or parts[:2] != ["api", "cameras"] or parts[3] != "profiles":
+            self.send_json(404, {"error": "Route de profils inconnue."})
+            return
+        camera_id = urllib.parse.unquote(parts[2])
+        if not STREAM_NAME.fullmatch(camera_id):
+            self.send_json(400, {"error": "Nom de flux invalide."})
+            return
+        profile_id = urllib.parse.unquote(parts[4]) if len(parts) == 5 else None
+        try:
+            with SESSION_MANAGER.camera_guard(camera_id), REGISTRY_LOCK:
+                cameras = load_camera_settings()
+                if camera_id not in cameras:
+                    self.send_json(404, {"error": "Caméra absente du registre local."})
+                    return
+                settings = cameras[camera_id]
+                profiles = dict(settings["profiles"])
+                quality = settings["quality"]
+                selected = settings.get("selected_profile_id", "native")
+                if self.command == "GET" and profile_id is None:
+                    self.send_json(200, {"camera_id": camera_id, "selected_profile_id": selected,
+                        "default_profile_id": "native", "profiles": list(profiles.values())})
+                    return
+                if self.command == "POST" and profile_id is None:
+                    updated, new_id = create_camera_profile(profiles, quality, _read_json_body(self))
+                    settings["profiles"] = updated
+                    save_camera_settings(cameras)
+                    self.send_json(201, {"profile": updated[new_id]})
+                    return
+                if self.command == "PUT" and profile_id == "selected":
+                    payload = _read_json_body(self)
+                    settings["selected_profile_id"] = validate_selected_profile(profiles, payload.get("profile_id"))
+                    save_camera_settings(cameras)
+                    self.send_json(200, {"selected_profile_id": settings["selected_profile_id"]})
+                    return
+                if self.command == "PUT" and profile_id:
+                    updated = update_camera_profile(profiles, quality, profile_id, _read_json_body(self))
+                    settings["profiles"] = updated
+                    save_camera_settings(cameras)
+                    self.send_json(200, {"profile": updated[profile_id]})
+                    return
+                if self.command == "DELETE" and profile_id:
+                    updated = delete_camera_profile(profiles, profile_id)
+                    settings["profiles"] = updated
+                    if selected == profile_id:
+                        settings["selected_profile_id"] = "native"
+                    save_camera_settings(cameras)
+                    self.send_json(200, {"deleted": profile_id,
+                        "selected_profile_id": settings["selected_profile_id"]})
+                    return
+                self.send_json(405, {"error": "Méthode ou ressource de profil non autorisée."})
+        except CameraProfileError as exc:
+            self.send_json(400, {"error": str(exc)})
+        except SessionConflict as exc:
+            self.send_json(409, {"error": str(exc), "result": "blocked"})
+        except ControlError as exc:
+            self.send_json(502, {"error": str(exc)})
+
     def handle_transcode(self, action: str) -> None:
         if not self.authorized():
             return
@@ -688,6 +762,10 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(502, {"error": str(exc)})
 
     def do_GET(self) -> None:
+        path = urllib.parse.urlsplit(self.path).path.rstrip("/")
+        if path.startswith("/api/cameras/") and "/profiles" in path:
+            self.handle_profiles()
+            return
         parts = urllib.parse.urlsplit(self.path).path.rstrip("/").split("/")
         if len(parts) == 6 and parts[:2] == ["", "api"] and parts[4] == "transcode":
             self.handle_transcode(parts[5])
@@ -698,12 +776,22 @@ class Handler(BaseHTTPRequestHandler):
         self.handle_camera(action)
 
     def do_POST(self) -> None:
+        path = urllib.parse.urlsplit(self.path).path.rstrip("/")
+        if path.startswith("/api/cameras/") and "/profiles" in path:
+            self.handle_profiles()
+            return
         parts = urllib.parse.urlsplit(self.path).path.rstrip("/").split("/")
         if len(parts) == 6 and parts[:2] == ["", "api"] and parts[4] == "transcode":
             self.handle_transcode(parts[5])
             return
         action = parts[-1]
         self.handle_camera(action)
+ 
+    def do_PUT(self) -> None:
+        self.handle_profiles()
+
+    def do_DELETE(self) -> None:
+        self.handle_profiles()
 
 
 if __name__ == "__main__":

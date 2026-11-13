@@ -8,7 +8,8 @@ from camera_profiles import (
     CameraProfileError,
     NATIVE_PROFILE,
     NATIVE_PROFILE_ID,
-    normalize_camera_profiles,
+    normalize_camera_profiles, create_camera_profile, update_camera_profile,
+    delete_camera_profile, validate_selected_profile,
 )
 
 
@@ -118,6 +119,46 @@ class CameraProfileNormalizationTests(unittest.TestCase):
         }
         with self.assertRaises(CameraProfileError):
             normalize_camera_profiles(profiles, "native", "1080p")
+
+
+class CameraProfileCrudTests(unittest.TestCase):
+    def setUp(self):
+        self.profiles, _ = normalize_camera_profiles(None, None, "1080p")
+        self.payload = {"name": "Mobile", "width": 854, "height": 480, "fps": 10, "bitrate_kbps": 300}
+
+    def test_create_generates_id_and_keeps_native(self):
+        profiles, profile_id = create_camera_profile(self.profiles, "1080p", self.payload)
+        self.assertRegex(profile_id, r"^[0-9a-f]{32}$")
+        self.assertEqual(profiles["native"], NATIVE_PROFILE)
+
+    def test_create_rejects_upscaling_and_duplicate_names(self):
+        with self.assertRaises(CameraProfileError):
+            create_camera_profile(self.profiles, "720p", self.payload | {"width": 1920, "height": 1080})
+        profiles, _ = create_camera_profile(self.profiles, "1080p", self.payload)
+        with self.assertRaises(CameraProfileError):
+            create_camera_profile(profiles, "1080p", self.payload | {"name": " mobile "})
+
+    def test_update_preserves_id_and_rejects_native(self):
+        profiles, profile_id = create_camera_profile(self.profiles, "1080p", self.payload)
+        updated = update_camera_profile(profiles, "1080p", profile_id, {"name": "Salon"})
+        self.assertEqual(updated[profile_id]["id"], profile_id)
+        with self.assertRaises(CameraProfileError):
+            update_camera_profile(updated, "1080p", "native", {"name": "Autre"})
+
+    def test_delete_protects_native_and_unknown_ids(self):
+        profiles, profile_id = create_camera_profile(self.profiles, "1080p", self.payload)
+        self.assertNotIn(profile_id, delete_camera_profile(profiles, profile_id))
+        with self.assertRaises(CameraProfileError):
+            delete_camera_profile(profiles, "native")
+        with self.assertRaises(CameraProfileError):
+            delete_camera_profile(profiles, "missing")
+
+    def test_selected_profile_must_exist(self):
+        profiles, profile_id = create_camera_profile(self.profiles, "1080p", self.payload)
+        self.assertEqual(validate_selected_profile(profiles, profile_id), profile_id)
+        self.assertEqual(validate_selected_profile(profiles, None), "native")
+        with self.assertRaises(CameraProfileError):
+            validate_selected_profile(profiles, "missing")
 
 
 if __name__ == "__main__":

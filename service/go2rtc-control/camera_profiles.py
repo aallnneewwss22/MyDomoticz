@@ -6,6 +6,7 @@ normalizes the profile data stored alongside each camera in cameras.json.
 from __future__ import annotations
 
 import re
+import secrets
 from typing import Any
 
 NATIVE_PROFILE_ID = "native"
@@ -126,3 +127,42 @@ def normalize_camera_profiles(
         raise CameraProfileError("Le profil par défaut doit rester Natif.")
 
     return normalized, NATIVE_PROFILE_ID
+
+
+def validate_selected_profile(profiles: dict[str, dict[str, Any]], selected_profile_id: object) -> str:
+    if selected_profile_id is None:
+        return NATIVE_PROFILE_ID
+    if not isinstance(selected_profile_id, str) or selected_profile_id not in profiles:
+        raise CameraProfileError("Le profil sélectionné n'existe pas pour cette caméra.")
+    return selected_profile_id
+
+
+def create_camera_profile(profiles: dict[str, dict[str, Any]], native_quality: object, payload: object):
+    if not isinstance(payload, dict) or set(payload) != {"name", "width", "height", "fps", "bitrate_kbps"}:
+        raise CameraProfileError("Les champs requis du profil sont absents ou invalides.")
+    profile_id = secrets.token_hex(16)
+    candidate = dict(profiles)
+    candidate[profile_id] = dict(payload, type="transcode")
+    normalized, _ = normalize_camera_profiles(candidate, NATIVE_PROFILE_ID, native_quality)
+    return normalized, profile_id
+
+
+def update_camera_profile(profiles: dict[str, dict[str, Any]], native_quality: object, profile_id: object, payload: object):
+    if not isinstance(profile_id, str) or profile_id == NATIVE_PROFILE_ID or profile_id not in profiles:
+        raise CameraProfileError("Profil vidéo introuvable ou non modifiable.")
+    if not isinstance(payload, dict) or not payload or set(payload) - {"name", "width", "height", "fps", "bitrate_kbps"}:
+        raise CameraProfileError("Le profil contient un champ non modifiable ou aucune modification.")
+    candidate = dict(profiles)
+    updated = dict(candidate[profile_id])
+    updated.update(payload)
+    candidate[profile_id] = updated
+    normalized, _ = normalize_camera_profiles(candidate, NATIVE_PROFILE_ID, native_quality)
+    return normalized
+
+
+def delete_camera_profile(profiles: dict[str, dict[str, Any]], profile_id: object):
+    if not isinstance(profile_id, str) or profile_id == NATIVE_PROFILE_ID or profile_id not in profiles:
+        raise CameraProfileError("Profil vidéo introuvable ou non supprimable.")
+    candidate = dict(profiles)
+    del candidate[profile_id]
+    return candidate

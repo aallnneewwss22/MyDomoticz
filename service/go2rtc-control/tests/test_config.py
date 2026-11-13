@@ -96,6 +96,7 @@ class CameraAudioSettingsTests(unittest.TestCase):
                 "audio_enabled": False,
                 "quality": "720p",
                 "default_profile_id": "native",
+                "selected_profile_id": "native",
                 "profiles": {"native": {"id": "native", "name": "Natif", "type": "native"}},
             }
         }
