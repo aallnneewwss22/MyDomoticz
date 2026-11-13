@@ -65,7 +65,7 @@ jobs:
           import re
 
           html = Path("dashboard/maison-dashboard-v87.html").read_text(encoding="utf-8")
-          scripts = re.findall(r"<script\\b[^>]*>(.*?)</script\\s*>", html, re.IGNORECASE | re.DOTALL)
+          scripts = re.findall(r"<script\b[^>]*>(.*?)</script\s*>", html, re.IGNORECASE | re.DOTALL)
           inline = [script for script in scripts if script.strip()]
           if len(inline) != 1:
               raise SystemExit(f"Expected one inline dashboard script, found {len(inline)}")
