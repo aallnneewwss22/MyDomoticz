@@ -30,6 +30,8 @@ class CameraProfileNormalizationTests(unittest.TestCase):
                 "native",
                 "1080p",
             )
+        with self.assertRaises(CameraProfileError):
+            normalize_camera_profiles({"native": None}, "native", "1080p")
 
     def test_custom_profiles_are_normalized_and_keep_stable_ids(self):
         profile_id = "0123456789abcdef0123456789abcdef"
