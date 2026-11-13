@@ -153,3 +153,16 @@ Les routes de session sont ajoutées sous /api/cameras/{identifiant_logique}/tra
 - GET health : retourne l'état de santé du producteur.
 
 Les appels utilisent le jeton Bearer du service ; heartbeat et release exigent en plus le jeton propre à la session. Les profils doivent utiliser la qualité native actuellement sélectionnée dans le registre. Toute modification de la source native (qualité, arrêt global ou bascule audio qui remplace la source) est refusée tant qu'une session réserve le transcodage.
+
+
+## API de gestion des profils vidéo
+
+Le tableau de bord ouvre la gestion des profils depuis chaque carte caméra. Les appels utilisent le jeton Bearer configuré dans les paramètres du tableau de bord :
+
+- GET /api/cameras/{camera}/profiles : lire les profils et la préférence enregistrée ;
+- POST /api/cameras/{camera}/profiles : créer un profil personnalisé ;
+- PUT /api/cameras/{camera}/profiles/{id} : modifier ses paramètres ;
+- DELETE /api/cameras/{camera}/profiles/{id} : supprimer un profil personnalisé ;
+- PUT /api/cameras/{camera}/profiles/selected avec le champ profile_id : mémoriser le profil préféré de cette caméra.
+
+L’interface protège le profil Natif et propose uniquement les résolutions qui ne dépassent pas la qualité native connue. Cette étape gère le catalogue et la préférence persistante ; elle ne bascule pas encore le lecteur sur un flux transcodé. Le cycle d’acquisition, de heartbeat et de libération des sessions sera raccordé séparément afin de préserver les règles de bail et de concurrence validées.
