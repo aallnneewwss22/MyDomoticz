@@ -56,6 +56,23 @@ jobs:
 
           (cd package && zip -r ../maison-dashboard-raspberry-pi.zip .)
 
+      - name: Validate dashboard JavaScript
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          html = Path("dashboard/maison-dashboard-v87.html").read_text(encoding="utf-8")
+          scripts = re.findall(r"<script\b[^>]*>(.*?)</script\s*>", html, re.IGNORECASE | re.DOTALL)
+          inline = [script for script in scripts if script.strip()]
+          if len(inline) != 1:
+              raise SystemExit(f"Expected one inline dashboard script, found {len(inline)}")
+          Path("/tmp/maison-dashboard.js").write_text(inline[0], encoding="utf-8")
+          PY
+          node --check /tmp/maison-dashboard.js
+
       - name: Upload deployment ZIP
         uses: actions/upload-artifact@v4
         with:

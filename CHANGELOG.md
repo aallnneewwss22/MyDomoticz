@@ -3,6 +3,12 @@
 ## [Non publié]
 
 ### Ajouté
+- Gestion des profils vidéo depuis chaque carte caméra : consultation, création, modification, suppression et mémorisation d'une préférence indépendante par caméra.
+- Le profil Natif reste protégé ; les paramètres personnalisés sont validés dans l'interface avant envoi à l'API.
+- Création de `maison-dashboard-v87.html` et mise à jour du lanceur.
+
+
+### Ajouté
 - Modèle de profils vidéo persistants et indépendants par caméra, avec profil Natif obligatoire et sélectionné par défaut.
 - Migration automatique des registres caméra existants vers le modèle de profils, en préservant les sources RTSP, préférences audio, résolutions natives et paramètres PTZ.
 - Validation des identifiants stables, noms uniques, résolutions sans suréchantillonnage, cadences et débits des profils personnalisés.
