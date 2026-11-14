@@ -34,6 +34,11 @@ apt-get update
 apt-get install -y python3-yaml python3-zeep python3-pip
 
 install -d -o root -g "${SERVICE_USER}" -m 0750 "${INSTALL_DIR}" "${ETC_DIR}" "${GO2RTC_INSTALL_DIR}"
+if [[ ! -f "${GO2RTC_INSTALL_DIR}/go2rtc.env" ]]; then
+  printf 'GO2RTC_CONFIG=%s\\n' "${CONFIG_PATH}" > "${GO2RTC_INSTALL_DIR}/go2rtc.env"
+  chown root:"${SERVICE_USER}" "${GO2RTC_INSTALL_DIR}/go2rtc.env"
+  chmod 0640 "${GO2RTC_INSTALL_DIR}/go2rtc.env"
+fi
 install -o root -g root -m 0644 "${SCRIPT_DIR}/server.py" "${INSTALL_DIR}/server.py"
 install -o root -g root -m 0644 "${SCRIPT_DIR}/camera_profiles.py" "${INSTALL_DIR}/camera_profiles.py"
 install -o root -g root -m 0644 "${SCRIPT_DIR}/session_manager.py" "${INSTALL_DIR}/session_manager.py"
