@@ -1746,6 +1746,7 @@
                 let heartbeatTimer = null;
                 let heartbeatInFlight = false;
                 let playbackGeneration = 0;
+                let playbackStarting = false;
 
                 const audioButton = document.createElement("button");
                 audioButton.type = "button";
@@ -1779,6 +1780,7 @@
                 };
                 const stopCameraPlayback = async ({ keepalive = false } = {}) => {
                     playbackGeneration += 1;
+                    playbackStarting = false;
                     clearHeartbeat();
                     const session = transcodeSession;
                     transcodeSession = null;
@@ -1828,9 +1830,13 @@
 
                 const startCameraPlayback = async () => {
                     const generation = ++playbackGeneration;
+                    playbackStarting = true;
                     if (frame.src !== "about:blank") frame.src = "about:blank";
                     await releaseTranscodeSession();
-                    if (generation !== playbackGeneration || mode !== "on") return;
+                    if (generation !== playbackGeneration || mode !== "on") {
+                        if (generation === playbackGeneration) playbackStarting = false;
+                        return;
+                    }
                     status.textContent = "Chargement du profil vidéo…";
                     try {
                         const results = await Promise.all([
@@ -1884,6 +1890,8 @@
                             frame.src = "about:blank";
                             status.textContent = "Lecture impossible : " + (error.message || "erreur inconnue");
                         }
+                    } finally {
+                        if (generation === playbackGeneration) playbackStarting = false;
                     }
                 };
 
@@ -2007,7 +2015,9 @@
                 };
                 setMode("on", "Initialisation du lecteur vidéo…");
                 void startCameraPlayback();
-                card.syncCameraStatus = () => cameraControlRequest(config.stream, "status").then(result => {
+                card.syncCameraStatus = () => {
+                    if (busy || playbackStarting) return Promise.resolve();
+                    return cameraControlRequest(config.stream, "status").then(result => {
                     audioEnabled = Boolean(result.audio_enabled);
                     if (result.quality === "720p" || result.quality === "1080p") qualitySelect.value = result.quality;
                     updateAudioButton();
@@ -2020,9 +2030,10 @@
                     } else if (result.enabled && mode === "on" && frame.src === "about:blank" && !transcodeSession) {
                         void startCameraPlayback();
                     }
-                }).catch(error => {
-                    status.textContent = "État du service indisponible : " + (error.message || "vérifie les paramètres");
-                });
+                    }).catch(error => {
+                        status.textContent = "État du service indisponible : " + (error.message || "vérifie les paramètres");
+                    });
+                };
                 return card;
             }
 
@@ -2047,7 +2058,7 @@
                     if (item.type === "camera") {
                         const existing = existingCameras.get(item.stream);
                         const cameraCard = existing || createCameraCard(item);
-                        cameraCard.syncCameraStatus?.();
+                        if (existing) cameraCard.syncCameraStatus?.();
                         items.push(cameraCard);
                         hasRenderedItem = true;
                         continue;
