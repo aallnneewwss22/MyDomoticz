@@ -2108,7 +2108,7 @@
                             void startCameraPlayback();
                         }
                     }).catch(error => {
-                        status.textContent = "État du service indisponible : " + (error.message || "vérifie les paramètres");
+                        if (!playbackFailed) status.textContent = "État du service indisponible : " + (error.message || "vérifie les paramètres");
                     });
                 };
                 // À chaque création de carte (notamment à l'ouverture de la page),
