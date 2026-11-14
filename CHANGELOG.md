@@ -2,6 +2,16 @@
 
 ## [Non publié]
 
+### Corrigé
+- Le profil vidéo préféré est désormais récupéré dès la création de chaque carte caméra, sans attendre le démarrage du lecteur.
+- Si l'API des profils est indisponible, la carte affiche « Profil vidéo : indisponible » au lieu de rester indéfiniment sur « chargement… ».
+- Une réponse initiale tardive ne peut pas écraser une mise à jour plus récente du profil effectuée depuis la boîte de dialogue.
+
+### Modifié
+- Création de `maison-dashboard-v94.html` et mise à jour du lanceur.
+
+## [Non publié]
+
 ### Amélioré
 - En cas d'échec du démarrage du lecteur caméra, affichage d'un bandeau rouge fixe avec le message technique et un bouton « Réessayer ».
 - Le bouton déclenche une seule tentative manuelle ; aucune relance automatique ni animation clignotante.
