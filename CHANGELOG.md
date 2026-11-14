@@ -3,6 +3,12 @@
 ## [Non publié]
 
 ### Corrigé
+- Après un échec de démarrage du transcodeur, la carte caméra conserve l'alerte et ne relance plus automatiquement la lecture à chaque actualisation. Une nouvelle tentative nécessite une action manuelle.
+
+### Modifié
+- Création de `maison-dashboard-v92.html` et mise à jour du lanceur.
+
+### Corrigé
 - À l'ouverture de la page caméra, toutes les cartes démarrent en état arrêté ; tout flux go2rtc encore actif est arrêté au lieu d'être relancé automatiquement.
 - Le passage de 1080p à 720p bascule le flux natif de `stream1` vers `stream2`, sans transcodage.
 - Les profils personnalisés incompatibles avec la nouvelle résolution native restent enregistrés ; si le profil préféré dépasse la résolution 720p, la préférence active revient à **Natif** sans supprimer le profil.
