@@ -2,7 +2,7 @@
 
 Pages web personnalisées pour Domoticz, développées progressivement et versionnées avec Git.
 
-## Tableau de bord — version courante v90
+## Tableau de bord — version courante v91
 
 Le tableau de bord est fourni sous deux fichiers :
 
