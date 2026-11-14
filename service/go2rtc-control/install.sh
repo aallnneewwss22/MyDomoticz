@@ -14,6 +14,7 @@ GO2RTC_INSTALL_DIR="/etc/go2rtc"
 DASHBOARD_ORIGIN="${DASHBOARD_ORIGIN:-http://192.168.1.21:8080}"
 INSTALL_DIR="/opt/go2rtc-control"
 ETC_DIR="/etc/go2rtc-control"
+GO2RTC_ENV="${GO2RTC_INSTALL_DIR}/go2rtc.env"
 
 if ! id "${SERVICE_USER}" >/dev/null 2>&1; then
   echo "Utilisateur système introuvable : ${SERVICE_USER}" >&2
@@ -26,18 +27,26 @@ if [[ ! -x "${GO2RTC_BIN}" ]]; then
 fi
 if [[ ! -r "${CONFIG_PATH}" ]]; then
   echo "Configuration go2rtc de production introuvable ou illisible : ${CONFIG_PATH}" >&2
-  echo "Copie d'abord la configuration actuelle vers /etc/go2rtc/go2rtc.yaml selon MIGRATION.md." >&2
+  echo "Copie d'abord la configuration de production selon MIGRATION.md." >&2
   exit 1
+fi
+if [[ -f "${GO2RTC_ENV}" ]]; then
+  mapfile -t configured_paths < <(sed -n 's/^[[:space:]]*GO2RTC_CONFIG[[:space:]]*=[[:space:]]*//p' "${GO2RTC_ENV}" | sed -E 's/^["'"']//; s/["'"']$//')
+  if [[ "${#configured_paths[@]}" -ne 1 || "${configured_paths[0]}" != "${CONFIG_PATH}" ]]; then
+    echo "Configuration de production incohérente : GO2RTC_CONFIG dans ${GO2RTC_ENV} doit désigner ${CONFIG_PATH} exactement une fois." >&2
+    echo "Corrige ce fichier manuellement après sauvegarde ; l'installateur n'écrase pas les paramètres existants." >&2
+    exit 1
+  fi
 fi
 
 apt-get update
 apt-get install -y python3-yaml python3-zeep python3-pip
 
 install -d -o root -g "${SERVICE_USER}" -m 0750 "${INSTALL_DIR}" "${ETC_DIR}" "${GO2RTC_INSTALL_DIR}"
-if [[ ! -f "${GO2RTC_INSTALL_DIR}/go2rtc.env" ]]; then
-  printf 'GO2RTC_CONFIG=%s\n' "${CONFIG_PATH}" > "${GO2RTC_INSTALL_DIR}/go2rtc.env"
-  chown root:"${SERVICE_USER}" "${GO2RTC_INSTALL_DIR}/go2rtc.env"
-  chmod 0640 "${GO2RTC_INSTALL_DIR}/go2rtc.env"
+if [[ ! -f "${GO2RTC_ENV}" ]]; then
+  printf 'GO2RTC_CONFIG=%s\n' "${CONFIG_PATH}" > "${GO2RTC_ENV}"
+  chown root:"${SERVICE_USER}" "${GO2RTC_ENV}"
+  chmod 0640 "${GO2RTC_ENV}"
 fi
 install -o root -g root -m 0644 "${SCRIPT_DIR}/server.py" "${INSTALL_DIR}/server.py"
 install -o root -g root -m 0644 "${SCRIPT_DIR}/camera_profiles.py" "${INSTALL_DIR}/camera_profiles.py"
