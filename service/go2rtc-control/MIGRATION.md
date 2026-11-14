@@ -41,6 +41,7 @@ Le binaire de production est une copie distincte : une mise à jour du binaire d
 ```bash
 sudo install -d -o root -g pi -m 0750 /etc/go2rtc
 sudo install -o pi -g pi -m 0755 /home/pi/go2rtc-test/go2rtc /usr/local/bin/go2rtc
+sudo test ! -e /etc/go2rtc/go2rtc.yaml || { echo 'Le YAML de production existe déjà : arrêt pour éviter tout écrasement.'; exit 1; }
 sudo install -o pi -g pi -m 0640 /home/pi/go2rtc-test/go2rtc.yaml /etc/go2rtc/go2rtc.yaml
 ```
 
@@ -90,6 +91,8 @@ TRANSCODE_RTSP_PORT=8556
 CONTROL_HOST=127.0.0.1
 CONTROL_PORT=1986
 ```
+
+Vérifier également que le registre caméra utilisé par le service de contrôle de test est distinct du registre de production. Dans `/etc/go2rtc-control-test/go2rtc-control-test.env`, la variable `SOURCE_REGISTRY` doit désigner un fichier propre au test (par exemple `/var/lib/go2rtc-control-test/cameras.json`). Si elle est absente ou désigne le registre de production, sauvegarder/coller le registre de test actuel vers ce chemin avant de modifier la variable. Ne jamais faire pointer les deux services vers le même registre.
 
 Le service de contrôle de production doit pointer vers la configuration dédiée :
 
