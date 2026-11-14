@@ -92,7 +92,7 @@ sudo systemctl restart go2rtc-control
 
 ## Modèle des profils vidéo par caméra
 
-Le registre privé `/var/lib/go2rtc-control/cameras.json` accueille désormais un modèle de profils vidéo propre à chaque caméra. Cette évolution prépare les prochaines étapes de l'API et de l'interface ; cette version n'ajoute pas encore de commande de gestion des profils et ne modifie pas le démarrage des flux.
+Le registre privé `/var/lib/go2rtc-control/cameras.json` accueille désormais un modèle de profils vidéo propre à chaque caméra. Le tableau de bord applique désormais le profil préféré à l'ouverture du lecteur. Les sessions de transcodage sont gérées par le service et non par le navigateur.
 
 Chaque caméra possède obligatoirement le profil réservé `native` :
 - nom fixe **Natif** ;
@@ -165,4 +165,15 @@ Le tableau de bord ouvre la gestion des profils depuis chaque carte caméra. Les
 - DELETE /api/cameras/{camera}/profiles/{id} : supprimer un profil personnalisé ;
 - PUT /api/cameras/{camera}/profiles/selected avec le champ profile_id : mémoriser le profil préféré de cette caméra.
 
-L’interface protège le profil Natif et propose uniquement les résolutions qui ne dépassent pas la qualité native connue. Cette étape gère le catalogue et la préférence persistante ; elle ne bascule pas encore le lecteur sur un flux transcodé. Le cycle d’acquisition, de heartbeat et de libération des sessions sera raccordé séparément afin de préserver les règles de bail et de concurrence validées.
+L’interface protège le profil Natif et propose uniquement les résolutions qui ne dépassent pas la qualité native connue. Le lecteur applique directement la préférence enregistrée : profil Natif sur le flux original, ou profil personnalisé sur le flux transcodé dédié. Il acquiert une session avant d'ouvrir ce dernier, renouvelle le bail toutes les 10 secondes et libère sa session à l'arrêt ou à la fermeture de la page. Les règles de bail et de concurrence restent entièrement appliquées par le service Python.
+
+
+## Sessions de transcodage pilotées par le lecteur
+
+Lorsque la caméra utilise le profil **Natif**, le navigateur lit le flux go2rtc habituel. Lorsqu'un profil personnalisé est préféré, le tableau de bord demande au service une session de transcodage et lit le flux de sortie dédié, nommé `<nom_du_flux>_transcode`. Le moteur FFmpeg lit uniquement la vidéo de la source native (`?video`) et encode sans piste audio (`-an`), conformément à l'architecture A.
+
+Routes authentifiées sous `/api/cameras/{flux}/transcode/` : `GET status` et `GET health` pour consulter l'état ; `POST acquire` avec le profil demandé pour démarrer ou rejoindre un producteur ; `POST heartbeat` pour renouveler le bail ; `POST release` pour libérer la session du navigateur.
+
+Le service reste l'autorité sur le cycle de vie : heartbeat du navigateur toutes les **10 secondes**, bail expirant après **60 secondes** sans renouvellement, balayage des expirations toutes les **5 secondes**. Plusieurs lecteurs peuvent partager le même transcodage si leur profil est identique ; un profil différent reçoit un conflit. Le producteur s'arrête lorsque la dernière session est libérée ou expire.
+
+Le tableau de bord libère sa session avant un arrêt global ou une modification de la source native, et tente une libération à la fermeture de l'onglet. Si le navigateur disparaît brutalement ou si la requête de libération échoue, le bail expire côté service. La modification de la résolution native reste refusée tant qu'une session de transcodage réserve la caméra.

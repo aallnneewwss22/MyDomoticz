@@ -195,8 +195,8 @@ class CameraAudioSettingsTests(unittest.TestCase):
                         profile_id: {
                             "name": "Upscale",
                             "type": "transcode",
-                            "width": 1920,
-                            "height": 1080,
+                            "width": 1000,
+                            "height": 600,
                             "fps": 10,
                             "bitrate_kbps": 200,
                         }
@@ -207,6 +207,32 @@ class CameraAudioSettingsTests(unittest.TestCase):
         )
         with self.assertRaises(module.ControlError):
             module.load_camera_settings()
+
+    def test_1080p_profile_survives_native_quality_downgrade(self):
+        profile_id = "0123456789abcdef0123456789abcdef"
+        settings = {
+            "salon": {
+                "source": "rtsp://camera/stream1",
+                "audio_enabled": True,
+                "quality": "720p",
+                "default_profile_id": "native",
+                "selected_profile_id": profile_id,
+                "profiles": {
+                    profile_id: {
+                        "name": "Full HD",
+                        "type": "transcode",
+                        "width": 1920,
+                        "height": 1080,
+                        "fps": 10,
+                        "bitrate_kbps": 400,
+                    }
+                },
+            }
+        }
+        module.save_camera_settings(settings)
+        loaded = module.load_camera_settings()
+        self.assertIn(profile_id, loaded["salon"]["profiles"])
+        self.assertEqual(loaded["salon"]["selected_profile_id"], "native")
 
     def test_quality_selects_native_rtsp_stream_and_preserves_query_fragment(self):
         source = "rtsp://user:password@camera:554/live/stream1?profile=main#tcp"

@@ -2,6 +2,64 @@
 
 ## [Non publié]
 
+### Corrigé
+- Le passage d'une carte caméra en arrêt global efface le bandeau d'échec de lecture, masque le bouton « Réessayer » et réinitialise l'état d'échec pour une prochaine mise en marche.
+
+### Modifié
+- Création de `maison-dashboard-v95.html` et mise à jour du lanceur.
+
+## [Non publié]
+
+### Corrigé
+- Le profil vidéo préféré est désormais récupéré dès la création de chaque carte caméra, sans attendre le démarrage du lecteur.
+- Si l'API des profils est indisponible, la carte affiche « Profil vidéo : indisponible » au lieu de rester indéfiniment sur « chargement… ».
+- Une réponse initiale tardive ne peut pas écraser une mise à jour plus récente du profil effectuée depuis la boîte de dialogue.
+
+### Modifié
+- Création de `maison-dashboard-v94.html` et mise à jour du lanceur.
+
+## [Non publié]
+
+### Amélioré
+- En cas d'échec du démarrage du lecteur caméra, affichage d'un bandeau rouge fixe avec le message technique et un bouton « Réessayer ».
+- Le bouton déclenche une seule tentative manuelle ; aucune relance automatique ni animation clignotante.
+
+### Modifié
+- Création de `maison-dashboard-v93.html` et mise à jour du lanceur.
+
+## [Non publié]
+
+### Corrigé
+- Après un échec de démarrage du transcodeur, la carte caméra conserve l'alerte et ne relance plus automatiquement la lecture à chaque actualisation. Une nouvelle tentative nécessite une action manuelle.
+
+### Modifié
+- Création de `maison-dashboard-v92.html` et mise à jour du lanceur.
+
+### Corrigé
+- À l'ouverture de la page caméra, toutes les cartes démarrent en état arrêté ; tout flux go2rtc encore actif est arrêté au lieu d'être relancé automatiquement.
+- Le passage de 1080p à 720p bascule le flux natif de `stream1` vers `stream2`, sans transcodage.
+- Les profils personnalisés incompatibles avec la nouvelle résolution native restent enregistrés ; si le profil préféré dépasse la résolution 720p, la préférence active revient à **Natif** sans supprimer le profil.
+
+### Modifié
+- Création de `maison-dashboard-v91.html` et mise à jour du lanceur.
+
+
+### Modifié
+- Centrage horizontal et vertical explicite des icônes des boutons de commande des cartes caméra, sans marge ni padding résiduel.
+- Libellé du bouton de sélection du profil préféré uniformisé en « Profil préféré » afin de stabiliser la largeur des commandes dans la boîte de dialogue.
+- Création de `maison-dashboard-v90.html` et mise à jour du lanceur.
+- Affichage du nom du profil vidéo actuellement sélectionné directement sur chaque carte caméra.
+- Remplacement du bouton « Profils vidéo » par une icône d'engrenage avec un libellé accessible.
+- Remplacement du libellé audio par une icône de haut-parleur : barrée lorsque l'audio est coupé, non barrée lorsqu'il est activé.
+- Création de `maison-dashboard-v89.html` et mise à jour du lanceur.
+
+### Ajouté
+- Application effective du profil vidéo préféré à chaque démarrage du lecteur caméra : profil Natif ou flux transcodé dédié.
+- Acquisition, renouvellement toutes les 10 secondes et libération des sessions de transcodage depuis le tableau de bord ; le service conserve l'autorité sur les baux et les conflits de profils.
+- Libération explicite lors de l'arrêt global, du changement de page et à la fermeture de l'onglet, avec expiration serveur en filet de sécurité.
+- Création de `maison-dashboard-v88.html` et mise à jour du lanceur.
+
+
 ### Ajouté
 - Gestion des profils vidéo depuis chaque carte caméra : consultation, création, modification, suppression et mémorisation d'une préférence indépendante par caméra.
 - Le profil Natif reste protégé ; les paramètres personnalisés sont validés dans l'interface avant envoi à l'API.

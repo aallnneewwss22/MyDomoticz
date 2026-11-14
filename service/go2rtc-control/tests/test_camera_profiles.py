@@ -90,6 +90,44 @@ class CameraProfileNormalizationTests(unittest.TestCase):
         with self.assertRaises(CameraProfileError):
             normalize_camera_profiles(profiles, "native", "720p")
 
+    def test_saved_profile_can_be_retained_when_native_quality_is_lowered(self):
+        profile_id = "0123456789abcdef0123456789abcdef"
+        profiles = {
+            profile_id: {
+                "name": "Full HD",
+                "type": "transcode",
+                "width": 1920,
+                "height": 1080,
+                "fps": 10,
+                "bitrate_kbps": 400,
+            }
+        }
+        normalized, _ = normalize_camera_profiles(
+            profiles, "native", "720p", enforce_native_limit=False
+        )
+        self.assertEqual(normalized[profile_id]["width"], 1920)
+        self.assertEqual(normalized[profile_id]["height"], 1080)
+
+    def test_new_compatible_profile_can_be_added_while_old_profile_is_too_large(self):
+        old_id = "0123456789abcdef0123456789abcdef"
+        profiles = {
+            old_id: {
+                "name": "Full HD",
+                "type": "transcode",
+                "width": 1920,
+                "height": 1080,
+                "fps": 10,
+                "bitrate_kbps": 400,
+            }
+        }
+        updated, new_id = create_camera_profile(
+            profiles,
+            "720p",
+            {"name": "Mobile", "width": 854, "height": 480, "fps": 10, "bitrate_kbps": 200},
+        )
+        self.assertIn(old_id, updated)
+        self.assertEqual(updated[new_id]["width"], 854)
+
     def test_profile_dimensions_must_be_supported(self):
         profile_id = "0123456789abcdef0123456789abcdef"
         profiles = {
