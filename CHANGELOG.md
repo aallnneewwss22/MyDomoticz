@@ -3,6 +3,9 @@
 ## [Non publié]
 
 ### Modifié
+- Centrage horizontal et vertical explicite des icônes des boutons de commande des cartes caméra, sans marge ni padding résiduel.
+- Libellé du bouton de sélection du profil préféré uniformisé en « Profil préféré » afin de stabiliser la largeur des commandes dans la boîte de dialogue.
+- Création de `maison-dashboard-v90.html` et mise à jour du lanceur.
 - Affichage du nom du profil vidéo actuellement sélectionné directement sur chaque carte caméra.
 - Remplacement du bouton « Profils vidéo » par une icône d'engrenage avec un libellé accessible.
 - Remplacement du libellé audio par une icône de haut-parleur : barrée lorsque l'audio est coupé, non barrée lorsqu'il est activé.
