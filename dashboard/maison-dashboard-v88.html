@@ -1828,6 +1828,7 @@
 
                 const startCameraPlayback = async () => {
                     const generation = ++playbackGeneration;
+                    if (frame.src !== "about:blank") frame.src = "about:blank";
                     await releaseTranscodeSession();
                     if (generation !== playbackGeneration || mode !== "on") return;
                     status.textContent = "Chargement du profil vidéo…";
@@ -1983,7 +1984,8 @@
                 card.append(top, controls, framePlaceholder, frame, status);
                 card.stopCameraPlayback = stopCameraPlayback;
                 card.refreshCameraPlayback = () => {
-                    if (mode === "on") void startCameraPlayback();
+                    if (mode === "on") return startCameraPlayback();
+                    return Promise.resolve();
                 };
                 card.releaseCameraSessionOnExit = () => {
                     playbackGeneration += 1;
@@ -2014,6 +2016,8 @@
                         setMode("global", "Arrêt global : le flux est arrêté sur go2rtc");
                     } else if (result.enabled && mode === "global") {
                         setMode("on", "Caméra en marche");
+                        void startCameraPlayback();
+                    } else if (result.enabled && mode === "on" && frame.src === "about:blank" && !transcodeSession) {
                         void startCameraPlayback();
                     }
                 }).catch(error => {
@@ -2923,10 +2927,15 @@
                 const results = await Promise.allSettled(cameraCards.map(async card => {
                     const stream = card.dataset.cameraStream;
                     await card.stopCameraPlayback?.();
-                    const current = await cameraControlRequest(stream, "status");
-                    if (current.enabled) await cameraControlRequest(stream, "stop");
-                    await card.syncCameraStatus?.();
-                    return Boolean(current.enabled);
+                    try {
+                        const current = await cameraControlRequest(stream, "status");
+                        if (current.enabled) await cameraControlRequest(stream, "stop");
+                        await card.syncCameraStatus?.();
+                        return Boolean(current.enabled);
+                    } catch (error) {
+                        await card.refreshCameraPlayback?.();
+                        throw error;
+                    }
                 }));
                 const stopped = results.filter(item => item.status === "fulfilled" && item.value).length;
                 const alreadyStopped = results.filter(item => item.status === "fulfilled" && !item.value).length;
