@@ -3,6 +3,14 @@
 ## [Non publié]
 
 ### Corrigé
+- Le passage d'une carte caméra en arrêt global efface le bandeau d'échec de lecture, masque le bouton « Réessayer » et réinitialise l'état d'échec pour une prochaine mise en marche.
+
+### Modifié
+- Création de `maison-dashboard-v95.html` et mise à jour du lanceur.
+
+## [Non publié]
+
+### Corrigé
 - Le profil vidéo préféré est désormais récupéré dès la création de chaque carte caméra, sans attendre le démarrage du lecteur.
 - Si l'API des profils est indisponible, la carte affiche « Profil vidéo : indisponible » au lieu de rester indéfiniment sur « chargement… ».
 - Une réponse initiale tardive ne peut pas écraser une mise à jour plus récente du profil effectuée depuis la boîte de dialogue.
