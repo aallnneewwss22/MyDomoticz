@@ -40,6 +40,8 @@ def normalize_camera_profiles(
     profiles: object,
     default_profile_id: object,
     native_quality: object,
+    *,
+    enforce_native_limit: bool = True,
 ) -> tuple[dict[str, dict[str, Any]], str]:
     """Return canonical profiles and the mandatory native default.
 
@@ -95,7 +97,7 @@ def normalize_camera_profiles(
             or (width, height) not in ALLOWED_RESOLUTIONS
         ):
             raise CameraProfileError("Résolution de sortie non autorisée.")
-        if width > native_width or height > native_height:
+        if enforce_native_limit and (width > native_width or height > native_height):
             raise CameraProfileError("Un profil ne peut pas dépasser la résolution native de la caméra.")
 
         fps = profile.get("fps")
