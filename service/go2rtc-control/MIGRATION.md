@@ -65,9 +65,19 @@ Pour l'installation auditée lors de la préparation de cette PR, les noms obser
 
 Cette répartition est à confirmer avec l'usage réel avant suppression d'une entrée d'un YAML. Si un de ces noms a changé de rôle, adapter la répartition en conséquence. Le flux `camera_test_rtsp_probe` est un flux technique de test et ne doit pas être ajouté au registre des caméras de production.
 
-Créer deux fichiers à partir du YAML sauvegardé, en conservant les options spécifiques utiles :
-- `/etc/go2rtc/go2rtc.yaml` contient les flux de production uniquement ;
-- `/home/pi/go2rtc-test/go2rtc.yaml` contient les flux de test uniquement.
+Créer deux fichiers de travail à partir du YAML sauvegardé. Les chemins sont explicites pour éviter toute édition directe du fichier actif pendant la préparation :
+
+```bash
+sudo install -d -o root -g root -m 0700 /root/go2rtc-separation-work
+sudo cp -a /root/go2rtc-separation-backup/home/pi/go2rtc-test/go2rtc.yaml /root/go2rtc-separation-work/go2rtc-production.yaml
+sudo cp -a /root/go2rtc-separation-backup/home/pi/go2rtc-test/go2rtc.yaml /root/go2rtc-separation-work/go2rtc-test.yaml
+sudo nano /root/go2rtc-separation-work/go2rtc-production.yaml
+sudo nano /root/go2rtc-separation-work/go2rtc-test.yaml
+```
+
+Après édition et vérification :
+- `/root/go2rtc-separation-work/go2rtc-production.yaml` contient les flux de production uniquement ;
+- `/root/go2rtc-separation-work/go2rtc-test.yaml` contient les flux de test uniquement.
 
 Ne pas éditer les sources RTSP elles-mêmes. Préserver exactement leurs URL, options, identifiants et paramètres. Ne jamais envoyer leur contenu dans un ticket ou une conversation.
 
@@ -109,7 +119,7 @@ sudo install -o pi -g pi -m 0755 /home/pi/go2rtc-test/go2rtc /usr/local/bin/go2r
 Créer `/etc/go2rtc/go2rtc.yaml` à partir du YAML de production préparé à l'étape 3. Ne pas écraser un fichier préexistant : s'il existe, l'examiner et le sauvegarder avant toute décision.
 
 ```bash
-sudo install -o pi -g pi -m 0640 /chemin/vers/go2rtc-production.yaml /etc/go2rtc/go2rtc.yaml
+sudo install -o pi -g pi -m 0640 /root/go2rtc-separation-work/go2rtc-production.yaml /etc/go2rtc/go2rtc.yaml
 ```
 
 Le fichier d'environnement `/etc/go2rtc/go2rtc.env` sera créé par l'installateur s'il est absent. S'il existe déjà, vérifier que son unique variable `GO2RTC_CONFIG` vaut exactement `/etc/go2rtc/go2rtc.yaml`. Ne pas écraser un environnement préexistant.
@@ -145,6 +155,12 @@ Les deux variables `SOURCE_REGISTRY` doivent rester différentes et pointer vers
 ## 6. Basculer d'abord l'environnement de test
 
 À ce stade, les fichiers doivent avoir été sauvegardés, les deux YAML préparés, les deux registres préservés et les fichiers d'environnement vérifiés.
+
+Installer le YAML de test préparé (après avoir vérifié qu'il ne contient que les flux de test) :
+
+```bash
+sudo install -o pi -g pi -m 0640 /root/go2rtc-separation-work/go2rtc-test.yaml /home/pi/go2rtc-test/go2rtc.yaml
+```
 
 Appliquer les nouveaux ports de test et redémarrer uniquement les services de test :
 
