@@ -165,7 +165,7 @@ Le tableau de bord ouvre la gestion des profils depuis chaque carte caméra. Les
 - DELETE /api/cameras/{camera}/profiles/{id} : supprimer un profil personnalisé ;
 - PUT /api/cameras/{camera}/profiles/selected avec le champ profile_id : mémoriser le profil préféré de cette caméra.
 
-L’interface protège le profil Natif et propose uniquement les résolutions qui ne dépassent pas la qualité native connue. Cette étape gère le catalogue et la préférence persistante ; elle ne bascule pas encore le lecteur sur un flux transcodé. Le cycle d’acquisition, de heartbeat et de libération des sessions sera raccordé séparément afin de préserver les règles de bail et de concurrence validées.
+L’interface protège le profil Natif et propose uniquement les résolutions qui ne dépassent pas la qualité native connue. Le lecteur applique directement la préférence enregistrée : profil Natif sur le flux original, ou profil personnalisé sur le flux transcodé dédié. Il acquiert une session avant d'ouvrir ce dernier, renouvelle le bail toutes les 10 secondes et libère sa session à l'arrêt ou à la fermeture de la page. Les règles de bail et de concurrence restent entièrement appliquées par le service Python.
 
 
 ## Sessions de transcodage pilotées par le lecteur
