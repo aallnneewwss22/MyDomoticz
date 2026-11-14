@@ -1,6 +1,6 @@
 # Séparation des instances go2rtc production et test
 
-Cette procédure est une migration manuelle, contrôlée et réversible. Elle ne doit être exécutée qu'après validation de la PR, sauvegarde vérifiée et lecture complète des étapes. La fusion de la PR ne modifie pas le Raspberry Pi.
+Cette procédure est une migration manuelle, contrôlée et réversible. Pour cette PR, la migration réelle sur le Raspberry Pi doit être effectuée et validée **avant la fusion de la PR**. La PR doit rester ouverte et non fusionnée jusque-là. La fusion elle-même ne modifie pas le Raspberry Pi.
 
 **Ne pas exécuter cette procédure en bloc.** Chaque phase doit être vérifiée avant de poursuivre. Ne jamais publier les YAML, registres, fichiers d'environnement ou jetons : ils peuvent contenir des identifiants.
 
@@ -32,26 +32,15 @@ La sauvegarde doit inclure au minimum :
 - les trois unités systemd actuelles ;
 - tout fichier déjà présent sous `/etc/go2rtc`.
 
-Exemple de sauvegarde locale protégée (à adapter si un chemin diffère) :
+La sauvegarde a déjà été réalisée et vérifiée pour cette migration. Son emplacement réel sur le Raspberry Pi est :
 
-```bash
-sudo install -d -o root -g root -m 0700 /root/go2rtc-separation-backup
-sudo cp -a --parents /home/pi/go2rtc-test/go2rtc.yaml /root/go2rtc-separation-backup
-sudo cp -a --parents /home/pi/go2rtc-test/go2rtc /root/go2rtc-separation-backup
-sudo cp -a --parents /var/lib/go2rtc-control/cameras.json /root/go2rtc-separation-backup
-sudo cp -a --parents /var/lib/go2rtc-control-test/cameras.json /root/go2rtc-separation-backup
-sudo cp -a --parents /etc/go2rtc-control/go2rtc-control.env /root/go2rtc-separation-backup
-sudo cp -a --parents /etc/go2rtc-control-test/go2rtc-control-test.env /root/go2rtc-separation-backup
-sudo cp -a --parents /etc/systemd/system/go2rtc-test.service /root/go2rtc-separation-backup
-sudo cp -a --parents /etc/systemd/system/go2rtc-control.service /root/go2rtc-separation-backup
-sudo cp -a --parents /etc/systemd/system/go2rtc-control-test.service /root/go2rtc-separation-backup
-```
+`/home/pi/go2rtc-migration-backup-20261114-162916/`
 
-Sauvegarder également les jetons désignés par les deux fichiers d'environnement. Lire uniquement la valeur locale de `TOKEN_FILE`, puis copier le fichier correspondant avec ses permissions ; ne jamais afficher son contenu. Si le chemin est relatif, absent ou ambigu, arrêter et résoudre ce point avant de continuer. Si `/etc/go2rtc` existe déjà, le sauvegarder intégralement avant toute modification.
+Elle contient notamment le YAML et le binaire go2rtc, les deux registres privés, les deux fichiers d'environnement, les jetons référencés par `TOKEN_FILE` et les trois unités systemd. Les empreintes SHA-256 de la sauvegarde sur le Raspberry Pi et de sa copie sur le PC ont été comparées et correspondent.
 
-Vérifier que les deux registres sont présents et distincts. Ne pas les fusionner, les remplacer ou les régénérer. Les registres existants contiennent les sources, profils vidéo, préférences audio et paramètres PTZ ; ils sont la source persistante de ces réglages.
+**Ne pas refaire cette sauvegarde dans un autre emplacement et ne pas modifier son contenu.** Pour toute copie de travail, utiliser exclusivement les fichiers de cette sauvegarde vérifiée. Si ce répertoire est absent ou inaccessible, arrêter la procédure et résoudre ce problème avant toute modification.
 
-Une copie indépendante hors du Raspberry et une vérification SHA-256 sont fortement recommandées.
+Vérifier que les deux registres restent présents et distincts. Ne pas les fusionner, les remplacer ou les régénérer. Les registres existants contiennent les sources, profils vidéo, préférences audio et paramètres PTZ ; ils sont la source persistante de ces réglages.
 
 ## 3. Inventorier et répartir les flux YAML
 
@@ -68,16 +57,16 @@ Cette répartition est à confirmer avec l'usage réel avant suppression d'une e
 Créer deux fichiers de travail à partir du YAML sauvegardé. Les chemins sont explicites pour éviter toute édition directe du fichier actif pendant la préparation :
 
 ```bash
-sudo install -d -o root -g root -m 0700 /root/go2rtc-separation-work
-sudo cp -a /root/go2rtc-separation-backup/home/pi/go2rtc-test/go2rtc.yaml /root/go2rtc-separation-work/go2rtc-production.yaml
-sudo cp -a /root/go2rtc-separation-backup/home/pi/go2rtc-test/go2rtc.yaml /root/go2rtc-separation-work/go2rtc-test.yaml
-sudo nano /root/go2rtc-separation-work/go2rtc-production.yaml
-sudo nano /root/go2rtc-separation-work/go2rtc-test.yaml
+install -d -o pi -g pi -m 0700 /home/pi/go2rtc-separation-work
+sudo cp -a /home/pi/go2rtc-migration-backup-20261114-162916/home/pi/go2rtc-test/go2rtc.yaml /home/pi/go2rtc-separation-work/go2rtc-production.yaml
+sudo cp -a /home/pi/go2rtc-migration-backup-20261114-162916/home/pi/go2rtc-test/go2rtc.yaml /home/pi/go2rtc-separation-work/go2rtc-test.yaml
+sudo nano /home/pi/go2rtc-separation-work/go2rtc-production.yaml
+sudo nano /home/pi/go2rtc-separation-work/go2rtc-test.yaml
 ```
 
 Après édition et vérification :
-- `/root/go2rtc-separation-work/go2rtc-production.yaml` contient les flux de production uniquement ;
-- `/root/go2rtc-separation-work/go2rtc-test.yaml` contient les flux de test uniquement.
+- `/home/pi/go2rtc-separation-work/go2rtc-production.yaml` contient les flux de production uniquement ;
+- `/home/pi/go2rtc-separation-work/go2rtc-test.yaml` contient les flux de test uniquement.
 
 Ne pas éditer les sources RTSP elles-mêmes. Préserver exactement leurs URL, options, identifiants et paramètres. Ne jamais envoyer leur contenu dans un ticket ou une conversation.
 
@@ -119,7 +108,7 @@ sudo install -o pi -g pi -m 0755 /home/pi/go2rtc-test/go2rtc /usr/local/bin/go2r
 Créer `/etc/go2rtc/go2rtc.yaml` à partir du YAML de production préparé à l'étape 3. Ne pas écraser un fichier préexistant : s'il existe, l'examiner et le sauvegarder avant toute décision.
 
 ```bash
-sudo install -o pi -g pi -m 0640 /root/go2rtc-separation-work/go2rtc-production.yaml /etc/go2rtc/go2rtc.yaml
+sudo install -o pi -g pi -m 0640 /home/pi/go2rtc-separation-work/go2rtc-production.yaml /etc/go2rtc/go2rtc.yaml
 ```
 
 Le fichier d'environnement `/etc/go2rtc/go2rtc.env` sera créé par l'installateur s'il est absent. S'il existe déjà, vérifier que son unique variable `GO2RTC_CONFIG` vaut exactement `/etc/go2rtc/go2rtc.yaml`. Ne pas écraser un environnement préexistant.
@@ -159,7 +148,7 @@ Les deux variables `SOURCE_REGISTRY` doivent rester différentes et pointer vers
 Installer le YAML de test préparé (après avoir vérifié qu'il ne contient que les flux de test) :
 
 ```bash
-sudo install -o pi -g pi -m 0640 /root/go2rtc-separation-work/go2rtc-test.yaml /home/pi/go2rtc-test/go2rtc.yaml
+sudo install -o pi -g pi -m 0640 /home/pi/go2rtc-separation-work/go2rtc-test.yaml /home/pi/go2rtc-test/go2rtc.yaml
 ```
 
 Appliquer les nouveaux ports de test et redémarrer uniquement les services de test :
