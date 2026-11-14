@@ -1,0 +1,12 @@
+# Exemple de configuration de l'instance de test uniquement.
+# Ne pas remplacer le YAML de test existant : fusionner uniquement les ports.
+api:
+  listen: 127.0.0.1:1987
+
+rtsp:
+  listen: :8556
+
+webrtc:
+  listen: :8557
+
+streams: {}

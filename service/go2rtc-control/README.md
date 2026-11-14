@@ -19,7 +19,7 @@ cd service/go2rtc-control
 sudo bash install.sh
 ```
 
-Valeurs par défaut : utilisateur Linux `pi`, YAML `/home/pi/go2rtc-test/go2rtc.yaml`, API go2rtc `http://127.0.0.1:1984`, origine Domoticz `http://192.168.1.21:8080`.
+Valeurs par défaut de production : utilisateur Linux `pi`, binaire indépendant `/usr/local/bin/go2rtc`, YAML `/etc/go2rtc/go2rtc.yaml`, API go2rtc `http://127.0.0.1:1984`, RTSP `8554`, WebRTC `8555`, origine Domoticz `http://192.168.1.21:8080`. L'unité `go2rtc.service` est installée et démarrée séparément ; `go2rtc-control.service` en dépend explicitement. L'environnement de test conserve ses propres unités et doit utiliser l'API `1987`, RTSP `8556` et WebRTC `8557`.
 
 Pour adapter le chemin YAML ou l'origine du tableau de bord :
 
@@ -27,7 +27,7 @@ Pour adapter le chemin YAML ou l'origine du tableau de bord :
 sudo GO2RTC_CONFIG=/chemin/go2rtc.yaml DASHBOARD_ORIGIN=http://192.168.1.21:8080 bash install.sh
 ```
 
-Le script installe `python3-yaml`, `python3-zeep` et `python3-pip`, place le client `onvif-zeep` dans un répertoire privé de l'application, déploie le programme dans `/opt/go2rtc-control`, crée le jeton dans `/etc/go2rtc-control/token` lors de la première installation, puis redémarre le service.
+Avant l'installation, réalise la migration décrite dans [MIGRATION.md](MIGRATION.md) : sauvegarde, copie indépendante du binaire et du YAML de production, déplacement des ports de test, puis mise à jour des deux fichiers d'environnement. Le script refuse de poursuivre si le binaire de production ou son YAML est absent, ou si la variable `GO2RTC_CONFIG` du fichier `/etc/go2rtc/go2rtc.env` ne correspond pas exactement au YAML validé. Il installe `go2rtc.service` et `go2rtc-control.service`, installe `python3-yaml`, `python3-zeep` et `python3-pip`, place le client `onvif-zeep` dans un répertoire privé de l'application, déploie le programme dans `/opt/go2rtc-control`, crée le jeton dans `/etc/go2rtc-control/token` lors de la première installation, puis démarre les services de production. Il ne modifie ni ne redémarre les unités de test.
 
 **Migration automatique de l'installation existante :** si le registre indépendant n'existe pas encore, le premier démarrage de cette version copie les sources textuelles actuellement présentes dans le YAML go2rtc vers `/var/lib/go2rtc-control/cameras.json`. Dans ton cas, comme tu as restauré le YAML avant cette mise à jour, cette copie récupérera les sources restaurées. Le registre est ensuite conservé tel quel : une mise à jour ou un redémarrage ne l'écrase pas, même si go2rtc a retiré un flux du YAML.
 

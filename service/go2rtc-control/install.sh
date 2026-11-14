@@ -8,25 +8,51 @@ fi
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 SERVICE_USER="${SERVICE_USER:-pi}"
-CONFIG_PATH="${GO2RTC_CONFIG:-/home/pi/go2rtc-test/go2rtc.yaml}"
+CONFIG_PATH="${GO2RTC_CONFIG:-/etc/go2rtc/go2rtc.yaml}"
+GO2RTC_BIN="/usr/local/bin/go2rtc"
+GO2RTC_INSTALL_DIR="/etc/go2rtc"
 DASHBOARD_ORIGIN="${DASHBOARD_ORIGIN:-http://192.168.1.21:8080}"
 INSTALL_DIR="/opt/go2rtc-control"
 ETC_DIR="/etc/go2rtc-control"
+GO2RTC_ENV="${GO2RTC_INSTALL_DIR}/go2rtc.env"
 
 if ! id "${SERVICE_USER}" >/dev/null 2>&1; then
   echo "Utilisateur système introuvable : ${SERVICE_USER}" >&2
   exit 1
 fi
-if [[ ! -r "${CONFIG_PATH}" ]]; then
-  echo "Fichier de configuration go2rtc introuvable ou illisible : ${CONFIG_PATH}" >&2
-  echo "Définis GO2RTC_CONFIG avant de lancer le script si nécessaire." >&2
+if [[ ! -x "${GO2RTC_BIN}" ]]; then
+  echo "Binaire go2rtc introuvable ou non exécutable : ${GO2RTC_BIN}" >&2
+  echo "Installe une copie indépendante du binaire de production avant de poursuivre." >&2
   exit 1
+fi
+if [[ ! -r "${CONFIG_PATH}" ]]; then
+  echo "Configuration go2rtc de production introuvable ou illisible : ${CONFIG_PATH}" >&2
+  echo "Copie d'abord la configuration de production selon MIGRATION.md." >&2
+  exit 1
+fi
+if [[ -f "${GO2RTC_ENV}" ]]; then
+  config_line_count="$(grep -cE '^[[:space:]]*GO2RTC_CONFIG[[:space:]]*=' "${GO2RTC_ENV}" || true)"
+  configured_path="$(sed -n 's/^[[:space:]]*GO2RTC_CONFIG[[:space:]]*=[[:space:]]*//p' "${GO2RTC_ENV}" | tail -n 1 | sed -E 's/[[:space:]]+$//')"
+  configured_path="${configured_path%\"}"
+  configured_path="${configured_path#\"}"
+  configured_path="${configured_path%\'}"
+  configured_path="${configured_path#\'}"
+  if [[ "${config_line_count}" -ne 1 || "${configured_path}" != "${CONFIG_PATH}" ]]; then
+    echo "Configuration de production incohérente : GO2RTC_CONFIG dans ${GO2RTC_ENV} doit désigner ${CONFIG_PATH} exactement une fois." >&2
+    echo "Corrige ce fichier manuellement après sauvegarde ; l'installateur n'écrase pas les paramètres existants." >&2
+    exit 1
+  fi
 fi
 
 apt-get update
 apt-get install -y python3-yaml python3-zeep python3-pip
 
-install -d -o root -g "${SERVICE_USER}" -m 0750 "${INSTALL_DIR}" "${ETC_DIR}"
+install -d -o root -g "${SERVICE_USER}" -m 0750 "${INSTALL_DIR}" "${ETC_DIR}" "${GO2RTC_INSTALL_DIR}"
+if [[ ! -f "${GO2RTC_ENV}" ]]; then
+  printf 'GO2RTC_CONFIG=%s\n' "${CONFIG_PATH}" > "${GO2RTC_ENV}"
+  chown root:"${SERVICE_USER}" "${GO2RTC_ENV}"
+  chmod 0640 "${GO2RTC_ENV}"
+fi
 install -o root -g root -m 0644 "${SCRIPT_DIR}/server.py" "${INSTALL_DIR}/server.py"
 install -o root -g root -m 0644 "${SCRIPT_DIR}/camera_profiles.py" "${INSTALL_DIR}/camera_profiles.py"
 install -o root -g root -m 0644 "${SCRIPT_DIR}/session_manager.py" "${INSTALL_DIR}/session_manager.py"
@@ -54,6 +80,7 @@ install -d -o root -g root -m 0755 "${INSTALL_DIR}/vendor/wsdl"
 cp -a "${WSDL_SOURCE_DIR}/." "${INSTALL_DIR}/vendor/wsdl/"
 chown -R root:root "${INSTALL_DIR}/vendor/wsdl"
 chmod -R a+rX "${INSTALL_DIR}/vendor/wsdl"
+install -o root -g root -m 0644 "${SCRIPT_DIR}/go2rtc.service" /etc/systemd/system/go2rtc.service
 install -o root -g root -m 0644 "${SCRIPT_DIR}/go2rtc-control.service" /etc/systemd/system/go2rtc-control.service
 
 if [[ ! -s "${ETC_DIR}/token" ]]; then
@@ -86,7 +113,8 @@ else
 fi
 
 systemctl daemon-reload
-systemctl enable go2rtc-control.service
+systemctl enable go2rtc.service go2rtc-control.service
+systemctl restart go2rtc.service
 systemctl restart go2rtc-control.service
 
 echo

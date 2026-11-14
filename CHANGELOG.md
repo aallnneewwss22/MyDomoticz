@@ -2,6 +2,13 @@
 
 ## [Non publié]
 
+### Architecture — Séparation des environnements go2rtc
+
+- Ajout d'une instance go2rtc de production dédiée (`go2rtc.service`) avec son propre binaire et son YAML sous `/etc/go2rtc`.
+- Le service de contrôle de production dépend désormais explicitement de `go2rtc.service`.
+- Valeurs de référence distinctes pour les environnements : production `1984/8554/8555`, test `1987/8556/8557` ; les API de contrôle restent `1985` et `1986`.
+- Ajout d'une procédure de migration sauvegardée et réversible ; aucune modification automatique du Raspberry Pi.
+
 ### Ajouté
 - Gestion des profils vidéo depuis chaque carte caméra : consultation, création, modification, suppression et mémorisation d'une préférence indépendante par caméra.
 - Le profil Natif reste protégé ; les paramètres personnalisés sont validés dans l'interface avant envoi à l'API.
