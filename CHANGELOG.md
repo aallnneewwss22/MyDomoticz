@@ -2,6 +2,12 @@
 
 ## [Non publié]
 
+### Modifié
+- Affichage du nom du profil vidéo actuellement sélectionné directement sur chaque carte caméra.
+- Remplacement du bouton « Profils vidéo » par une icône d'engrenage avec un libellé accessible.
+- Remplacement du libellé audio par une icône de haut-parleur : barrée lorsque l'audio est coupé, non barrée lorsqu'il est activé.
+- Création de `maison-dashboard-v89.html` et mise à jour du lanceur.
+
 ### Ajouté
 - Application effective du profil vidéo préféré à chaque démarrage du lecteur caméra : profil Natif ou flux transcodé dédié.
 - Acquisition, renouvellement toutes les 10 secondes et libération des sessions de transcodage depuis le tableau de bord ; le service conserve l'autorité sur les baux et les conflits de profils.
