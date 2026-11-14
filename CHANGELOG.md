@@ -3,6 +3,13 @@
 ## [Non publié]
 
 ### Ajouté
+- Application effective du profil vidéo préféré à chaque démarrage du lecteur caméra : profil Natif ou flux transcodé dédié.
+- Acquisition, renouvellement toutes les 10 secondes et libération des sessions de transcodage depuis le tableau de bord ; le service conserve l'autorité sur les baux et les conflits de profils.
+- Libération explicite lors de l'arrêt global, du changement de page et à la fermeture de l'onglet, avec expiration serveur en filet de sécurité.
+- Création de `maison-dashboard-v88.html` et mise à jour du lanceur.
+
+
+### Ajouté
 - Gestion des profils vidéo depuis chaque carte caméra : consultation, création, modification, suppression et mémorisation d'une préférence indépendante par caméra.
 - Le profil Natif reste protégé ; les paramètres personnalisés sont validés dans l'interface avant envoi à l'API.
 - Création de `maison-dashboard-v87.html` et mise à jour du lanceur.
