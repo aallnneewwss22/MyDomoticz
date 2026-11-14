@@ -1376,6 +1376,10 @@
                     const option = document.createElement("option");
                     option.value = profile.id;
                     option.textContent = profile.id === "native" ? "Natif — flux original" : profile.name;
+                    const incompatible = profile.id !== "native"
+                        && cameraProfileState.nativeQuality === "720p"
+                        && (profile.width > 1280 || profile.height > 720);
+                    if (incompatible) option.textContent += " · indisponible en 720p";
                     if (profile.id === cameraProfileState.selectedProfileId) option.textContent += " · préféré";
                     list.append(option);
                 }
@@ -1403,7 +1407,12 @@
                 $("camera-profile-bitrate").value = String(profile?.bitrate_kbps ?? 400);
                 $("camera-profile-delete").disabled = isNative || cameraProfileState.creating;
                 $("camera-profile-save").disabled = isNative;
-                $("camera-profile-prefer").disabled = cameraProfileState.creating || cameraProfileState.editingId === cameraProfileState.selectedProfileId;
+                const incompatible = profile && profile.id !== "native"
+                    && cameraProfileState.nativeQuality === "720p"
+                    && (profile.width > 1280 || profile.height > 720);
+                $("camera-profile-prefer").disabled = cameraProfileState.creating
+                    || cameraProfileState.editingId === cameraProfileState.selectedProfileId
+                    || incompatible;
                 $("camera-profile-prefer").textContent = "Profil préféré";
             }
             async function cameraProfilesReload(preferredEditingId = null) {
