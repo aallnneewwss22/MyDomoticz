@@ -13,6 +13,9 @@ spec.loader.exec_module(module)
 
 
 class SourceRegistryTests(unittest.TestCase):
+    def test_production_config_default_is_not_the_test_yaml(self):
+        self.assertEqual(module.GO2RTC_CONFIG, Path("/etc/go2rtc/go2rtc.yaml"))
+
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
         root = Path(self.directory.name)
