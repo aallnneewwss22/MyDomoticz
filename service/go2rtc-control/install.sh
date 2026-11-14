@@ -9,7 +9,7 @@ fi
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 SERVICE_USER="${SERVICE_USER:-pi}"
 CONFIG_PATH="${GO2RTC_CONFIG:-/etc/go2rtc/go2rtc.yaml}"
-GO2RTC_BIN="${GO2RTC_BIN:-/usr/local/bin/go2rtc}"
+GO2RTC_BIN="/usr/local/bin/go2rtc"
 GO2RTC_INSTALL_DIR="/etc/go2rtc"
 DASHBOARD_ORIGIN="${DASHBOARD_ORIGIN:-http://192.168.1.21:8080}"
 INSTALL_DIR="/opt/go2rtc-control"
