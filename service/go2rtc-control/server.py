@@ -163,7 +163,8 @@ def load_camera_settings() -> dict[str, dict[str, object]]:
             if isinstance(source, str) and source.strip() and isinstance(audio_enabled, bool):
                 try:
                     profiles, default_profile_id = normalize_camera_profiles(
-                        entry.get("profiles"), entry.get("default_profile_id"), quality
+                        entry.get("profiles"), entry.get("default_profile_id"), quality,
+                        enforce_native_limit=False,
                     )
                     selected_profile_id = validate_selected_profile(
                         profiles, entry.get("selected_profile_id")
@@ -236,7 +237,8 @@ def save_camera_settings(cameras: dict[str, dict[str, object]]) -> None:
         quality = entry.get("quality", "1080p")
         try:
             profiles, default_profile_id = normalize_camera_profiles(
-                entry.get("profiles"), entry.get("default_profile_id"), quality
+                entry.get("profiles"), entry.get("default_profile_id"), quality,
+                enforce_native_limit=False,
             )
         except CameraProfileError as exc:
             raise ControlError(f"Profils vidéo invalides pour {name}: {exc}") from exc
@@ -555,6 +557,20 @@ class Handler(BaseHTTPRequestHandler):
                         running = stream_exists(name)
                         if running:
                             replace_stream_source(name, source_for_audio(selected_source, audio_enabled))
+                        if next_quality == "720p":
+                            profiles = settings.get("profiles")
+                            selected_id = settings.get("selected_profile_id", "native")
+                            selected_profile = profiles.get(selected_id) if isinstance(profiles, dict) else None
+                            if (
+                                isinstance(selected_profile, dict)
+                                and (
+                                    int(selected_profile.get("width", 0)) > 1280
+                                    or int(selected_profile.get("height", 0)) > 720
+                                )
+                            ):
+                                # Keep the custom profile saved, but use the native
+                                # stream until the camera is switched back to 1080p.
+                                settings["selected_profile_id"] = "native"
                         settings["quality"] = next_quality
                         save_camera_settings(cameras)
                     self.send_json(200, {"enabled": stream_exists(name), "audio_enabled": audio_enabled, "quality": next_quality})
