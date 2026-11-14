@@ -5,10 +5,11 @@ Wants=network-online.target
 
 [Service]
 Type=simple
+EnvironmentFile=/etc/go2rtc/go2rtc.env
 User=pi
 Group=pi
 WorkingDirectory=/etc/go2rtc
-ExecStart=/usr/local/bin/go2rtc -config /etc/go2rtc/go2rtc.yaml
+ExecStart=/usr/local/bin/go2rtc -config ${GO2RTC_CONFIG}
 Restart=on-failure
 RestartSec=5
 NoNewPrivileges=true
