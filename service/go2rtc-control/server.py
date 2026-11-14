@@ -169,6 +169,17 @@ def load_camera_settings() -> dict[str, dict[str, object]]:
                     selected_profile_id = validate_selected_profile(
                         profiles, entry.get("selected_profile_id")
                     )
+                    selected_profile = profiles.get(selected_profile_id)
+                    if (
+                        selected_profile_id != "native"
+                        and quality == "720p"
+                        and isinstance(selected_profile, dict)
+                        and (
+                            selected_profile.get("width", 0) > 1280
+                            or selected_profile.get("height", 0) > 720
+                        )
+                    ):
+                        selected_profile_id = "native"
                 except CameraProfileError as exc:
                     raise ControlError(f"Profils vidéo invalides pour {name}: {exc}") from exc
                 settings: dict[str, object] = {
@@ -665,7 +676,19 @@ class Handler(BaseHTTPRequestHandler):
                     return
                 if self.command == "PUT" and profile_id == "selected":
                     payload = _read_json_body(self)
-                    settings["selected_profile_id"] = validate_selected_profile(profiles, payload.get("profile_id"))
+                    selected_profile_id = validate_selected_profile(profiles, payload.get("profile_id"))
+                    selected_profile = profiles.get(selected_profile_id)
+                    if (
+                        selected_profile_id != "native"
+                        and quality == "720p"
+                        and isinstance(selected_profile, dict)
+                        and (
+                            selected_profile.get("width", 0) > 1280
+                            or selected_profile.get("height", 0) > 720
+                        )
+                    ):
+                        raise ControlError("Ce profil dépasse la résolution native actuelle de la caméra.")
+                    settings["selected_profile_id"] = selected_profile_id
                     save_camera_settings(cameras)
                     self.send_json(200, {"selected_profile_id": settings["selected_profile_id"]})
                     return
