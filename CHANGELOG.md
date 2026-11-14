@@ -2,6 +2,15 @@
 
 ## [Non publié]
 
+### Corrigé
+- À l'ouverture de la page caméra, toutes les cartes démarrent en état arrêté ; tout flux go2rtc encore actif est arrêté au lieu d'être relancé automatiquement.
+- Le passage de 1080p à 720p bascule le flux natif de `stream1` vers `stream2`, sans transcodage.
+- Les profils personnalisés incompatibles avec la nouvelle résolution native restent enregistrés ; si le profil préféré dépasse la résolution 720p, la préférence active revient à **Natif** sans supprimer le profil.
+
+### Modifié
+- Création de `maison-dashboard-v91.html` et mise à jour du lanceur.
+
+
 ### Modifié
 - Centrage horizontal et vertical explicite des icônes des boutons de commande des cartes caméra, sans marge ni padding résiduel.
 - Libellé du bouton de sélection du profil préféré uniformisé en « Profil préféré » afin de stabiliser la largeur des commandes dans la boîte de dialogue.
