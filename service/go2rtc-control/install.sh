@@ -31,8 +31,13 @@ if [[ ! -r "${CONFIG_PATH}" ]]; then
   exit 1
 fi
 if [[ -f "${GO2RTC_ENV}" ]]; then
-  mapfile -t configured_paths < <(sed -n 's/^[[:space:]]*GO2RTC_CONFIG[[:space:]]*=[[:space:]]*//p' "${GO2RTC_ENV}" | sed -E 's/^["'"']//; s/["'"']$//')
-  if [[ "${#configured_paths[@]}" -ne 1 || "${configured_paths[0]}" != "${CONFIG_PATH}" ]]; then
+  config_line_count="$(grep -cE '^[[:space:]]*GO2RTC_CONFIG[[:space:]]*=' "${GO2RTC_ENV}" || true)"
+  configured_path="$(sed -n 's/^[[:space:]]*GO2RTC_CONFIG[[:space:]]*=[[:space:]]*//p' "${GO2RTC_ENV}" | tail -n 1 | sed -E 's/[[:space:]]+$//')"
+  configured_path="${configured_path%\"}"
+  configured_path="${configured_path#\"}"
+  configured_path="${configured_path%\'}"
+  configured_path="${configured_path#\'}"
+  if [[ "${config_line_count}" -ne 1 || "${configured_path}" != "${CONFIG_PATH}" ]]; then
     echo "Configuration de production incohérente : GO2RTC_CONFIG dans ${GO2RTC_ENV} doit désigner ${CONFIG_PATH} exactement une fois." >&2
     echo "Corrige ce fichier manuellement après sauvegarde ; l'installateur n'écrase pas les paramètres existants." >&2
     exit 1
