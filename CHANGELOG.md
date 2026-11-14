@@ -2,6 +2,15 @@
 
 ## [Non publié]
 
+### Amélioré
+- En cas d'échec du démarrage du lecteur caméra, affichage d'un bandeau rouge fixe avec le message technique et un bouton « Réessayer ».
+- Le bouton déclenche une seule tentative manuelle ; aucune relance automatique ni animation clignotante.
+
+### Modifié
+- Création de `maison-dashboard-v93.html` et mise à jour du lanceur.
+
+## [Non publié]
+
 ### Corrigé
 - Après un échec de démarrage du transcodeur, la carte caméra conserve l'alerte et ne relance plus automatiquement la lecture à chaque actualisation. Une nouvelle tentative nécessite une action manuelle.
 
