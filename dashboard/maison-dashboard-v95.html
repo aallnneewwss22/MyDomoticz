@@ -1311,25 +1311,6 @@
                 return data;
             }
 
-            async function cameraMediaPlayerUrl(camera, source = camera) {
-                const token = cameraControlToken();
-                if (!token) throw new Error("Configure le jeton d'accès dans les paramètres du tableau de bord.");
-                const response = await fetch(cameraControlBaseUrl() + "/api/media/ticket", {
-                    method: "POST",
-                    headers: {
-                        Authorization: "Bearer " + token,
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({ camera, source }),
-                    cache: "no-store"
-                });
-                const data = await response.json().catch(() => ({}));
-                if (!response.ok || typeof data.path !== "string") {
-                    throw new Error(data.error || "Impossible d'autoriser la lecture vidéo.");
-                }
-                return new URL(data.path, cameraControlBaseUrl()).href;
-            }
-
 
 
             async function cameraProfileRequest(stream, method = "GET", profileId = null, payload = null) {
@@ -1763,7 +1744,15 @@
                 frame.allow = "autoplay; fullscreen; picture-in-picture";
                 frame.allowFullscreen = true;
                 frame.referrerPolicy = "no-referrer";
-                const playerUrlFor = source => cameraMediaPlayerUrl(config.stream, source);
+                const nativePlayerUrl = new URL("/stream.html", go2rtcBaseUrl);
+                nativePlayerUrl.searchParams.set("src", config.stream);
+                nativePlayerUrl.searchParams.set("mode", "webrtc,mse,hls");
+                const playerUrlFor = source => {
+                    const url = new URL("/stream.html", go2rtcBaseUrl);
+                    url.searchParams.set("src", source);
+                    url.searchParams.set("mode", "webrtc,mse,hls");
+                    return url.href;
+                };
                 const framePlaceholder = document.createComment("Emplacement du lecteur caméra");
 
                 const controls = document.createElement("div");
@@ -1940,9 +1929,7 @@
                         const selectedId = profileResult.selected_profile_id || "native";
                         updateSelectedProfileLabel(profileResult.profiles || [], selectedId);
                         if (selectedId === "native") {
-                            const playerUrl = await playerUrlFor(config.stream);
-                            if (generation !== playbackGeneration || mode !== "on") return;
-                            frame.src = playerUrl;
+                            frame.src = nativePlayerUrl.href;
                             status.textContent = "Lecture du flux natif.";
                             return;
                         }
@@ -1967,14 +1954,9 @@
                             try { await cameraTranscodeRequest(config.stream, "release", session); } catch (error) {}
                             return;
                         }
-                        const playerUrl = await playerUrlFor(config.stream + "_transcode");
-                        if (generation !== playbackGeneration || mode !== "on") {
-                            try { await cameraTranscodeRequest(config.stream, "release", session); } catch (error) {}
-                            return;
-                        }
                         transcodeSession = session;
                         startHeartbeat(session);
-                        frame.src = playerUrl;
+                        frame.src = playerUrlFor(config.stream + "_transcode");
                         status.textContent = "Lecture du profil « " + selectedProfile.name + " » · transcodage actif.";
                     } catch (error) {
                         if (generation === playbackGeneration && mode === "on") {
