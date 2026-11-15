@@ -1,5 +1,6 @@
 """Tests for the authenticated, narrowly scoped go2rtc media gateway."""
 import importlib.util
+import http.client
 import json
 import sys
 import threading
@@ -108,6 +109,32 @@ class MediaTicketHTTPTests(unittest.TestCase):
         self.assertNotIn(TOKEN, result["path"])
         session = self.gateway._exchange_ticket(query["ticket"][0], "salon")
         self.assertTrue(session)
+
+    def test_player_ticket_is_exchanged_for_a_cookie_and_clean_redirect(self):
+        status, result = self.request({"camera": "salon"})
+        self.assertEqual(status, 201)
+        connection = http.client.HTTPConnection(
+            "127.0.0.1", self.httpd.server_address[1], timeout=3
+        )
+        connection.request("GET", result["path"])
+        response = connection.getresponse()
+        self.assertEqual(response.status, 303)
+        self.assertTrue(response.getheader("Location").startswith("/media/salon/stream.html?src=salon"))
+        cookie = response.getheader("Set-Cookie")
+        self.assertIn("go2rtc_media_salon=", cookie)
+        self.assertIn("HttpOnly", cookie)
+        self.assertNotIn("ticket=", response.getheader("Location"))
+        connection.close()
+
+    def test_media_assets_require_a_session_cookie(self):
+        request = urllib.request.Request(
+            self.base_url + "/media/salon/video-stream.js", method="GET"
+        )
+        try:
+            urllib.request.urlopen(request, timeout=3)
+            self.fail("A media asset must not be public.")
+        except urllib.error.HTTPError as exc:
+            self.assertEqual(exc.code, 401)
 
 
 if __name__ == "__main__":
