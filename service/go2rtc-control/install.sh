@@ -155,12 +155,23 @@ EOF
   chown root:"${SERVICE_USER}" "${ETC_DIR}/go2rtc-control.env"
   chmod 0640 "${ETC_DIR}/go2rtc-control.env"
 else
-  # Add engine defaults without replacing existing user-defined settings.
-  grep -q '^SOURCE_REGISTRY=' "${ETC_DIR}/go2rtc-control.env" || printf '\nSOURCE_REGISTRY=/var/lib/go2rtc-control/cameras.json\n' >> "${ETC_DIR}/go2rtc-control.env"
-  grep -q '^TRANSCODE_FFMPEG=' "${ETC_DIR}/go2rtc-control.env" || printf 'TRANSCODE_FFMPEG=/usr/bin/ffmpeg\n' >> "${ETC_DIR}/go2rtc-control.env"
-  grep -q '^TRANSCODE_RTSP_HOST=' "${ETC_DIR}/go2rtc-control.env" || printf 'TRANSCODE_RTSP_HOST=127.0.0.1\n' >> "${ETC_DIR}/go2rtc-control.env"
-  grep -q '^TRANSCODE_RTSP_PORT=' "${ETC_DIR}/go2rtc-control.env" || printf 'TRANSCODE_RTSP_PORT=8554\n' >> "${ETC_DIR}/go2rtc-control.env"
+  # Add missing defaults without replacing existing user-defined settings.
+  ensure_env_value "${ETC_DIR}/go2rtc-control.env" GO2RTC_API http://127.0.0.1:1984
+  ensure_env_value "${ETC_DIR}/go2rtc-control.env" GO2RTC_CONFIG "${CONFIG_PATH}"
+  ensure_env_value "${ETC_DIR}/go2rtc-control.env" SOURCE_REGISTRY /var/lib/go2rtc-control/cameras.json
+  ensure_env_value "${ETC_DIR}/go2rtc-control.env" TOKEN_FILE "${ETC_DIR}/token"
+  ensure_env_value "${ETC_DIR}/go2rtc-control.env" CONTROL_HOST 0.0.0.0
+  ensure_env_value "${ETC_DIR}/go2rtc-control.env" CONTROL_PORT 1985
+  ensure_env_value "${ETC_DIR}/go2rtc-control.env" TRANSCODE_FFMPEG /usr/bin/ffmpeg
+  ensure_env_value "${ETC_DIR}/go2rtc-control.env" TRANSCODE_RTSP_HOST 127.0.0.1
+  ensure_env_value "${ETC_DIR}/go2rtc-control.env" TRANSCODE_RTSP_PORT 8554
 fi
+validate_env_value "${ETC_DIR}/go2rtc-control.env" GO2RTC_API http://127.0.0.1:1984
+validate_env_value "${ETC_DIR}/go2rtc-control.env" GO2RTC_CONFIG "${CONFIG_PATH}"
+validate_env_value "${ETC_DIR}/go2rtc-control.env" CONTROL_HOST 0.0.0.0
+validate_env_value "${ETC_DIR}/go2rtc-control.env" CONTROL_PORT 1985
+validate_env_value "${ETC_DIR}/go2rtc-control.env" SOURCE_REGISTRY /var/lib/go2rtc-control/cameras.json
+validate_env_value "${ETC_DIR}/go2rtc-control.env" TRANSCODE_RTSP_PORT 8554
 
 ensure_env_value "${ETC_DIR}/go2rtc-control.env" TOKEN_FILE "${ETC_DIR}/token"
 PROD_TOKEN_FILE="$(read_env_value "${ETC_DIR}/go2rtc-control.env" TOKEN_FILE)"
@@ -168,9 +179,12 @@ if [[ -z "${PROD_TOKEN_FILE}" ]]; then
   echo "TOKEN_FILE est absent de ${ETC_DIR}/go2rtc-control.env." >&2
   exit 1
 fi
-if [[ ! -s "${PROD_TOKEN_FILE}" ]]; then
+if [[ ! -e "${PROD_TOKEN_FILE}" ]]; then
   install -d -o root -g "${SERVICE_USER}" -m 0750 "$(dirname -- "${PROD_TOKEN_FILE}")"
   python3 -c 'import secrets; print(secrets.token_urlsafe(48))' > "${PROD_TOKEN_FILE}"
+elif [[ ! -f "${PROD_TOKEN_FILE}" || -L "${PROD_TOKEN_FILE}" || ! -s "${PROD_TOKEN_FILE}" ]]; then
+  echo "Fichier de jeton de production invalide ; aucun remplacement automatique n'est effectué." >&2
+  exit 1
 fi
 chown root:"${SERVICE_USER}" "${PROD_TOKEN_FILE}"
 chmod 0640 "${PROD_TOKEN_FILE}"
@@ -192,8 +206,12 @@ EOF
   chown root:"${SERVICE_USER}" "${TEST_ENV}"
   chmod 0640 "${TEST_ENV}"
 else
+  ensure_env_value "${TEST_ENV}" GO2RTC_API http://127.0.0.1:1987
+  ensure_env_value "${TEST_ENV}" GO2RTC_CONFIG "${TEST_CONFIG}"
   ensure_env_value "${TEST_ENV}" SOURCE_REGISTRY /var/lib/go2rtc-control-test/cameras.json
   ensure_env_value "${TEST_ENV}" TOKEN_FILE "${TEST_ETC_DIR}/token"
+  ensure_env_value "${TEST_ENV}" CONTROL_HOST 127.0.0.1
+  ensure_env_value "${TEST_ENV}" CONTROL_PORT 1986
   ensure_env_value "${TEST_ENV}" TRANSCODE_FFMPEG /usr/bin/ffmpeg
   ensure_env_value "${TEST_ENV}" TRANSCODE_RTSP_HOST 127.0.0.1
   ensure_env_value "${TEST_ENV}" TRANSCODE_RTSP_PORT 8556
@@ -210,9 +228,12 @@ if [[ -z "${TEST_TOKEN_FILE}" ]]; then
   echo "TOKEN_FILE est absent de ${TEST_ENV}." >&2
   exit 1
 fi
-if [[ ! -s "${TEST_TOKEN_FILE}" ]]; then
+if [[ ! -e "${TEST_TOKEN_FILE}" ]]; then
   install -d -o root -g "${SERVICE_USER}" -m 0750 "$(dirname -- "${TEST_TOKEN_FILE}")"
   python3 -c 'import secrets; print(secrets.token_urlsafe(48))' > "${TEST_TOKEN_FILE}"
+elif [[ ! -f "${TEST_TOKEN_FILE}" || -L "${TEST_TOKEN_FILE}" || ! -s "${TEST_TOKEN_FILE}" ]]; then
+  echo "Fichier de jeton de test invalide ; aucun remplacement automatique n'est effectué." >&2
+  exit 1
 fi
 chown root:"${SERVICE_USER}" "${TEST_TOKEN_FILE}"
 chmod 0640 "${TEST_TOKEN_FILE}"
