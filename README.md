@@ -2,12 +2,12 @@
 
 Pages web personnalisées pour Domoticz, développées progressivement et versionnées avec Git.
 
-## Tableau de bord — version courante v95
+## Tableau de bord — version courante v96
 
 Le tableau de bord est fourni sous deux fichiers :
 
 - `dashboard/maison.html` : page d'entrée à installer dans le menu **Custom** de Domoticz ;
-- `dashboard/maison-dashboard-v95.html` : version actuelle du tableau de bord autonome, destinée à s'ouvrir dans son propre onglet.
+- `dashboard/maison-dashboard-v96.html` : version actuelle du tableau de bord autonome, destinée à s'ouvrir dans son propre onglet.
 
 Le suffixe `-vN` du tableau de bord fait partie de la stratégie de cache : chaque évolution du tableau de bord crée un nouveau fichier numéroté afin que le navigateur demande une URL différente.
 
@@ -18,7 +18,7 @@ Fonctions du tableau de bord :
 - gestion des profils vidéo indépendants par caméra ; le lecteur applique le profil préféré et gère automatiquement l'acquisition, le heartbeat et la libération des sessions de transcodage ;
 - récupération indépendante du profil vidéo préféré à l'ouverture de chaque carte, même lorsque le lecteur reste arrêté ; en cas d'indisponibilité de l'API, affichage explicite « Profil vidéo : indisponible » ;
 - en cas d'échec du démarrage vidéo, affichage d'un bandeau rouge avec le détail de l'erreur et un bouton « Réessayer » ; aucune relance automatique ; le passage en arrêt global efface l'alerte et réinitialise l'état d'échec ;
-- cartes vidéo intégrées pour les lignes marquées caméra, avec lecture des flux go2rtc (WebRTC puis solutions de repli MSE/HLS) ;
+- cartes vidéo intégrées pour les lignes marquées caméra ; le lecteur passe par la passerelle média authentifiée du service de contrôle, sans accès navigateur direct à l'API go2rtc ; WebRTC est privilégié avec repli MSE/HLS ;
 - le bouton de réduction des courbes du header replie les historiques en mode valeur et arrête également tous les flux vidéo actifs de la page ;
 - panneau de pilotage PTZ par caméra : joystick tactile/souris avec déplacements relatifs ONVIF successifs et case à cocher permettant l’inversion des deux axes pour une caméra montée tête en bas, vitesse réglable, zoom logiciel de l’image (1× à 3×) et positions prédéfinies ONVIF ;
 - consultation en lecture seule des équipements Domoticz ;
@@ -59,11 +59,11 @@ Chaque carte caméra dispose d'un bouton **Pilotage PTZ** qui ouvre un panneau a
 
 Les flux RTSP ne sont pas lus directement par le navigateur. Pour les afficher, installer go2rtc sur le Raspberry Pi (ou sur un autre serveur du réseau), y déclarer les sources RTSP et utiliser dans le classeur une ligne dont la colonne C vaut « caméra ». La colonne A contient uniquement le nom du flux go2rtc, par exemple « salon », et la colonne B son libellé. Les identifiants RTSP restent dans le fichier de configuration local de go2rtc.
 
-L'adresse go2rtc est réglable dans **Paramètres**. Par défaut, le tableau de bord utilise http(s)://nom-du-serveur-Domoticz:1984. go2rtc utilise normalement le port TCP 1984 pour son interface/API et le port 8555 (TCP/UDP) pour WebRTC ; vérifier la configuration réseau et les candidats WebRTC selon l'installation.
+Le lecteur utilise la passerelle média authentifiée du service de contrôle (port 1985 par défaut). L'API HTTP go2rtc reste confinée au Raspberry Pi sur 127.0.0.1:1984 et n'est plus appelée directement par le navigateur. Le port WebRTC 8555 (TCP/UDP) transporte toujours le média directement entre le navigateur et go2rtc ; vérifier les candidats ICE et la configuration réseau selon l'installation.
 
 Exemple de configuration sans identifiants réels : [docs/go2rtc.example.yaml](docs/go2rtc.example.yaml). Guide de mise en place : [docs/cameras-go2rtc.md](docs/cameras-go2rtc.md).
 
-**Sécurité :** ne placez pas d'URL RTSP avec identifiant ou mot de passe dans Excel. Ne publiez pas le port d'administration/API go2rtc sur Internet ; limitez son accès au réseau de confiance et protégez-le par le pare-feu ou un reverse proxy adapté. L'affichage vidéo est lui-même accessible aux personnes pouvant atteindre le service de streaming.
+**Sécurité :** ne placez pas d'URL RTSP avec identifiant ou mot de passe dans Excel. Ne publiez jamais le port 1984 de l'API go2rtc. La passerelle média exige le jeton du service de contrôle et un ticket de lecture à usage unique. L'accès WAN n'est pas activé par défaut : il nécessitera une configuration HTTPS, des origines autorisées et les redirections/candidats ICE adaptés, dans une évolution dédiée.
 
 ## Navigation multi-pages
 
