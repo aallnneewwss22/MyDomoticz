@@ -1,20 +1,45 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ -z "${TOKEN_FILE+x}" && -r /etc/go2rtc-control/go2rtc-control.env ]]; then
-  configured_token_file="$(sed -n 's/^[[:space:]]*TOKEN_FILE[[:space:]]*=[[:space:]]*//p' /etc/go2rtc-control/go2rtc-control.env | tail -n 1)"
-  configured_token_file="${configured_token_file%\"}"
-  configured_token_file="${configured_token_file#\"}"
-  configured_token_file="${configured_token_file%\'}"
-  configured_token_file="${configured_token_file#\'}"
-  if [[ -n "${configured_token_file}" ]]; then
-    TOKEN_FILE="${configured_token_file}"
+ENVIRONMENT="production"
+case "${1:-}" in
+  "")
+    ;;
+  --production)
+    ENVIRONMENT="production"
+    ;;
+  --test)
+    ENVIRONMENT="test"
+    ;;
+  *)
+    echo "Usage : sudo go2rtc-control-show-token [--production|--test]" >&2
+    exit 2
+    ;;
+esac
+
+if [[ -z "${TOKEN_FILE+x}" ]]; then
+  if [[ "${ENVIRONMENT}" == "test" ]]; then
+    ENV_FILE="/etc/go2rtc-control-test/go2rtc-control-test.env"
+    DEFAULT_TOKEN_FILE="/etc/go2rtc-control-test/token"
+  else
+    ENV_FILE="/etc/go2rtc-control/go2rtc-control.env"
+    DEFAULT_TOKEN_FILE="/etc/go2rtc-control/token"
   fi
+  if [[ -r "${ENV_FILE}" ]]; then
+    configured_token_file="$(sed -n 's/^[[:space:]]*TOKEN_FILE[[:space:]]*=[[:space:]]*//p' "${ENV_FILE}" | tail -n 1)"
+    configured_token_file="${configured_token_file%\"}"
+    configured_token_file="${configured_token_file#\"}"
+    configured_token_file="${configured_token_file%\'}"
+    configured_token_file="${configured_token_file#\'}"
+    if [[ -n "${configured_token_file}" ]]; then
+      TOKEN_FILE="${configured_token_file}"
+    fi
+  fi
+  TOKEN_FILE="${TOKEN_FILE:-${DEFAULT_TOKEN_FILE}}"
 fi
-TOKEN_FILE="${TOKEN_FILE:-/etc/go2rtc-control/token}"
 
 if [[ "$(id -u)" -ne 0 ]]; then
-  echo "Lance cette commande avec sudo : sudo go2rtc-control-show-token" >&2
+  echo "Lance cette commande avec sudo : sudo go2rtc-control-show-token [--production|--test]" >&2
   exit 1
 fi
 
