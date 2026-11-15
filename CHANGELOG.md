@@ -2,6 +2,24 @@
 
 ## [Non publié]
 
+### Ajouté — Passerelle média authentifiée (PR50)
+
+- Le lecteur caméra du tableau de bord v96 utilise désormais une passerelle média intégrée au service de contrôle, au lieu d'accéder directement à l'interface HTTP go2rtc.
+- Ajout de tickets de lecture à usage unique, à durée courte, émis uniquement après authentification Bearer et liés à une caméra et à son flux natif ou transcodé.
+- Échange du ticket contre un cookie HttpOnly propre à la caméra ; la passerelle relaie uniquement les ressources du lecteur, la signalisation WebSocket go2rtc et les ressources HLS autorisées.
+- L'API go2rtc reste exclusivement sur loopback ; aucune route d'administration go2rtc n'est exposée par la passerelle.
+- La signalisation WebRTC et MSE/HLS transite par la passerelle ; le transport média WebRTC reste direct vers le port configuré de go2rtc.
+- Ajout du paramètre facultatif `DASHBOARD_ORIGINS` pour préparer plusieurs origines de tableau de bord, sans activer l'accès WAN ni modifier les redirections de ports.
+- Déploiement du module de passerelle dans les deux répertoires de contrôle, sans toucher aux binaires/YAML go2rtc, aux jetons ni aux registres.
+- Mise à jour du lanceur vers `maison-dashboard-v96.html` et correction du workflow de packaging pour valider la version réellement référencée par le lanceur.
+
+### Limites connues
+
+- L'accès depuis Internet n'est pas activé par cette PR. Une étape ultérieure devra configurer HTTPS, les origines autorisées, les candidats ICE annoncés par go2rtc et les redirections TCP/UDP du transport WebRTC.
+- La validation sur Raspberry Pi et le test réel de lecture caméra restent à effectuer après déploiement.
+
+## [Non publié]
+
 ### Architecture — Séparation des environnements go2rtc
 
 - Ajout d'une instance go2rtc de production dédiée (`go2rtc.service`) avec son propre binaire et son YAML sous `/etc/go2rtc`.
