@@ -149,6 +149,7 @@ if [[ ! -f "${GO2RTC_ENV}" ]]; then
 fi
 for target_dir in "${INSTALL_DIR}" "${TEST_INSTALL_DIR}"; do
   install -o root -g root -m 0644 "${SCRIPT_DIR}/server.py" "${target_dir}/server.py"
+  install -o root -g root -m 0644 "${SCRIPT_DIR}/media_gateway.py" "${target_dir}/media_gateway.py"
   install -o root -g root -m 0644 "${SCRIPT_DIR}/camera_profiles.py" "${target_dir}/camera_profiles.py"
   install -o root -g root -m 0644 "${SCRIPT_DIR}/session_manager.py" "${target_dir}/session_manager.py"
   install -o root -g root -m 0644 "${SCRIPT_DIR}/transcode_engine.py" "${target_dir}/transcode_engine.py"
