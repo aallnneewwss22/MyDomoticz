@@ -28,6 +28,7 @@ from camera_profiles import (
     CameraProfileError, create_camera_profile, delete_camera_profile,
     normalize_camera_profiles, update_camera_profile, validate_selected_profile,
 )
+from media_gateway import MediaGateway
 
 VENDOR_DIR = Path(__file__).resolve().parent / "vendor"
 if VENDOR_DIR.is_dir():
@@ -49,6 +50,7 @@ CONTROL_PORT = int(os.environ.get("CONTROL_PORT", "1985"))
 TRANSCODE_FFMPEG = os.environ.get("TRANSCODE_FFMPEG", "/usr/bin/ffmpeg")
 TRANSCODE_RTSP_HOST = os.environ.get("TRANSCODE_RTSP_HOST", "127.0.0.1")
 TRANSCODE_RTSP_PORT = int(os.environ.get("TRANSCODE_RTSP_PORT", "8554"))
+MEDIA_GATEWAY = MediaGateway(GO2RTC_API)
 REGISTRY_LOCK = threading.RLock()
 LOGGER = logging.getLogger("go2rtc-control.ptz")
 TRANSCODE_ENGINE = FFmpegTranscodeEngine(
@@ -800,7 +802,35 @@ class Handler(BaseHTTPRequestHandler):
         except ControlError as exc:
             self.send_json(502, {"error": str(exc)})
 
+    def handle_media_ticket(self) -> None:
+        """Issue a one-use player ticket after normal control-token authorization."""
+        if not self.authorized():
+            return
+        try:
+            payload = _read_json_body(self)
+            camera = payload.get("camera")
+            if not isinstance(camera, str) or not STREAM_NAME.fullmatch(camera):
+                raise ControlError("Identifiant de caméra invalide.")
+            with REGISTRY_LOCK:
+                cameras = load_camera_settings()
+                if camera not in cameras:
+                    self.send_json(404, {"error": "Caméra absente du registre local."})
+                    return
+            ticket = MEDIA_GATEWAY.issue_ticket(camera)
+            query = urllib.parse.urlencode({
+                "ticket": ticket,
+                "src": camera,
+                "mode": "webrtc,mse,hls",
+            })
+            self.send_json(201, {
+                "path": f"/media/{urllib.parse.quote(camera, safe='')}/stream.html?{query}"
+            })
+        except ControlError as exc:
+            self.send_json(400, {"error": str(exc)})
+
     def do_GET(self) -> None:
+        if MEDIA_GATEWAY.handle(self):
+            return
         path = urllib.parse.urlsplit(self.path).path.rstrip("/")
         if path.startswith("/api/cameras/") and "/profiles" in path:
             self.handle_profiles()
@@ -816,6 +846,9 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         path = urllib.parse.urlsplit(self.path).path.rstrip("/")
+        if path == "/api/media/ticket":
+            self.handle_media_ticket()
+            return
         if path.startswith("/api/cameras/") and "/profiles" in path:
             self.handle_profiles()
             return
@@ -826,6 +859,11 @@ class Handler(BaseHTTPRequestHandler):
         action = parts[-1]
         self.handle_camera(action)
  
+    def do_HEAD(self) -> None:
+        if MEDIA_GATEWAY.handle(self):
+            return
+        self.send_json(405, {"error": "Méthode HTTP non autorisée."})
+
     def do_PUT(self) -> None:
         self.handle_profiles()
 
