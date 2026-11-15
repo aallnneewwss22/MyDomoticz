@@ -88,6 +88,7 @@ if [[ ! -s "${ETC_DIR}/token" ]]; then
 fi
 chown root:"${SERVICE_USER}" "${ETC_DIR}/token"
 chmod 0640 "${ETC_DIR}/token"
+install -o root -g root -m 0755 "${SCRIPT_DIR}/show-token.sh" /usr/local/sbin/go2rtc-control-show-token
 
 if [[ ! -f "${ETC_DIR}/go2rtc-control.env" ]]; then
   cat > "${ETC_DIR}/go2rtc-control.env" <<EOF
@@ -122,7 +123,7 @@ echo "Service installé/mis à jour et démarré."
 echo "Les sources caméra sont copiées une seule fois dans /var/lib/go2rtc-control/cameras.json."
 echo "Le registre est indépendant du YAML go2rtc et n'est jamais réinitialisé lors d'une mise à jour."
 echo "Configuration : ${ETC_DIR}/go2rtc-control.env"
-echo "Jeton à saisir dans les paramètres du tableau de bord (inchangé lors d'une mise à jour) :"
-cat "${ETC_DIR}/token"
+echo "Pour récupérer volontairement le jeton dans un terminal : sudo go2rtc-control-show-token"
+echo "Le jeton n’est jamais affiché automatiquement pendant l’installation ou une mise à jour."
 echo
 echo "Vérifie que le port TCP 1985 reste limité à ton réseau local."
