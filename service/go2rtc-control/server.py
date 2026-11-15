@@ -40,7 +40,7 @@ except ImportError:
 
 STREAM_NAME = re.compile(r"^[A-Za-z0-9_.-]{1,80}$")
 GO2RTC_API = os.environ.get("GO2RTC_API", "http://127.0.0.1:1984").rstrip("/")
-GO2RTC_CONFIG = Path(os.environ.get("GO2RTC_CONFIG", "/home/pi/go2rtc-test/go2rtc.yaml"))
+GO2RTC_CONFIG = Path(os.environ.get("GO2RTC_CONFIG", "/etc/go2rtc/go2rtc.yaml"))
 SOURCE_REGISTRY = Path(os.environ.get("SOURCE_REGISTRY", "/var/lib/go2rtc-control/cameras.json"))
 TOKEN_FILE = Path(os.environ.get("TOKEN_FILE", "/etc/go2rtc-control/token"))
 DASHBOARD_ORIGIN = os.environ.get("DASHBOARD_ORIGIN", "http://192.168.1.21:8080").rstrip("/")

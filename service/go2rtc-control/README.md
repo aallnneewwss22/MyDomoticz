@@ -19,7 +19,26 @@ cd service/go2rtc-control
 sudo bash install.sh
 ```
 
-Valeurs par défaut : utilisateur Linux `pi`, YAML `/home/pi/go2rtc-test/go2rtc.yaml`, API go2rtc `http://127.0.0.1:1984`, origine Domoticz `http://192.168.1.21:8080`.
+L'installation standard déploie les deux environnements indépendants, soit quatre unités systemd :
+
+| Élément | Production | Test |
+| --- | --- | --- |
+| go2rtc | `go2rtc.service` | `go2rtc-test.service` |
+| Contrôle | `go2rtc-control.service` | `go2rtc-control-test.service` |
+| Binaire go2rtc | `/usr/local/bin/go2rtc` | `/home/pi/go2rtc-test/go2rtc` |
+| YAML | `/etc/go2rtc/go2rtc.yaml` | `/home/pi/go2rtc-test/go2rtc.yaml` |
+| API go2rtc | `127.0.0.1:1984` | `127.0.0.1:1987` |
+| RTSP / WebRTC | `8554 / 8555` | `8556 / 8557` |
+| API de contrôle | `0.0.0.0:1985` | `127.0.0.1:1986` |
+| Registre | `/var/lib/go2rtc-control/cameras.json` | `/var/lib/go2rtc-control-test/cameras.json` |
+
+**Prérequis à ne pas oublier :** les deux exécutables go2rtc et les deux fichiers YAML doivent déjà être installés et préparés avant de lancer ce script :
+- Production : binaire `/usr/local/bin/go2rtc` et YAML `/etc/go2rtc/go2rtc.yaml` (ou le chemin donné par `GO2RTC_CONFIG`).
+- Test : binaire `/home/pi/go2rtc-test/go2rtc` et YAML `/home/pi/go2rtc-test/go2rtc.yaml`.
+
+L'installateur ne télécharge, n'installe, ne met à jour et ne remplace **ni les binaires go2rtc ni les fichiers YAML**. Il installe/met à jour le code et les unités systemd des services de contrôle, ainsi que leurs dépendances. Il redémarre ensuite les deux instances go2rtc et les deux services de contrôle : les flux vidéo peuvent être interrompus momentanément.
+
+Au démarrage, le script affiche un avertissement récapitulatif et demande de taper exactement `OUI` avant de poursuivre. En mode non interactif, il refuse de continuer sauf si `GO2RTC_INSTALL_CONFIRM=oui` est explicitement défini ; l'avertissement reste affiché.
 
 Pour adapter le chemin YAML ou l'origine du tableau de bord :
 
@@ -27,23 +46,34 @@ Pour adapter le chemin YAML ou l'origine du tableau de bord :
 sudo GO2RTC_CONFIG=/chemin/go2rtc.yaml DASHBOARD_ORIGIN=http://192.168.1.21:8080 bash install.sh
 ```
 
-Le script installe `python3-yaml`, `python3-zeep` et `python3-pip`, place le client `onvif-zeep` dans un répertoire privé de l'application, déploie le programme dans `/opt/go2rtc-control`, crée le jeton dans `/etc/go2rtc-control/token` lors de la première installation, puis redémarre le service.
+Avant l'installation, réalise la préparation décrite dans [MIGRATION.md](MIGRATION.md) : sauvegarde vérifiée, séparation des deux YAML et des ports, copie indépendante du binaire de production et préparation du binaire/YAML de test, puis vérification des deux fichiers d'environnement. Le script refuse de poursuivre si un des deux binaires ou YAML est absent, ou si les paramètres réseau/API/registre d'un environnement ne correspondent pas à ses valeurs réservées. Il installe les quatre unités systemd, déploie le code dans `/opt/go2rtc-control` et `/opt/go2rtc-control-test`, et installe les dépendances ONVIF dans chacun des deux environnements. Les fichiers d'environnement existants et les jetons désignés par `TOKEN_FILE` sont conservés ; un jeton n'est créé que si son fichier est absent. Les deux registres existants ne sont jamais copiés, fusionnés, remplacés ni réinitialisés par le script d'installation.
 
-**Migration automatique de l'installation existante :** si le registre indépendant n'existe pas encore, le premier démarrage de cette version copie les sources textuelles actuellement présentes dans le YAML go2rtc vers `/var/lib/go2rtc-control/cameras.json`. Dans ton cas, comme tu as restauré le YAML avant cette mise à jour, cette copie récupérera les sources restaurées. Le registre est ensuite conservé tel quel : une mise à jour ou un redémarrage ne l'écrase pas, même si go2rtc a retiré un flux du YAML.
+**Initialisation et migration des registres :** chaque service de contrôle utilise exclusivement son propre registre. Si celui-ci est absent lors du premier démarrage, le service l'initialise à partir du YAML de son instance go2rtc. Si un registre existe déjà, il n'est ni remplacé ni fusionné ; le service peut uniquement appliquer la migration de schéma déjà prévue par l'application lorsqu'une ancienne structure est détectée. Cette migration conserve les sources RTSP, les préférences audio, la qualité native, les profils et les paramètres PTZ. Une mise à jour ou un redémarrage ne réinitialise pas les données, même si go2rtc a retiré un flux de son YAML. Le script d'installation lui-même n'écrit jamais dans les registres.
 
-Le registre contient des URL potentiellement sensibles. Il est stocké sous le répertoire d'état systemd, avec des droits privés (fichier 0600, répertoire 0750), accessible au compte du service. Ne le publie pas et ne le partage pas. Le jeton existant et les paramètres actuels sont conservés lors d'une mise à jour.
+Le registre contient des URL potentiellement sensibles. Il est stocké sous le répertoire d'état systemd, avec des droits privés (fichier 0600, répertoire 0750), accessible au compte du service. Ne le publie pas et ne le partage pas. Les jetons existants et les paramètres actuels des deux environnements sont conservés lors d'une mise à jour.
+
+Après installation, le jeton n'est jamais affiché automatiquement. Pour le récupérer volontairement (par exemple après un changement de navigateur ou un effacement du `localStorage`), ouvre un terminal sur le Raspberry Pi et exécute :
+
+```bash
+sudo go2rtc-control-show-token
+sudo go2rtc-control-show-token --test
+```
+
+Sans option, la commande lit le jeton de production ; avec `--test`, elle lit celui de test. Elle ne régénère aucun jeton. Elle exige les droits root, vérifie le propriétaire et les permissions du fichier, et refuse d'afficher le secret si sa sortie n'est pas un terminal interactif. Traite le résultat comme un mot de passe : ne le partage pas et ne le laisse pas dans une capture d'écran ou un journal.
+
 
 Après installation :
 
 ```bash
-sudo systemctl status go2rtc-control
-sudo journalctl -u go2rtc-control -n 50 --no-pager
+sudo systemctl status go2rtc.service go2rtc-control.service
+sudo systemctl status go2rtc-test.service go2rtc-control-test.service
+sudo journalctl -u go2rtc-control.service -u go2rtc-control-test.service -n 50 --no-pager
 ```
 
 En cas d'échec d'une commande PTZ, le service consigne désormais l'opération concernée (connexion, `ContinuousMove` ou `Stop`), le type d'exception et le détail technique fourni par ONVIF. Les identifiants configurés sont masqués. Pour suivre les erreurs en direct :
 
 ```bash
-sudo journalctl -u go2rtc-control -f
+sudo journalctl -u go2rtc-control.service -f
 ```
 
 Après un échec de déplacement ou d'arrêt, la session ONVIF correspondante est retirée du cache ; la commande suivante établit donc une nouvelle session au lieu de réutiliser celle qui vient d'échouer.

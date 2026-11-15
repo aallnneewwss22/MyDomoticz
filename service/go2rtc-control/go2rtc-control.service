@@ -1,6 +1,7 @@
 [Unit]
 Description=API locale de commande des flux go2rtc
-After=network-online.target go2rtc-test.service
+After=network-online.target go2rtc.service
+Requires=go2rtc.service
 Wants=network-online.target
 
 [Service]

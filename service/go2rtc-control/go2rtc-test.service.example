@@ -1,0 +1,16 @@
+[Unit]
+Description=go2rtc - environnement de test Domoticz
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+WorkingDirectory=/home/pi/go2rtc-test
+ExecStart=/home/pi/go2rtc-test/go2rtc -config /home/pi/go2rtc-test/go2rtc.yaml
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

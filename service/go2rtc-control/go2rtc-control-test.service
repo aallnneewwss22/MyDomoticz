@@ -1,0 +1,25 @@
+[Unit]
+Description=API locale de commande des flux go2rtc - environnement de test
+After=network-online.target go2rtc-test.service
+Requires=go2rtc-test.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+EnvironmentFile=/etc/go2rtc-control-test/go2rtc-control-test.env
+StateDirectory=go2rtc-control-test
+StateDirectoryMode=0750
+Environment=XDG_CACHE_HOME=/var/lib/go2rtc-control-test/cache
+ExecStart=/usr/bin/python3 /opt/go2rtc-control-test/server.py
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target
