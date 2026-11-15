@@ -45,6 +45,7 @@ GO2RTC_CONFIG = Path(os.environ.get("GO2RTC_CONFIG", "/etc/go2rtc/go2rtc.yaml"))
 SOURCE_REGISTRY = Path(os.environ.get("SOURCE_REGISTRY", "/var/lib/go2rtc-control/cameras.json"))
 TOKEN_FILE = Path(os.environ.get("TOKEN_FILE", "/etc/go2rtc-control/token"))
 DASHBOARD_ORIGIN = os.environ.get("DASHBOARD_ORIGIN", "http://192.168.1.21:8080").rstrip("/")
+DASHBOARD_ORIGINS = {item.strip().rstrip("/") for item in os.environ.get("DASHBOARD_ORIGINS", DASHBOARD_ORIGIN).split(",") if item.strip()}
 CONTROL_HOST = os.environ.get("CONTROL_HOST", "0.0.0.0")
 CONTROL_PORT = int(os.environ.get("CONTROL_PORT", "1985"))
 TRANSCODE_FFMPEG = os.environ.get("TRANSCODE_FFMPEG", "/usr/bin/ffmpeg")
@@ -487,15 +488,15 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
         origin = self.headers.get("Origin", "")
-        if origin == DASHBOARD_ORIGIN:
-            self.send_header("Access-Control-Allow-Origin", DASHBOARD_ORIGIN)
+        if origin in DASHBOARD_ORIGINS:
+            self.send_header("Access-Control-Allow-Origin", origin)
             self.send_header("Vary", "Origin")
         self.end_headers()
         self.wfile.write(body)
 
     def authorized(self) -> bool:
         origin = self.headers.get("Origin", "")
-        if origin and origin != DASHBOARD_ORIGIN:
+        if origin and origin not in DASHBOARD_ORIGINS:
             self.send_json(403, {"error": "Origine non autorisée."})
             return False
         try:
@@ -510,11 +511,11 @@ class Handler(BaseHTTPRequestHandler):
         return True
 
     def do_OPTIONS(self) -> None:
-        if self.headers.get("Origin", "") != DASHBOARD_ORIGIN:
+        if self.headers.get("Origin", "") not in DASHBOARD_ORIGINS:
             self.send_json(403, {"error": "Origine non autorisée."})
             return
         self.send_response(204)
-        self.send_header("Access-Control-Allow-Origin", DASHBOARD_ORIGIN)
+        self.send_header("Access-Control-Allow-Origin", self.headers.get("Origin", ""))
         self.send_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Authorization, Content-Type")
         self.send_header("Access-Control-Max-Age", "600")
