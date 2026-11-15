@@ -80,7 +80,8 @@ class EnvironmentSeparationTests(unittest.TestCase):
             "go2rtc-control-show-token --test",
         ):
             self.assertIn(required, installer)
-        self.assertNotIn("cp ", installer.split("SOURCE_REGISTRY", 1)[-1].split("systemctl daemon-reload", 1)[0])
+        self.assertNotIn("> /var/lib/go2rtc-control/cameras.json", installer)
+        self.assertNotIn("> /var/lib/go2rtc-control-test/cameras.json", installer)
         self.assertIn("Do not create, replace, copy, or merge either SOURCE_REGISTRY", installer)
 
     def test_token_helper_selects_test_environment_explicitly(self):
