@@ -31,7 +31,7 @@ class MediaGateway:
     SESSION_TTL = 1800
     COOKIE_PREFIX = "go2rtc_media_"
     VIEWER_ASSETS = {
-        "stream.html", "stream.js", "video-stream.js", "video-rtc.js",
+        "stream.html", "stream.js", "video-stream.js", "video-rtc.js", "video-rtc.js",
         "stream.css", "video-stream.css", "favicon.ico",
     }
 
@@ -119,7 +119,7 @@ class MediaGateway:
         for key, value in handler.headers.items():
             if key.lower() in {
                 "host", "connection", "upgrade", "cookie", "authorization",
-                "origin", "content-length", "transfer-encoding",
+                "origin", "content-length", "transfer-encoding", "accept-encoding",
             }:
                 continue
             headers[key] = value
