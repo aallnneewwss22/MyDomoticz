@@ -816,10 +816,13 @@ class Handler(BaseHTTPRequestHandler):
                 if camera not in cameras:
                     self.send_json(404, {"error": "Caméra absente du registre local."})
                     return
+            source = payload.get("source", camera)
+            if not isinstance(source, str) or not MEDIA_GATEWAY._valid_source(source, camera):
+                raise ControlError("Source de lecture non autorisée pour cette caméra.")
             ticket = MEDIA_GATEWAY.issue_ticket(camera)
             query = urllib.parse.urlencode({
                 "ticket": ticket,
-                "src": camera,
+                "src": source,
                 "mode": "webrtc,mse,hls",
             })
             self.send_json(201, {
