@@ -226,15 +226,6 @@ class MediaGateway:
             remainder = parts[3:]
             handler._media_prefix = f"/media/{camera}"
             if remainder == ["stream.html"]:
-                ticket = (query.get("ticket") or [""])[0]
-                if not ticket:
-                    self._send_error(handler, 401, "Ticket de lecture absent.")
-                    return True
-                try:
-                    session = self._exchange_ticket(ticket, camera)
-                except MediaGatewayError as exc:
-                    self._send_error(handler, 401, str(exc))
-                    return True
                 source = (query.get("src") or [camera])[0]
                 if not self._valid_source(source, camera):
                     self._send_error(handler, 403, "Flux non autorisé.")
@@ -243,14 +234,33 @@ class MediaGateway:
                 if mode != "webrtc,mse,hls":
                     self._send_error(handler, 400, "Mode de lecture non autorisé.")
                     return True
+                ticket = (query.get("ticket") or [""])[0]
+                cookie_header = None
+                if ticket:
+                    try:
+                        session = self._exchange_ticket(ticket, camera)
+                    except MediaGatewayError as exc:
+                        self._send_error(handler, 401, str(exc))
+                        return True
+                    cookie_name = self.COOKIE_PREFIX + camera
+                    cookie_header = f"{cookie_name}={session}; Path=/; Max-Age={self.SESSION_TTL}; HttpOnly"
+                    if handler.headers.get("X-Forwarded-Proto", "").lower() == "https":
+                        cookie_header += "; SameSite=None; Secure"
+                    else:
+                        cookie_header += "; SameSite=Lax"
+                    clean_query = urllib.parse.urlencode({"src": source, "mode": mode})
+                    handler.send_response(303)
+                    handler.send_header("Location", f"{prefix}/stream.html?{clean_query}")
+                    handler.send_header("Set-Cookie", cookie_header)
+                    handler.send_header("Cache-Control", "no-store")
+                    handler.send_header("Content-Length", "0")
+                    handler.end_headers()
+                    return True
+                if camera not in self._cookie_sessions(handler):
+                    self._send_error(handler, 401, "Session média absente ou expirée.")
+                    return True
                 upstream_path = "/stream.html?" + urllib.parse.urlencode({"src": source, "mode": mode})
-                cookie_name = self.COOKIE_PREFIX + camera
-                cookie = f"{cookie_name}={session}; Path=/; Max-Age={self.SESSION_TTL}; HttpOnly"
-                if handler.headers.get("X-Forwarded-Proto", "").lower() == "https":
-                    cookie += "; SameSite=None; Secure"
-                else:
-                    cookie += "; SameSite=Lax"
-                self._proxy_http(handler, upstream_path, cookie, rewrite_viewer=True)
+                self._proxy_http(handler, upstream_path, rewrite_viewer=True)
                 return True
 
             sessions = self._cookie_sessions(handler)
