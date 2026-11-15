@@ -161,9 +161,17 @@ Depuis le dossier `service/go2rtc-control` de la version validée du dépôt :
 sudo bash install.sh
 ```
 
-L'installateur vérifie les binaires et les YAML de production et de test. Il installe les quatre unités `go2rtc.service`, `go2rtc-control.service`, `go2rtc-test.service` et `go2rtc-control-test.service`, puis déploie le code de contrôle dans deux répertoires indépendants. Il démarre les deux instances go2rtc, puis leurs API de contrôle respectives.
+**Avertissement obligatoire avant lancement :** les quatre prérequis doivent déjà être en place :
+- production : binaire `/usr/local/bin/go2rtc` et YAML `/etc/go2rtc/go2rtc.yaml` (ou le chemin explicitement fourni par `GO2RTC_CONFIG`) ;
+- test : binaire `/home/pi/go2rtc-test/go2rtc` et YAML `/home/pi/go2rtc-test/go2rtc.yaml`.
 
-Le binaire de test et son YAML doivent déjà exister sous `/home/pi/go2rtc-test/` : ils ne sont pas remplacés par l'installateur. Les fichiers d'environnement existants ne sont pas écrasés ; les paramètres manquants sont complétés, tandis qu'une valeur incompatible provoque un arrêt explicite. Les jetons existants désignés par `TOKEN_FILE` sont conservés. Un jeton n'est créé que si son fichier est absent. Les registres de caméras ne sont jamais copiés, fusionnés, remplacés ou réinitialisés par l'installateur.
+L'installateur des services **ne télécharge, n'installe, ne met à jour et ne remplace aucun des deux binaires go2rtc ni aucun des deux YAML**. Ces éléments sont préparés séparément pendant les étapes précédentes. Le script installe les quatre unités `go2rtc.service`, `go2rtc-control.service`, `go2rtc-test.service` et `go2rtc-control-test.service`, puis déploie le code de contrôle et ses dépendances dans deux répertoires indépendants.
+
+Au lancement, le script affiche cet avertissement et demande de taper exactement `OUI` pour continuer. En mode non interactif, il faut fournir explicitement `GO2RTC_INSTALL_CONFIRM=oui` ; sans cette confirmation, l'installation s'arrête avant toute modification.
+
+Après confirmation et installation, le script redémarre les deux instances go2rtc puis les deux services de contrôle : les flux vidéo peuvent donc être momentanément interrompus.
+
+Les fichiers d'environnement existants ne sont pas écrasés ; les paramètres manquants sont complétés, tandis qu'une valeur incompatible provoque un arrêt explicite. Les jetons existants désignés par `TOKEN_FILE` sont conservés. Un jeton n'est créé que si son fichier est absent. Les registres de caméras ne sont jamais copiés, fusionnés, remplacés ou réinitialisés par l'installateur.
 
 Si l'installation s'arrête sur une vérification, ne pas contourner le contrôle : corriger la cause ou appliquer le retour arrière.
 
