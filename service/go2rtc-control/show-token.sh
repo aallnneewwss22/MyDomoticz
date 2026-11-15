@@ -1,6 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+if [[ -z "${TOKEN_FILE+x}" && -r /etc/go2rtc-control/go2rtc-control.env ]]; then
+  configured_token_file="$(sed -n 's/^[[:space:]]*TOKEN_FILE[[:space:]]*=[[:space:]]*//p' /etc/go2rtc-control/go2rtc-control.env | tail -n 1)"
+  configured_token_file="${configured_token_file%\"}"
+  configured_token_file="${configured_token_file#\"}"
+  configured_token_file="${configured_token_file%\'}"
+  configured_token_file="${configured_token_file#\'}"
+  if [[ -n "${configured_token_file}" ]]; then
+    TOKEN_FILE="${configured_token_file}"
+  fi
+fi
 TOKEN_FILE="${TOKEN_FILE:-/etc/go2rtc-control/token}"
 
 if [[ "$(id -u)" -ne 0 ]]; then
