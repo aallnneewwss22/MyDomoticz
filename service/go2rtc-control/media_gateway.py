@@ -61,9 +61,10 @@ class MediaGateway:
         now = time.monotonic()
         with self._lock:
             self._prune(now)
-            item = self._tickets.pop(ticket, None)
+            item = self._tickets.get(ticket)
             if item is None or item[0] != camera or item[1] <= now:
                 raise MediaGatewayError("Autorisation de lecture absente ou expirée.")
+            self._tickets.pop(ticket, None)
             session = secrets.token_urlsafe(32)
             self._sessions[session] = (camera, now + self.SESSION_TTL)
             return session
