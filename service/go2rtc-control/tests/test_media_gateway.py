@@ -171,6 +171,25 @@ class MediaTicketHTTPTests(unittest.TestCase):
         except urllib.error.HTTPError as exc:
             self.assertEqual(exc.code, 401)
 
+    def test_media_cookie_cannot_be_reused_from_another_origin(self):
+        status, result = self.request({"camera": "salon"})
+        self.assertEqual(status, 201)
+        connection = http.client.HTTPConnection(
+            "127.0.0.1", self.httpd.server_address[1], timeout=3
+        )
+        connection.request("GET", result["path"])
+        response = connection.getresponse()
+        cookie = response.getheader("Set-Cookie").split(";", 1)[0]
+        response.read()
+        connection.request(
+            "GET", "/media/salon/video-stream.js",
+            headers={"Cookie": cookie, "Sec-Fetch-Site": "same-site"},
+        )
+        blocked = connection.getresponse()
+        self.assertEqual(blocked.status, 403)
+        blocked.read()
+        connection.close()
+
 
 if __name__ == "__main__":
     unittest.main()
