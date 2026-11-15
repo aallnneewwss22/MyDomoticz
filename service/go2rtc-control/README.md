@@ -33,6 +33,15 @@ Avant l'installation, réalise la migration décrite dans [MIGRATION.md](MIGRATI
 
 Le registre contient des URL potentiellement sensibles. Il est stocké sous le répertoire d'état systemd, avec des droits privés (fichier 0600, répertoire 0750), accessible au compte du service. Ne le publie pas et ne le partage pas. Le jeton existant et les paramètres actuels sont conservés lors d'une mise à jour.
 
+Après installation, le jeton n'est jamais affiché automatiquement. Pour le récupérer volontairement (par exemple après un changement de navigateur ou un effacement du `localStorage`), ouvre un terminal sur le Raspberry Pi et exécute :
+
+```bash
+sudo go2rtc-control-show-token
+```
+
+Cette commande d'administration lit le jeton existant sans le régénérer. Elle exige les droits root, vérifie le propriétaire et les permissions du fichier, et refuse d'afficher le secret si sa sortie n'est pas un terminal interactif. Traite le résultat comme un mot de passe : ne le partage pas et ne le laisse pas dans une capture d'écran ou un journal.
+
+
 Après installation :
 
 ```bash
