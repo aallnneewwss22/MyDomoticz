@@ -16,6 +16,13 @@ INSTALL_DIR="/opt/go2rtc-control"
 ETC_DIR="/etc/go2rtc-control"
 GO2RTC_ENV="${GO2RTC_INSTALL_DIR}/go2rtc.env"
 
+TEST_SERVICE_DIR="/home/pi/go2rtc-test"
+TEST_BIN="${TEST_SERVICE_DIR}/go2rtc"
+TEST_CONFIG="${TEST_SERVICE_DIR}/go2rtc.yaml"
+TEST_INSTALL_DIR="/opt/go2rtc-control-test"
+TEST_ETC_DIR="/etc/go2rtc-control-test"
+TEST_ENV="${TEST_ETC_DIR}/go2rtc-control-test.env"
+
 if ! id "${SERVICE_USER}" >/dev/null 2>&1; then
   echo "Utilisateur système introuvable : ${SERVICE_USER}" >&2
   exit 1
@@ -28,6 +35,16 @@ fi
 if [[ ! -r "${CONFIG_PATH}" ]]; then
   echo "Configuration go2rtc de production introuvable ou illisible : ${CONFIG_PATH}" >&2
   echo "Copie d'abord la configuration de production selon MIGRATION.md." >&2
+  exit 1
+fi
+if [[ ! -x "${TEST_BIN}" ]]; then
+  echo "Binaire go2rtc de test introuvable ou non exécutable : ${TEST_BIN}" >&2
+  echo "Prépare d'abord l'instance de test indépendante selon MIGRATION.md." >&2
+  exit 1
+fi
+if [[ ! -r "${TEST_CONFIG}" ]]; then
+  echo "Configuration go2rtc de test introuvable ou illisible : ${TEST_CONFIG}" >&2
+  echo "Prépare d'abord le YAML de test indépendant selon MIGRATION.md." >&2
   exit 1
 fi
 if [[ -f "${GO2RTC_ENV}" ]]; then
@@ -47,16 +64,47 @@ fi
 apt-get update
 apt-get install -y python3-yaml python3-zeep python3-pip
 
+read_env_value() {
+  local file="$1" key="$2" value
+  [[ -f "$file" ]] || return 0
+  value="$(sed -n "s/^[[:space:]]*${key}[[:space:]]*=[[:space:]]*//p" "$file" | tail -n 1)"
+  value="${value%\"}"
+  value="${value#\"}"
+  value="${value%\'}"
+  value="${value#\'}"
+  printf '%s' "$value"
+}
+
+ensure_env_value() {
+  local file="$1" key="$2" value="$3"
+  if ! grep -qE "^[[:space:]]*${key}[[:space:]]*=" "$file"; then
+    printf '%s=%s\\n' "$key" "$value" >> "$file"
+  fi
+}
+
+validate_env_value() {
+  local file="$1" key="$2" expected="$3" actual
+  actual="$(read_env_value "$file" "$key")"
+  if [[ "$actual" != "$expected" ]]; then
+    echo "Configuration incohérente : ${key} dans ${file} doit désigner ${expected}." >&2
+    echo "Corrige ce fichier manuellement après sauvegarde ; l'installateur ne remplace pas les paramètres existants." >&2
+    exit 1
+  fi
+}
+
 install -d -o root -g "${SERVICE_USER}" -m 0750 "${INSTALL_DIR}" "${ETC_DIR}" "${GO2RTC_INSTALL_DIR}"
+install -d -o root -g "${SERVICE_USER}" -m 0750 "${TEST_INSTALL_DIR}" "${TEST_ETC_DIR}"
 if [[ ! -f "${GO2RTC_ENV}" ]]; then
   printf 'GO2RTC_CONFIG=%s\n' "${CONFIG_PATH}" > "${GO2RTC_ENV}"
   chown root:"${SERVICE_USER}" "${GO2RTC_ENV}"
   chmod 0640 "${GO2RTC_ENV}"
 fi
-install -o root -g root -m 0644 "${SCRIPT_DIR}/server.py" "${INSTALL_DIR}/server.py"
-install -o root -g root -m 0644 "${SCRIPT_DIR}/camera_profiles.py" "${INSTALL_DIR}/camera_profiles.py"
-install -o root -g root -m 0644 "${SCRIPT_DIR}/session_manager.py" "${INSTALL_DIR}/session_manager.py"
-install -o root -g root -m 0644 "${SCRIPT_DIR}/transcode_engine.py" "${INSTALL_DIR}/transcode_engine.py"
+for target_dir in "${INSTALL_DIR}" "${TEST_INSTALL_DIR}"; do
+  install -o root -g root -m 0644 "${SCRIPT_DIR}/server.py" "${target_dir}/server.py"
+  install -o root -g root -m 0644 "${SCRIPT_DIR}/camera_profiles.py" "${target_dir}/camera_profiles.py"
+  install -o root -g root -m 0644 "${SCRIPT_DIR}/session_manager.py" "${target_dir}/session_manager.py"
+  install -o root -g root -m 0644 "${SCRIPT_DIR}/transcode_engine.py" "${target_dir}/transcode_engine.py"
+done
 install -d -o root -g root -m 0755 "${INSTALL_DIR}/vendor"
 pip3 install --disable-pip-version-check --no-deps --target "${INSTALL_DIR}/vendor" "onvif-zeep==0.2.12"
 
@@ -80,8 +128,13 @@ install -d -o root -g root -m 0755 "${INSTALL_DIR}/vendor/wsdl"
 cp -a "${WSDL_SOURCE_DIR}/." "${INSTALL_DIR}/vendor/wsdl/"
 chown -R root:root "${INSTALL_DIR}/vendor/wsdl"
 chmod -R a+rX "${INSTALL_DIR}/vendor/wsdl"
+cp -a "${INSTALL_DIR}/vendor" "${TEST_INSTALL_DIR}/vendor"
+chown -R root:root "${TEST_INSTALL_DIR}/vendor"
+chmod -R a+rX "${TEST_INSTALL_DIR}/vendor"
 install -o root -g root -m 0644 "${SCRIPT_DIR}/go2rtc.service" /etc/systemd/system/go2rtc.service
 install -o root -g root -m 0644 "${SCRIPT_DIR}/go2rtc-control.service" /etc/systemd/system/go2rtc-control.service
+install -o root -g root -m 0644 "${SCRIPT_DIR}/go2rtc-test.service.example" /etc/systemd/system/go2rtc-test.service
+install -o root -g root -m 0644 "${SCRIPT_DIR}/go2rtc-control-test.service" /etc/systemd/system/go2rtc-control-test.service
 
 if [[ ! -s "${ETC_DIR}/token" ]]; then
   python3 -c 'import secrets; print(secrets.token_urlsafe(48))' > "${ETC_DIR}/token"
@@ -113,17 +166,66 @@ else
   grep -q '^TRANSCODE_RTSP_PORT=' "${ETC_DIR}/go2rtc-control.env" || printf 'TRANSCODE_RTSP_PORT=8554\n' >> "${ETC_DIR}/go2rtc-control.env"
 fi
 
+# Configure the isolated test control API without replacing an existing env file,
+# token, or camera registry.
+if [[ ! -f "${TEST_ENV}" ]]; then
+  cat > "${TEST_ENV}" <<EOF
+GO2RTC_API=http://127.0.0.1:1987
+GO2RTC_CONFIG=${TEST_CONFIG}
+SOURCE_REGISTRY=/var/lib/go2rtc-control-test/cameras.json
+TOKEN_FILE=${TEST_ETC_DIR}/token
+CONTROL_HOST=127.0.0.1
+CONTROL_PORT=1986
+TRANSCODE_FFMPEG=/usr/bin/ffmpeg
+TRANSCODE_RTSP_HOST=127.0.0.1
+TRANSCODE_RTSP_PORT=8556
+EOF
+  chown root:"${SERVICE_USER}" "${TEST_ENV}"
+  chmod 0640 "${TEST_ENV}"
+else
+  ensure_env_value "${TEST_ENV}" SOURCE_REGISTRY /var/lib/go2rtc-control-test/cameras.json
+  ensure_env_value "${TEST_ENV}" TOKEN_FILE "${TEST_ETC_DIR}/token"
+  ensure_env_value "${TEST_ENV}" TRANSCODE_FFMPEG /usr/bin/ffmpeg
+  ensure_env_value "${TEST_ENV}" TRANSCODE_RTSP_HOST 127.0.0.1
+  ensure_env_value "${TEST_ENV}" TRANSCODE_RTSP_PORT 8556
+fi
+validate_env_value "${TEST_ENV}" GO2RTC_API http://127.0.0.1:1987
+validate_env_value "${TEST_ENV}" GO2RTC_CONFIG "${TEST_CONFIG}"
+validate_env_value "${TEST_ENV}" CONTROL_HOST 127.0.0.1
+validate_env_value "${TEST_ENV}" CONTROL_PORT 1986
+validate_env_value "${TEST_ENV}" SOURCE_REGISTRY /var/lib/go2rtc-control-test/cameras.json
+validate_env_value "${TEST_ENV}" TRANSCODE_RTSP_PORT 8556
+
+TEST_TOKEN_FILE="$(read_env_value "${TEST_ENV}" TOKEN_FILE)"
+if [[ -z "${TEST_TOKEN_FILE}" ]]; then
+  echo "TOKEN_FILE est absent de ${TEST_ENV}." >&2
+  exit 1
+fi
+if [[ ! -s "${TEST_TOKEN_FILE}" ]]; then
+  install -d -o root -g "${SERVICE_USER}" -m 0750 "$(dirname -- "${TEST_TOKEN_FILE}")"
+  python3 -c 'import secrets; print(secrets.token_urlsafe(48))' > "${TEST_TOKEN_FILE}"
+fi
+chown root:"${SERVICE_USER}" "${TEST_TOKEN_FILE}"
+chmod 0640 "${TEST_TOKEN_FILE}"
+
+# Do not create, replace, copy, or merge either SOURCE_REGISTRY. The services
+# retain ownership of their own existing persistent camera state.
 systemctl daemon-reload
-systemctl enable go2rtc.service go2rtc-control.service
+systemctl enable go2rtc.service go2rtc-control.service go2rtc-test.service go2rtc-control-test.service
 systemctl restart go2rtc.service
+systemctl restart go2rtc-test.service
 systemctl restart go2rtc-control.service
+systemctl restart go2rtc-control-test.service
 
 echo
-echo "Service installé/mis à jour et démarré."
-echo "Les sources caméra sont copiées une seule fois dans /var/lib/go2rtc-control/cameras.json."
-echo "Le registre est indépendant du YAML go2rtc et n'est jamais réinitialisé lors d'une mise à jour."
-echo "Configuration : ${ETC_DIR}/go2rtc-control.env"
-echo "Pour récupérer volontairement le jeton dans un terminal : sudo go2rtc-control-show-token"
-echo "Le jeton n’est jamais affiché automatiquement pendant l’installation ou une mise à jour."
+echo "Les deux environnements go2rtc et leurs API de contrôle sont installés/mis à jour et démarrés."
+echo "Production : API go2rtc 1984, contrôle 1985, registre /var/lib/go2rtc-control/cameras.json."
+echo "Test : API go2rtc 1987, contrôle 127.0.0.1:1986, registre /var/lib/go2rtc-control-test/cameras.json."
+echo "Les registres et jetons existants ne sont ni remplacés ni fusionnés."
+echo "Configuration production : ${ETC_DIR}/go2rtc-control.env"
+echo "Configuration test : ${TEST_ENV}"
+echo "Jeton production : sudo go2rtc-control-show-token"
+echo "Jeton test : sudo go2rtc-control-show-token --test"
+echo "Aucun jeton n’est affiché automatiquement pendant l’installation ou une mise à jour."
 echo
 echo "Vérifie que le port TCP 1985 reste limité à ton réseau local."
