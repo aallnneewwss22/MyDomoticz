@@ -6,6 +6,54 @@ if [[ "$(id -u)" -ne 0 ]]; then
   exit 1
 fi
 
+cat <<'WARNING'
+
+============================================================
+AVERTISSEMENT AVANT INSTALLATION / MISE A JOUR
+============================================================
+
+Cet installateur déploie ou met à jour les services de contrôle
+et leurs unités systemd pour les environnements production et test.
+
+PREREQUIS OBLIGATOIRES :
+  Production : binaire /usr/local/bin/go2rtc
+               YAML    ${GO2RTC_CONFIG:-/etc/go2rtc/go2rtc.yaml}
+  Test       : binaire /home/pi/go2rtc-test/go2rtc
+               YAML    /home/pi/go2rtc-test/go2rtc.yaml
+
+Les deux binaires go2rtc et les deux fichiers YAML doivent déjà
+exister et être correctement préparés. Cet installateur ne
+télécharge, n'installe, ne met à jour et ne remplace AUCUN de
+ces binaires ou fichiers YAML.
+
+L'installateur installe/met à jour les services de contrôle,
+leurs dépendances et leurs unités systemd. Il redémarre ensuite
+les deux instances go2rtc et les deux services de contrôle :
+les flux vidéo peuvent donc être momentanément interrompus.
+
+Les fichiers d'environnement, jetons et registres caméra existants
+sont préservés ; les registres ne sont ni copiés ni réinitialisés.
+
+Vérifie les prérequis et dispose d'une sauvegarde vérifiée avant
+de poursuivre. Consulter service/go2rtc-control/README.md et
+MIGRATION.md pour la procédure complète.
+
+WARNING
+
+if [[ "${GO2RTC_INSTALL_CONFIRM:-}" != "oui" ]]; then
+  if [[ ! -t 0 ]]; then
+    echo "Installation annulée : confirme explicitement avec GO2RTC_INSTALL_CONFIRM=oui en mode non interactif." >&2
+    exit 1
+  fi
+  read -r -p "Pour continuer, tape exactement OUI : " install_confirmation
+  if [[ "${install_confirmation}" != "OUI" ]]; then
+    echo "Installation annulée ; aucune modification n'a été effectuée." >&2
+    exit 1
+  fi
+fi
+echo "Confirmation reçue. Vérification des prérequis..."
+
+
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 SERVICE_USER="${SERVICE_USER:-pi}"
 CONFIG_PATH="${GO2RTC_CONFIG:-/etc/go2rtc/go2rtc.yaml}"
