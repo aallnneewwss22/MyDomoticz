@@ -57,6 +57,38 @@ class EnvironmentSeparationTests(unittest.TestCase):
             self.assertIn(required, guide)
         self.assertIn("Ne jamais fusionner les registres", guide)
 
+    def test_test_control_requires_test_go2rtc_and_uses_isolated_paths(self):
+        unit = self.read("go2rtc-control-test.service")
+        self.assertIn("After=network-online.target go2rtc-test.service", unit)
+        self.assertIn("Requires=go2rtc-test.service", unit)
+        self.assertIn("/etc/go2rtc-control-test/go2rtc-control-test.env", unit)
+        self.assertIn("/opt/go2rtc-control-test/server.py", unit)
+        self.assertNotIn("go2rtc.service", unit.replace("go2rtc-test.service", ""))
+
+    def test_installer_deploys_both_environments_without_registry_commands(self):
+        installer = self.read("install.sh")
+        for required in (
+            "go2rtc.service",
+            "go2rtc-control.service",
+            "go2rtc-test.service",
+            "go2rtc-control-test.service",
+            "/opt/go2rtc-control-test",
+            "/etc/go2rtc-control-test",
+            "127.0.0.1:1987",
+            "127.0.0.1",
+            "/var/lib/go2rtc-control-test/cameras.json",
+            "go2rtc-control-show-token --test",
+        ):
+            self.assertIn(required, installer)
+        self.assertNotIn("cp ", installer.split("SOURCE_REGISTRY", 1)[-1].split("systemctl daemon-reload", 1)[0])
+        self.assertIn("Do not create, replace, copy, or merge either SOURCE_REGISTRY", installer)
+
+    def test_token_helper_selects_test_environment_explicitly(self):
+        helper = self.read("show-token.sh")
+        self.assertIn("--test", helper)
+        self.assertIn("/etc/go2rtc-control-test/go2rtc-control-test.env", helper)
+        self.assertIn("/etc/go2rtc-control-test/token", helper)
+
     def test_installer_fails_closed_on_mismatched_production_config(self):
         installer = self.read("install.sh")
         self.assertIn("GO2RTC_CONFIG", installer)
