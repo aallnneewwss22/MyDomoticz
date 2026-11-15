@@ -8,7 +8,7 @@ import unittest
 import urllib.error
 import urllib.parse
 import urllib.request
-from http.server import ThreadingHTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from unittest.mock import patch
 
@@ -23,6 +23,23 @@ assert SPEC and SPEC.loader
 SPEC.loader.exec_module(server_module)
 
 TOKEN = "test-media-ticket-token-" + ("x" * 40)
+
+
+class FakeGo2rtcHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        body = (
+            b'<!doctype html><html><head></head><body>'
+            b'<script type="module" src="./video-stream.js"></script>'
+            b'</body></html>'
+        )
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, fmt, *args):
+        pass
 
 
 class MediaGatewayTicketTests(unittest.TestCase):
@@ -52,7 +69,12 @@ class MediaGatewayTicketTests(unittest.TestCase):
 
 class MediaTicketHTTPTests(unittest.TestCase):
     def setUp(self):
-        self.gateway = MediaGateway("http://127.0.0.1:1984")
+        self.upstream = ThreadingHTTPServer(("127.0.0.1", 0), FakeGo2rtcHandler)
+        self.upstream_thread = threading.Thread(target=self.upstream.serve_forever, daemon=True)
+        self.upstream_thread.start()
+        self.gateway = MediaGateway(
+            "http://127.0.0.1:%s" % self.upstream.server_address[1]
+        )
         self.patches = [
             patch.object(server_module, "MEDIA_GATEWAY", self.gateway),
             patch.object(server_module, "read_token", return_value=TOKEN),
@@ -73,6 +95,9 @@ class MediaTicketHTTPTests(unittest.TestCase):
         self.thread.join(timeout=2)
         for item in reversed(self.patches):
             item.stop()
+        self.upstream.shutdown()
+        self.upstream.server_close()
+        self.upstream_thread.join(timeout=2)
 
     def request(self, payload, token=TOKEN):
         data = json.dumps(payload).encode("utf-8")
@@ -110,7 +135,7 @@ class MediaTicketHTTPTests(unittest.TestCase):
         session = self.gateway._exchange_ticket(query["ticket"][0], "salon")
         self.assertTrue(session)
 
-    def test_player_ticket_is_exchanged_for_a_cookie_and_clean_redirect(self):
+    def test_player_ticket_is_exchanged_for_a_cookie_and_clean_player_url(self):
         status, result = self.request({"camera": "salon"})
         self.assertEqual(status, 201)
         connection = http.client.HTTPConnection(
@@ -118,12 +143,22 @@ class MediaTicketHTTPTests(unittest.TestCase):
         )
         connection.request("GET", result["path"])
         response = connection.getresponse()
-        self.assertEqual(response.status, 303)
-        self.assertTrue(response.getheader("Location").startswith("/media/salon/stream.html?src=salon"))
+        self.assertEqual(response.status, 200)
         cookie = response.getheader("Set-Cookie")
         self.assertIn("go2rtc_media_salon=", cookie)
         self.assertIn("HttpOnly", cookie)
-        self.assertNotIn("ticket=", response.getheader("Location"))
+        html = response.read().decode("utf-8")
+        self.assertIn("history.replaceState", html)
+        self.assertIn("/media/salon/stream.html?src=salon", html)
+        self.assertNotIn("ticket=", html)
+
+        connection.request(
+            "GET", "/media/salon/stream.html?src=salon&mode=webrtc%2Cmse%2Chls",
+            headers={"Cookie": cookie.split(";", 1)[0]},
+        )
+        second = connection.getresponse()
+        self.assertEqual(second.status, 200)
+        second.read()
         connection.close()
 
     def test_media_assets_require_a_session_cookie(self):
