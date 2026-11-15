@@ -29,7 +29,7 @@ class MediaGatewayError(Exception):
 
 class MediaGateway:
     TICKET_TTL = 45
-    SESSION_TTL = 1800
+    SESSION_TTL = 28800
     COOKIE_PREFIX = "go2rtc_media_"
     VIEWER_ASSETS = {
         "stream.html", "stream.js", "video-stream.js", "video-rtc.js",
@@ -157,6 +157,7 @@ class MediaGateway:
             connection.close()
 
     def _proxy_websocket(self, handler: BaseHTTPRequestHandler, upstream_path: str) -> None:
+        handler.close_connection = True
         upstream = None
         try:
             upstream = socket.create_connection((self.host, self.port), timeout=10)
@@ -221,7 +222,7 @@ class MediaGateway:
                 self._send_error(handler, 404, "Ressource média inconnue.")
                 return True
             camera = parts[2]
-            if not camera or not camera.isascii() or not all(ch.isalnum() or ch in "_.-" for ch in camera):
+            if not camera or len(camera) > 80 or not camera.isascii() or not all(ch.isalnum() or ch in "_.-" for ch in camera):
                 self._send_error(handler, 400, "Identifiant de caméra invalide.")
                 return True
             remainder = parts[3:]
@@ -272,7 +273,7 @@ class MediaGateway:
             if len(remainder) == 1 and remainder[0] in self.VIEWER_ASSETS:
                 self._proxy_http(handler, "/" + remainder[0])
                 return True
-            if len(remainder) >= 2 and remainder[:2] == ["api", "ws"]:
+            if len(remainder) == 2 and remainder == ["api", "ws"]:
                 source = (query.get("src") or [""])[0]
                 if not self._valid_source(source, camera):
                     self._send_error(handler, 403, "Source WebSocket non autorisée.")
@@ -280,9 +281,9 @@ class MediaGateway:
                 upstream_path = "/api/ws?" + urllib.parse.urlencode({"src": source})
                 self._proxy_websocket(handler, upstream_path)
                 return True
-            if len(remainder) >= 3 and remainder[:2] == ["api", "hls"]:
+            if len(remainder) == 3 and remainder[:2] == ["api", "hls"]:
                 suffix = remainder[2:]
-                if len(suffix) != 1 or not re.fullmatch(r"[A-Za-z0-9_.-]{1,160}", suffix[0]):
+                if len(suffix) != 1 or suffix[0] in (".", "..") or not re.fullmatch(r"[A-Za-z0-9_.-]{1,160}", suffix[0]):
                     self._send_error(handler, 404, "Ressource HLS non autorisée.")
                     return True
                 upstream_path = "/api/hls/" + "/".join(suffix)
@@ -309,7 +310,7 @@ class MediaGateway:
                 self._send_error(handler, 401, "Session média absente ou expirée.")
                 return True
             suffix = path[len("/api/hls/"):]
-            if not re.fullmatch(r"[A-Za-z0-9_.-]{1,160}", suffix):
+            if suffix in (".", "..") or not re.fullmatch(r"[A-Za-z0-9_.-]{1,160}", suffix):
                 self._send_error(handler, 404, "Ressource HLS non autorisée.")
                 return True
             upstream_path = path
