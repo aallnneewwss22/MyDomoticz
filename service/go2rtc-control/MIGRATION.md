@@ -141,7 +141,7 @@ SOURCE_REGISTRY=/var/lib/go2rtc-control-test/cameras.json
 
 Les deux variables `SOURCE_REGISTRY` doivent rester différentes et pointer vers les registres existants. Ne pas copier un registre par-dessus l'autre. Ne pas changer les chemins `TOKEN_FILE` et ne pas générer de nouveaux jetons.
 
-## 6. Basculer d'abord l'environnement de test
+## 6. Installer le YAML de test préparé
 
 À ce stade, les fichiers doivent avoir été sauvegardés, les deux YAML préparés, les deux registres préservés et les fichiers d'environnement vérifiés.
 
@@ -151,24 +151,9 @@ Installer le YAML de test préparé (après avoir vérifié qu'il ne contient qu
 sudo install -o pi -g pi -m 0640 /home/pi/go2rtc-separation-work/go2rtc-test.yaml /home/pi/go2rtc-test/go2rtc.yaml
 ```
 
-Appliquer les nouveaux ports de test et redémarrer uniquement les services de test :
+Ne pas démarrer manuellement l'API de contrôle de test à cette étape. L'installateur de la PR déploie l'unité `go2rtc-control-test.service`, son environnement et le code dédié. Il démarrera les deux unités de test après avoir vérifié les prérequis.
 
-```bash
-sudo systemctl daemon-reload
-sudo systemctl restart go2rtc-test.service
-sudo systemctl restart go2rtc-control-test.service
-```
-
-Contrôler immédiatement :
-
-```bash
-sudo systemctl --no-pager --full status go2rtc-test.service go2rtc-control-test.service
-sudo ss -lntup | grep -E ':(1987|8556|8557)\b'
-```
-
-Les ports de test doivent être occupés par le processus go2rtc de test et l'API de contrôle doit rester sur `127.0.0.1:1986`. Les ports de production `1984/8554/8555` doivent être libérés par l'ancienne instance unique. Si le test ne fonctionne pas, ne pas installer ni démarrer la production : appliquer le retour arrière.
-
-## 7. Installer et démarrer la production
+## 7. Installer et démarrer les deux environnements
 
 Depuis le dossier `service/go2rtc-control` de la version validée du dépôt :
 
@@ -176,9 +161,11 @@ Depuis le dossier `service/go2rtc-control` de la version validée du dépôt :
 sudo bash install.sh
 ```
 
-L'installateur vérifie le binaire et le YAML de production, installe les unités `go2rtc.service` et `go2rtc-control.service`, puis démarre uniquement les services de production. Il ne doit ni modifier ni redémarrer les unités de test.
+L'installateur vérifie les binaires et les YAML de production et de test. Il installe les quatre unités `go2rtc.service`, `go2rtc-control.service`, `go2rtc-test.service` et `go2rtc-control-test.service`, puis déploie le code de contrôle dans deux répertoires indépendants. Il démarre les deux instances go2rtc, puis leurs API de contrôle respectives.
 
-L'installateur ne réinitialise pas le registre de production existant. Il ne doit pas remplacer le registre de test. Si l'installation s'arrête sur une vérification, ne pas contourner le contrôle : corriger la cause ou revenir en arrière.
+Le binaire de test et son YAML doivent déjà exister sous `/home/pi/go2rtc-test/` : ils ne sont pas remplacés par l'installateur. Les fichiers d'environnement existants ne sont pas écrasés ; les paramètres manquants sont complétés, tandis qu'une valeur incompatible provoque un arrêt explicite. Les jetons existants désignés par `TOKEN_FILE` sont conservés. Un jeton n'est créé que si son fichier est absent. Les registres de caméras ne sont jamais copiés, fusionnés, remplacés ou réinitialisés par l'installateur.
+
+Si l'installation s'arrête sur une vérification, ne pas contourner le contrôle : corriger la cause ou appliquer le retour arrière.
 
 ## 8. Vérifications après bascule
 
@@ -200,7 +187,7 @@ Tester ensuite séparément une caméra de production et les flux de test. Véri
 
 **Limitation temporaire du tableau de bord :** l'API go2rtc de production écoute volontairement sur `127.0.0.1:1984`. Un navigateur ouvert depuis un autre ordinateur ne peut donc pas accéder directement à `http://IP_DU_RASPBERRY:1984`. À ce stade, l'API de contrôle sur le port 1985 peut être vérifiée, mais la lecture vidéo du tableau de bord reste temporairement indisponible jusqu'à l'évolution dédiée du lecteur et de son transport média. Ne pas exposer le port 1984 sur le réseau local pour contourner cette limitation. Cette indisponibilité connue sera traitée dans une PR distincte.
 
-Le jeton d'API n'est pas affiché automatiquement par l'installateur. Pour le récupérer volontairement sur le Raspberry Pi, exécuter `sudo go2rtc-control-show-token` dans un terminal interactif. Cette commande affiche le jeton existant sans le modifier ; ne pas copier sa sortie dans un journal ou une capture d'écran.
+Les jetons d'API ne sont pas affichés automatiquement par l'installateur. Pour récupérer volontairement un jeton sur le Raspberry Pi, exécuter `sudo go2rtc-control-show-token` (production) ou `sudo go2rtc-control-show-token --test` (test) dans un terminal interactif. La commande affiche le jeton existant sans le modifier ; ne pas copier sa sortie dans un journal ou une capture d'écran.
 
 ## 9. Retour arrière détaillé
 
