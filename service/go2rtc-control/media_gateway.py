@@ -245,9 +245,11 @@ class MediaGateway:
                     return True
                 upstream_path = "/stream.html?" + urllib.parse.urlencode({"src": source, "mode": mode})
                 cookie_name = self.COOKIE_PREFIX + camera
-                cookie = f"{cookie_name}={session}; Path=/; Max-Age={self.SESSION_TTL}; HttpOnly; SameSite=Lax"
+                cookie = f"{cookie_name}={session}; Path=/; Max-Age={self.SESSION_TTL}; HttpOnly"
                 if handler.headers.get("X-Forwarded-Proto", "").lower() == "https":
-                    cookie += "; Secure"
+                    cookie += "; SameSite=None; Secure"
+                else:
+                    cookie += "; SameSite=Lax"
                 self._proxy_http(handler, upstream_path, cookie, rewrite_viewer=True)
                 return True
 
