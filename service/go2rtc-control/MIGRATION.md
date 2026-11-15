@@ -196,7 +196,11 @@ Résultat attendu :
 - les deux registres restent distincts et inchangés ;
 - les flux de production et de test ne sont pas chargés par l'autre instance.
 
-Tester ensuite séparément une caméra de production et les flux de test. Vérifier les profils, préférences audio, résolutions natives et paramètres PTZ. Vérifier que le tableau de bord continue d'accéder à l'API de production sur le port 1985 et à go2rtc sur le port 1984.
+Tester ensuite séparément une caméra de production et les flux de test. Vérifier les profils, préférences audio, résolutions natives et paramètres PTZ.
+
+**Limitation temporaire du tableau de bord :** l'API go2rtc de production écoute volontairement sur `127.0.0.1:1984`. Un navigateur ouvert depuis un autre ordinateur ne peut donc pas accéder directement à `http://IP_DU_RASPBERRY:1984`. À ce stade, l'API de contrôle sur le port 1985 peut être vérifiée, mais la lecture vidéo du tableau de bord reste temporairement indisponible jusqu'à l'évolution dédiée du lecteur et de son transport média. Ne pas exposer le port 1984 sur le réseau local pour contourner cette limitation. Cette indisponibilité connue sera traitée dans une PR distincte.
+
+Le jeton d'API n'est pas affiché automatiquement par l'installateur. Pour le récupérer volontairement sur le Raspberry Pi, exécuter `sudo go2rtc-control-show-token` dans un terminal interactif. Cette commande affiche le jeton existant sans le modifier ; ne pas copier sa sortie dans un journal ou une capture d'écran.
 
 ## 9. Retour arrière détaillé
 
