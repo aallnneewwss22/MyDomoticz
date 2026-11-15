@@ -78,7 +78,7 @@ read_env_value() {
 ensure_env_value() {
   local file="$1" key="$2" value="$3"
   if ! grep -qE "^[[:space:]]*${key}[[:space:]]*=" "$file"; then
-    printf '%s=%s\\n' "$key" "$value" >> "$file"
+    printf '%s=%s\n' "$key" "$value" >> "$file"
   fi
 }
 
@@ -128,7 +128,8 @@ install -d -o root -g root -m 0755 "${INSTALL_DIR}/vendor/wsdl"
 cp -a "${WSDL_SOURCE_DIR}/." "${INSTALL_DIR}/vendor/wsdl/"
 chown -R root:root "${INSTALL_DIR}/vendor/wsdl"
 chmod -R a+rX "${INSTALL_DIR}/vendor/wsdl"
-cp -a "${INSTALL_DIR}/vendor" "${TEST_INSTALL_DIR}/vendor"
+install -d -o root -g root -m 0755 "${TEST_INSTALL_DIR}/vendor"
+cp -a "${INSTALL_DIR}/vendor/." "${TEST_INSTALL_DIR}/vendor/"
 chown -R root:root "${TEST_INSTALL_DIR}/vendor"
 chmod -R a+rX "${TEST_INSTALL_DIR}/vendor"
 install -o root -g root -m 0644 "${SCRIPT_DIR}/go2rtc.service" /etc/systemd/system/go2rtc.service
@@ -136,11 +137,6 @@ install -o root -g root -m 0644 "${SCRIPT_DIR}/go2rtc-control.service" /etc/syst
 install -o root -g root -m 0644 "${SCRIPT_DIR}/go2rtc-test.service.example" /etc/systemd/system/go2rtc-test.service
 install -o root -g root -m 0644 "${SCRIPT_DIR}/go2rtc-control-test.service" /etc/systemd/system/go2rtc-control-test.service
 
-if [[ ! -s "${ETC_DIR}/token" ]]; then
-  python3 -c 'import secrets; print(secrets.token_urlsafe(48))' > "${ETC_DIR}/token"
-fi
-chown root:"${SERVICE_USER}" "${ETC_DIR}/token"
-chmod 0640 "${ETC_DIR}/token"
 install -o root -g root -m 0755 "${SCRIPT_DIR}/show-token.sh" /usr/local/sbin/go2rtc-control-show-token
 
 if [[ ! -f "${ETC_DIR}/go2rtc-control.env" ]]; then
@@ -165,6 +161,19 @@ else
   grep -q '^TRANSCODE_RTSP_HOST=' "${ETC_DIR}/go2rtc-control.env" || printf 'TRANSCODE_RTSP_HOST=127.0.0.1\n' >> "${ETC_DIR}/go2rtc-control.env"
   grep -q '^TRANSCODE_RTSP_PORT=' "${ETC_DIR}/go2rtc-control.env" || printf 'TRANSCODE_RTSP_PORT=8554\n' >> "${ETC_DIR}/go2rtc-control.env"
 fi
+
+ensure_env_value "${ETC_DIR}/go2rtc-control.env" TOKEN_FILE "${ETC_DIR}/token"
+PROD_TOKEN_FILE="$(read_env_value "${ETC_DIR}/go2rtc-control.env" TOKEN_FILE)"
+if [[ -z "${PROD_TOKEN_FILE}" ]]; then
+  echo "TOKEN_FILE est absent de ${ETC_DIR}/go2rtc-control.env." >&2
+  exit 1
+fi
+if [[ ! -s "${PROD_TOKEN_FILE}" ]]; then
+  install -d -o root -g "${SERVICE_USER}" -m 0750 "$(dirname -- "${PROD_TOKEN_FILE}")"
+  python3 -c 'import secrets; print(secrets.token_urlsafe(48))' > "${PROD_TOKEN_FILE}"
+fi
+chown root:"${SERVICE_USER}" "${PROD_TOKEN_FILE}"
+chmod 0640 "${PROD_TOKEN_FILE}"
 
 # Configure the isolated test control API without replacing an existing env file,
 # token, or camera registry.
