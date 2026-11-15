@@ -78,6 +78,23 @@ sudo journalctl -u go2rtc-control.service -f
 
 Après un échec de déplacement ou d'arrêt, la session ONVIF correspondante est retirée du cache ; la commande suivante établit donc une nouvelle session au lieu de réutiliser celle qui vient d'échouer.
 
+## Passerelle de lecture vidéo (v96)
+
+Le tableau de bord ne contacte plus directement l'interface HTTP de go2rtc. La lecture passe par une passerelle média intégrée au service de contrôle de production, sur son port habituel **1985** :
+
+- Le tableau de bord demande un ticket à usage unique via `POST /api/media/ticket`, avec le jeton Bearer habituel.
+- Le ticket expire après 45 secondes et est lié à une caméra ainsi qu'à son flux natif ou transcodé.
+- Le premier chargement du lecteur échange le ticket contre un cookie de session HttpOnly, propre à la caméra, valable au plus 30 minutes et renouvelé lors des requêtes média.
+- La passerelle ne relaie que les fichiers du lecteur go2rtc nécessaires, la signalisation WebSocket `/api/ws` et les ressources HLS `/api/hls/`. Les autres chemins sont refusés.
+- La signalisation WebRTC et les transports MSE/HLS passent par cette passerelle. Le média WebRTC (RTP/SRTP) reste une connexion directe du navigateur vers le port WebRTC go2rtc configuré, actuellement **8555 en TCP/UDP**.
+- Les profils vidéo, les sessions de transcodage, les commandes PTZ et les préférences audio continuent d'utiliser les routes de contrôle existantes.
+
+L'API go2rtc reste liée à `127.0.0.1:1984`. Aucun binaire, YAML go2rtc, port, registre caméra ni jeton existant n'est modifié par cette évolution. Le service de contrôle de test conserve son instance et son registre indépendants.
+
+**Accès WAN :** cette évolution prépare la séparation entre signalisation HTTP et transport média, mais n'active aucune exposition Internet et ne modifie pas la box. Pour une étape WAN ultérieure, il faudra notamment décider de l'exposition HTTPS du service de contrôle/passerelle, renseigner les origines autorisées via `DASHBOARD_ORIGINS` (liste séparée par des virgules), configurer les candidats ICE annoncés par go2rtc et les redirections TCP/UDP nécessaires pour son port WebRTC. Le port d'administration go2rtc 1984 ne devra jamais être publié. Tant que cette configuration n'a pas été définie et sécurisée, conserver le port 1985 sur le réseau de confiance.
+
+Le cookie est marqué `Secure; SameSite=None` lorsque le service reçoit `X-Forwarded-Proto: https` d'un reverse proxy ; en HTTP direct, il utilise `SameSite=Lax`.
+
 ## Commande audio par caméra
 
 Chaque caméra conserve un état audio commun à tous les navigateurs, dans le registre privé /var/lib/go2rtc-control/cameras.json. Le bouton Audio activé / Audio coupé modifie la source du flux go2rtc unique :
