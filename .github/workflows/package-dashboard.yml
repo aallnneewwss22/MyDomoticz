@@ -65,7 +65,7 @@ jobs:
           import re
 
           launcher = Path("dashboard/maison.html").read_text(encoding="utf-8")
-          match = re.search(r"maison-dashboard-v[0-9]+\\.html", launcher)
+          match = re.search(r"maison-dashboard-v[0-9]+\.html", launcher)
           if not match:
               raise SystemExit("Could not find a versioned dashboard filename in dashboard/maison.html")
           html = Path("dashboard", match.group(0)).read_text(encoding="utf-8")
