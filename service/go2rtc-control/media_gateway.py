@@ -31,7 +31,7 @@ class MediaGateway:
     SESSION_TTL = 1800
     COOKIE_PREFIX = "go2rtc_media_"
     VIEWER_ASSETS = {
-        "stream.html", "stream.js", "video-stream.js", "video-rtc.js", "video-rtc.js",
+        "stream.html", "stream.js", "video-stream.js", "video-rtc.js",
         "stream.css", "video-stream.css", "favicon.ico",
     }
 
@@ -112,7 +112,7 @@ class MediaGateway:
 
     def _proxy_http(
         self, handler: BaseHTTPRequestHandler, upstream_path: str,
-        cookie_header: str | None = None, rewrite_viewer: bool = False,
+        cookie_header=None, rewrite_viewer: bool = False,
     ) -> None:
         connection = http.client.HTTPConnection(self.host, self.port, timeout=15)
         headers = {}
