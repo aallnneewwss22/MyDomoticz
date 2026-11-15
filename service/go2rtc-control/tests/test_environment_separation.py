@@ -90,6 +90,13 @@ class EnvironmentSeparationTests(unittest.TestCase):
         self.assertIn("/etc/go2rtc-control-test/go2rtc-control-test.env", helper)
         self.assertIn("/etc/go2rtc-control-test/token", helper)
 
+    def test_token_helper_uses_the_selected_environment_not_inherited_token_file(self):
+        helper = self.read("show-token.sh")
+        self.assertIn('ENV_FILE="/etc/go2rtc-control-test/go2rtc-control-test.env"', helper)
+        self.assertIn('ENV_FILE="/etc/go2rtc-control/go2rtc-control.env"', helper)
+        self.assertIn('TOKEN_FILE="$DEFAULT_TOKEN_FILE"', helper)
+        self.assertNotIn('if [[ -z "${TOKEN_FILE+x}" ]]', helper)
+
     def test_installer_fails_closed_on_mismatched_production_config(self):
         installer = self.read("install.sh")
         self.assertIn("GO2RTC_CONFIG", installer)
