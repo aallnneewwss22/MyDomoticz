@@ -32,7 +32,13 @@ L'installation standard déploie les deux environnements indépendants, soit qua
 | API de contrôle | `0.0.0.0:1985` | `127.0.0.1:1986` |
 | Registre | `/var/lib/go2rtc-control/cameras.json` | `/var/lib/go2rtc-control-test/cameras.json` |
 
-Le binaire et le YAML de test doivent être préparés à ces emplacements avant l'installation. L'installateur déploie les unités systemd et le code de contrôle dans deux répertoires distincts ; il ne remplace pas le binaire ni les YAML des instances go2rtc.
+**Prérequis à ne pas oublier :** les deux exécutables go2rtc et les deux fichiers YAML doivent déjà être installés et préparés avant de lancer ce script :
+- Production : binaire `/usr/local/bin/go2rtc` et YAML `/etc/go2rtc/go2rtc.yaml` (ou le chemin donné par `GO2RTC_CONFIG`).
+- Test : binaire `/home/pi/go2rtc-test/go2rtc` et YAML `/home/pi/go2rtc-test/go2rtc.yaml`.
+
+L'installateur ne télécharge, n'installe, ne met à jour et ne remplace **ni les binaires go2rtc ni les fichiers YAML**. Il installe/met à jour le code et les unités systemd des services de contrôle, ainsi que leurs dépendances. Il redémarre ensuite les deux instances go2rtc et les deux services de contrôle : les flux vidéo peuvent être interrompus momentanément.
+
+Au démarrage, le script affiche un avertissement récapitulatif et demande de taper exactement `OUI` avant de poursuivre. En mode non interactif, il refuse de continuer sauf si `GO2RTC_INSTALL_CONFIRM=oui` est explicitement défini ; l'avertissement reste affiché.
 
 Pour adapter le chemin YAML ou l'origine du tableau de bord :
 
