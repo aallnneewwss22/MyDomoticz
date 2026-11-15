@@ -40,6 +40,8 @@ def normalize_camera_profiles(
     profiles: object,
     default_profile_id: object,
     native_quality: object,
+    *,
+    enforce_native_limit: bool = True,
 ) -> tuple[dict[str, dict[str, Any]], str]:
     """Return canonical profiles and the mandatory native default.
 
@@ -95,7 +97,7 @@ def normalize_camera_profiles(
             or (width, height) not in ALLOWED_RESOLUTIONS
         ):
             raise CameraProfileError("Résolution de sortie non autorisée.")
-        if width > native_width or height > native_height:
+        if enforce_native_limit and (width > native_width or height > native_height):
             raise CameraProfileError("Un profil ne peut pas dépasser la résolution native de la caméra.")
 
         fps = profile.get("fps")
@@ -143,7 +145,10 @@ def create_camera_profile(profiles: dict[str, dict[str, Any]], native_quality: o
     profile_id = secrets.token_hex(16)
     candidate = dict(profiles)
     candidate[profile_id] = dict(payload, type="transcode")
-    normalized, _ = normalize_camera_profiles(candidate, NATIVE_PROFILE_ID, native_quality)
+    normalized, _ = normalize_camera_profiles(
+        candidate, NATIVE_PROFILE_ID, native_quality, enforce_native_limit=False
+    )
+    _ensure_profile_fits_native(normalized[profile_id], native_quality)
     return normalized, profile_id
 
 
@@ -156,8 +161,19 @@ def update_camera_profile(profiles: dict[str, dict[str, Any]], native_quality: o
     updated = dict(candidate[profile_id])
     updated.update(payload)
     candidate[profile_id] = updated
-    normalized, _ = normalize_camera_profiles(candidate, NATIVE_PROFILE_ID, native_quality)
+    normalized, _ = normalize_camera_profiles(
+        candidate, NATIVE_PROFILE_ID, native_quality, enforce_native_limit=False
+    )
+    _ensure_profile_fits_native(normalized[profile_id], native_quality)
     return normalized
+
+
+def _ensure_profile_fits_native(profile: dict[str, Any], native_quality: object) -> None:
+    if not isinstance(native_quality, str) or native_quality not in NATIVE_DIMENSIONS:
+        raise CameraProfileError("La résolution native de la caméra est invalide.")
+    native_width, native_height = NATIVE_DIMENSIONS[native_quality]
+    if profile["width"] > native_width or profile["height"] > native_height:
+        raise CameraProfileError("Un profil ne peut pas dépasser la résolution native de la caméra.")
 
 
 def delete_camera_profile(profiles: dict[str, dict[str, Any]], profile_id: object):
