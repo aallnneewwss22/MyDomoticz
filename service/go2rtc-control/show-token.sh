@@ -60,4 +60,4 @@ fi
 
 echo "ATTENTION : le jeton ci-dessous est un secret d'accès à l'API."
 echo "Ne le partage pas et ne le copie pas dans un journal ou une capture d'écran."
-printf '%s\\n' "${token_lines[0]}"
+printf '%s\n' "${token_lines[0]}"
