@@ -17,7 +17,7 @@ et leurs unités systemd pour les environnements production et test.
 
 PREREQUIS OBLIGATOIRES :
   Production : binaire /usr/local/bin/go2rtc
-               YAML    ${GO2RTC_CONFIG:-/etc/go2rtc/go2rtc.yaml}
+               YAML    /etc/go2rtc/go2rtc.yaml (ou chemin GO2RTC_CONFIG)
   Test       : binaire /home/pi/go2rtc-test/go2rtc
                YAML    /home/pi/go2rtc-test/go2rtc.yaml
 
