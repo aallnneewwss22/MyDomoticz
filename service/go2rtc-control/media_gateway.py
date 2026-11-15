@@ -156,7 +156,7 @@ class MediaGateway:
                 clean_url = getattr(handler, "_media_clean_url", None)
                 if clean_url:
                     script = '<script>history.replaceState(null, "", "' + clean_url + '");</script>'
-                    text = re.sub(r"(<head\\b[^>]*>)", lambda match: match.group(1) + script, text, count=1, flags=re.IGNORECASE)
+                    text = re.sub(r"(<head\b[^>]*>)", lambda match: match.group(1) + script, text, count=1, flags=re.IGNORECASE)
                 body = text.encode("utf-8")
             handler.send_response(response.status, response.reason)
             content_type = response.getheader("Content-Type")
@@ -274,7 +274,7 @@ class MediaGateway:
                 elif not self._same_origin_request(handler):
                     self._send_error(handler, 403, "Origine média non autorisée.")
                     return True
-                if camera not in self._cookie_sessions(handler):
+                if not ticket and camera not in self._cookie_sessions(handler):
                     self._send_error(handler, 401, "Session média absente ou expirée.")
                     return True
                 upstream_path = "/stream.html?" + urllib.parse.urlencode({"src": source, "mode": mode})
