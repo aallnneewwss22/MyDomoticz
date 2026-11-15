@@ -111,6 +111,20 @@ class MediaGateway:
     def _valid_source(source: str, camera: str) -> bool:
         return source in (camera, camera + "_transcode")
 
+    @staticmethod
+    def _same_origin_request(handler: BaseHTTPRequestHandler) -> bool:
+        """Reject cross-origin reuse of a camera media cookie."""
+        fetch_site = handler.headers.get("Sec-Fetch-Site", "").lower()
+        if fetch_site and fetch_site != "same-origin":
+            return False
+        origin = handler.headers.get("Origin", "")
+        if not origin:
+            return True
+        parsed = urlsplit(origin)
+        host = handler.headers.get("Host", "").lower()
+        scheme = "https" if handler.headers.get("X-Forwarded-Proto", "").lower() == "https" else "http"
+        return parsed.scheme == scheme and parsed.netloc.lower() == host
+
     def _proxy_http(
         self, handler: BaseHTTPRequestHandler, upstream_path: str,
         cookie_header=None, rewrite_viewer: bool = False,
@@ -259,6 +273,9 @@ class MediaGateway:
                     handler.send_header("Content-Length", "0")
                     handler.end_headers()
                     return True
+                if not self._same_origin_request(handler):
+                    self._send_error(handler, 403, "Origine média non autorisée.")
+                    return True
                 if camera not in self._cookie_sessions(handler):
                     self._send_error(handler, 401, "Session média absente ou expirée.")
                     return True
@@ -266,6 +283,9 @@ class MediaGateway:
                 self._proxy_http(handler, upstream_path, rewrite_viewer=True)
                 return True
 
+            if not self._same_origin_request(handler):
+                self._send_error(handler, 403, "Origine média non autorisée.")
+                return True
             sessions = self._cookie_sessions(handler)
             if camera not in sessions:
                 self._send_error(handler, 401, "Session média absente ou expirée.")
@@ -295,6 +315,9 @@ class MediaGateway:
             return True
 
         if path == "/api/ws":
+            if not self._same_origin_request(handler):
+                self._send_error(handler, 403, "Origine média non autorisée.")
+                return True
             source = (query.get("src") or [""])[0]
             sessions = self._cookie_sessions(handler)
             camera = next((name for name in sessions if self._valid_source(source, name)), None)
@@ -306,6 +329,9 @@ class MediaGateway:
             return True
 
         if path.startswith("/api/hls/"):
+            if not self._same_origin_request(handler):
+                self._send_error(handler, 403, "Origine média non autorisée.")
+                return True
             if not self._cookie_sessions(handler):
                 self._send_error(handler, 401, "Session média absente ou expirée.")
                 return True
