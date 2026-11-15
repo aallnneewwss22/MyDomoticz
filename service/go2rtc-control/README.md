@@ -84,7 +84,7 @@ Le tableau de bord ne contacte plus directement l'interface HTTP de go2rtc. La l
 
 - Le tableau de bord demande un ticket à usage unique via `POST /api/media/ticket`, avec le jeton Bearer habituel.
 - Le ticket expire après 45 secondes et est lié à une caméra ainsi qu'à son flux natif ou transcodé.
-- Le premier chargement du lecteur échange le ticket contre un cookie de session HttpOnly, propre à la caméra, valable au plus 30 minutes et renouvelé lors des requêtes média.
+- Le premier chargement du lecteur échange le ticket contre un cookie de session HttpOnly, propre à la caméra, valable au plus 8 heures et renouvelé lors des requêtes média.
 - La passerelle ne relaie que les fichiers du lecteur go2rtc nécessaires, la signalisation WebSocket `/api/ws` et les ressources HLS `/api/hls/`. Les autres chemins sont refusés.
 - La signalisation WebRTC et les transports MSE/HLS passent par cette passerelle. Le média WebRTC (RTP/SRTP) reste une connexion directe du navigateur vers le port WebRTC go2rtc configuré, actuellement **8555 en TCP/UDP**.
 - Les profils vidéo, les sessions de transcodage, les commandes PTZ et les préférences audio continuent d'utiliser les routes de contrôle existantes.
