@@ -10,6 +10,7 @@ go2rtc WebRTC transport ports.
 from __future__ import annotations
 
 import http.client
+import re
 import secrets
 import select
 import socket
@@ -163,7 +164,7 @@ class MediaGateway:
             upstream.sendall(request.encode("ascii"))
             forwarded = []
             for key, value in handler.headers.items():
-                if key.lower() in {"host", "origin", "cookie", "authorization", "connection"}:
+                if key.lower() in {"host", "origin", "cookie", "authorization", "connection", "upgrade"}:
                     continue
                 forwarded.append(f"{key}: {value}\r\n")
             forwarded.extend([
@@ -220,11 +221,12 @@ class MediaGateway:
                 self._send_error(handler, 404, "Ressource média inconnue.")
                 return True
             camera = parts[2]
-            if not camera or not all(ch.isalnum() or ch in "_.-" for ch in camera):
+            if not camera or not camera.isascii() or not all(ch.isalnum() or ch in "_.-" for ch in camera):
                 self._send_error(handler, 400, "Identifiant de caméra invalide.")
                 return True
             remainder = parts[3:]
-            handler._media_prefix = f"/media/{camera}"
+            prefix = f"/media/{camera}"
+            handler._media_prefix = prefix
             if remainder == ["stream.html"]:
                 source = (query.get("src") or [camera])[0]
                 if not self._valid_source(source, camera):
@@ -280,7 +282,7 @@ class MediaGateway:
                 return True
             if len(remainder) >= 3 and remainder[:2] == ["api", "hls"]:
                 suffix = remainder[2:]
-                if any(part in (".", "..") for part in suffix):
+                if len(suffix) != 1 or not re.fullmatch(r"[A-Za-z0-9_.-]{1,160}", suffix[0]):
                     self._send_error(handler, 404, "Ressource HLS non autorisée.")
                     return True
                 upstream_path = "/api/hls/" + "/".join(suffix)
@@ -307,7 +309,7 @@ class MediaGateway:
                 self._send_error(handler, 401, "Session média absente ou expirée.")
                 return True
             suffix = path[len("/api/hls/"):]
-            if not suffix or any(part in (".", "..") for part in suffix.split("/")):
+            if not re.fullmatch(r"[A-Za-z0-9_.-]{1,160}", suffix):
                 self._send_error(handler, 404, "Ressource HLS non autorisée.")
                 return True
             upstream_path = path
