@@ -31,7 +31,7 @@ class MediaGateway:
     SESSION_TTL = 1800
     COOKIE_PREFIX = "go2rtc_media_"
     VIEWER_ASSETS = {
-        "stream.html", "stream.js", "video-stream.js",
+        "stream.html", "stream.js", "video-stream.js", "video-rtc.js",
         "stream.css", "video-stream.css", "favicon.ico",
     }
 
@@ -216,16 +216,16 @@ class MediaGateway:
         path, query = self._read_query(handler)
         if path.startswith("/media/"):
             parts = path.split("/")
-            if len(parts) != 4 or parts[1] != "media":
+            if len(parts) < 4 or parts[1] != "media":
                 self._send_error(handler, 404, "Ressource média inconnue.")
                 return True
-            camera, asset = parts[2], parts[3]
+            camera = parts[2]
             if not camera or not all(ch.isalnum() or ch in "_.-" for ch in camera):
                 self._send_error(handler, 400, "Identifiant de caméra invalide.")
                 return True
-            prefix = f"/media/{camera}"
-            handler._media_prefix = prefix
-            if asset == "stream.html":
+            remainder = parts[3:]
+            handler._media_prefix = f"/media/{camera}"
+            if remainder == ["stream.html"]:
                 ticket = (query.get("ticket") or [""])[0]
                 if not ticket:
                     self._send_error(handler, 401, "Ticket de lecture absent.")
@@ -250,21 +250,37 @@ class MediaGateway:
                     cookie += "; Secure"
                 self._proxy_http(handler, upstream_path, cookie, rewrite_viewer=True)
                 return True
+
             sessions = self._cookie_sessions(handler)
             if camera not in sessions:
                 self._send_error(handler, 401, "Session média absente ou expirée.")
                 return True
-            if asset not in self.VIEWER_ASSETS:
-                self._send_error(handler, 404, "Ressource du lecteur non autorisée.")
+            if len(remainder) == 1 and remainder[0] in self.VIEWER_ASSETS:
+                self._proxy_http(handler, "/" + remainder[0])
                 return True
-            self._proxy_http(handler, "/" + asset)
+            if len(remainder) >= 2 and remainder[:2] == ["api", "ws"]:
+                source = (query.get("src") or [""])[0]
+                if not self._valid_source(source, camera):
+                    self._send_error(handler, 403, "Source WebSocket non autorisée.")
+                    return True
+                upstream_path = "/api/ws?" + urllib.parse.urlencode({"src": source})
+                self._proxy_websocket(handler, upstream_path)
+                return True
+            if len(remainder) >= 3 and remainder[:2] == ["api", "hls"]:
+                suffix = remainder[2:]
+                if any(part in (".", "..") for part in suffix):
+                    self._send_error(handler, 404, "Ressource HLS non autorisée.")
+                    return True
+                upstream_path = "/api/hls/" + "/".join(suffix)
+                if handler.path.find("?") >= 0:
+                    upstream_path += "?" + handler.path.split("?", 1)[1]
+                self._proxy_http(handler, upstream_path)
+                return True
+            self._send_error(handler, 404, "Ressource du lecteur non autorisée.")
             return True
 
         if path == "/api/ws":
             source = (query.get("src") or [""])[0]
-            if not source:
-                self._send_error(handler, 400, "Source WebSocket absente.")
-                return True
             sessions = self._cookie_sessions(handler)
             camera = next((name for name in sessions if self._valid_source(source, name)), None)
             if camera is None:
