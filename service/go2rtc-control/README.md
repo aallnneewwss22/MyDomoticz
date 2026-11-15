@@ -42,7 +42,7 @@ sudo GO2RTC_CONFIG=/chemin/go2rtc.yaml DASHBOARD_ORIGIN=http://192.168.1.21:8080
 
 Avant l'installation, réalise la préparation décrite dans [MIGRATION.md](MIGRATION.md) : sauvegarde vérifiée, séparation des deux YAML et des ports, copie indépendante du binaire de production et préparation du binaire/YAML de test, puis vérification des deux fichiers d'environnement. Le script refuse de poursuivre si un des deux binaires ou YAML est absent, ou si les paramètres réseau/API/registre d'un environnement ne correspondent pas à ses valeurs réservées. Il installe les quatre unités systemd, déploie le code dans `/opt/go2rtc-control` et `/opt/go2rtc-control-test`, et installe les dépendances ONVIF dans chacun des deux environnements. Les fichiers d'environnement existants et les jetons désignés par `TOKEN_FILE` sont conservés ; un jeton n'est créé que si son fichier est absent. Les deux registres existants ne sont jamais copiés, fusionnés, remplacés ni réinitialisés par le script d'installation.
 
-**Migration automatique de l'installation existante :** si le registre indépendant n'existe pas encore, le premier démarrage de cette version copie les sources textuelles actuellement présentes dans le YAML go2rtc vers `/var/lib/go2rtc-control/cameras.json`. Dans ton cas, comme tu as restauré le YAML avant cette mise à jour, cette copie récupérera les sources restaurées. Le registre est ensuite conservé tel quel : une mise à jour ou un redémarrage ne l'écrase pas, même si go2rtc a retiré un flux du YAML.
+**Initialisation et migration des registres :** chaque service de contrôle utilise exclusivement son propre registre. Si celui-ci est absent lors du premier démarrage, le service l'initialise à partir du YAML de son instance go2rtc. Si un registre existe déjà, il n'est ni remplacé ni fusionné ; le service peut uniquement appliquer la migration de schéma déjà prévue par l'application lorsqu'une ancienne structure est détectée. Cette migration conserve les sources RTSP, les préférences audio, la qualité native, les profils et les paramètres PTZ. Une mise à jour ou un redémarrage ne réinitialise pas les données, même si go2rtc a retiré un flux de son YAML. Le script d'installation lui-même n'écrit jamais dans les registres.
 
 Le registre contient des URL potentiellement sensibles. Il est stocké sous le répertoire d'état systemd, avec des droits privés (fichier 0600, répertoire 0750), accessible au compte du service. Ne le publie pas et ne le partage pas. Les jetons existants et les paramètres actuels des deux environnements sont conservés lors d'une mise à jour.
 
@@ -67,7 +67,7 @@ sudo journalctl -u go2rtc-control.service -u go2rtc-control-test.service -n 50 -
 En cas d'échec d'une commande PTZ, le service consigne désormais l'opération concernée (connexion, `ContinuousMove` ou `Stop`), le type d'exception et le détail technique fourni par ONVIF. Les identifiants configurés sont masqués. Pour suivre les erreurs en direct :
 
 ```bash
-sudo journalctl -u go2rtc-control -f
+sudo journalctl -u go2rtc-control.service -f
 ```
 
 Après un échec de déplacement ou d'arrêt, la session ONVIF correspondante est retirée du cache ; la commande suivante établit donc une nouvelle session au lieu de réutiliser celle qui vient d'échouer.
