@@ -1778,6 +1778,8 @@
                 frame.referrerPolicy = "no-referrer";
                 const playerUrlFor = source => cameraMediaPlayerUrl(config.stream, source);
                 let activeMediaSource = config.stream;
+                // Chaque déplacement peut recréer le contexte iframe : toujours demander
+                // un ticket neuf plutôt que de rejouer l'URL à ticket déjà consommé.
                 const refreshPlayerForPtz = async () => {
                     if (mode !== "on" || playbackFailed) return false;
                     const url = await playerUrlFor(activeMediaSource);
