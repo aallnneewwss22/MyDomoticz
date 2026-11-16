@@ -2,6 +2,14 @@
 
 ## [Non publié]
 
+### Corrigé — Cloisonnement HLS par caméra
+
+- Les URL HLS globales `/api/hls/{source}/...` sont désormais liées à une session valide de la caméra correspondant à la source demandée (flux natif ou transcodé).
+- Une session d'une caméra ne peut plus servir de passe-droit pour lire les ressources HLS d'une autre caméra ; les requêtes sans session restent refusées.
+- Ajout de tests HTTP couvrant les accès HLS natif et transcodé autorisés, l'accès croisé refusé et l'absence de session.
+
+## [Non publié]
+
 ### Corrigé — Démarrage du relais de transcodage
 
 - Limite l'analyse initiale du flux MPEG-TS reçu en UDP par le relais FFmpeg (-probesize 32768, -analyzeduration 1000000) afin qu'il identifie rapidement le flux H.264 et puisse publier son producteur RTSP.

@@ -330,12 +330,32 @@ class MediaGateway:
             if not self._same_origin_request(handler):
                 self._send_error(handler, 403, "Origine média non autorisée.")
                 return True
-            if not self._cookie_sessions(handler):
+            sessions = self._cookie_sessions(handler)
+            if not sessions:
                 self._send_error(handler, 401, "Session média absente ou expirée.")
                 return True
+            # go2rtc HLS URLs are rooted at /api/hls/{src}/... . A valid
+            # cookie alone is not sufficient: bind the source in the URL to
+            # one of the camera sessions presented by this request.
             suffix = path[len("/api/hls/"):]
-            if suffix in (".", "..") or not re.fullmatch(r"[A-Za-z0-9_.-]{1,160}", suffix):
+            parts = suffix.split("/")
+            if (
+                len(parts) < 2
+                or any(
+                    part in ("", ".", "..")
+                    or not re.fullmatch(r"[A-Za-z0-9_.-]{1,160}", part)
+                    for part in parts
+                )
+            ):
                 self._send_error(handler, 404, "Ressource HLS non autorisée.")
+                return True
+            source = parts[0]
+            camera = next(
+                (name for name in sessions if self._valid_source(source, name)),
+                None,
+            )
+            if camera is None:
+                self._send_error(handler, 403, "Source HLS non autorisée pour cette session.")
                 return True
             upstream_path = path
             if handler.path.find("?") >= 0:
