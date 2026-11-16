@@ -1,3 +1,11 @@
+## [Non publié]
+
+### Corrigé — Cloisonnement HLS par caméra
+
+- Les URL HLS globales `/api/hls/{source}/...` sont désormais liées à une session valide de la caméra correspondant à la source demandée (flux natif ou transcodé).
+- Une session d'une caméra ne peut plus servir de passe-droit pour lire les ressources HLS d'une autre caméra ; les requêtes sans session restent refusées.
+- Ajout de tests HTTP couvrant les accès HLS natif et transcodé autorisés, l'accès croisé refusé et l'absence de session.
+
 # Journal des modifications
 
 ## [Non publié]
