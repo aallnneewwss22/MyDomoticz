@@ -26,7 +26,10 @@ TOKEN = "test-media-ticket-token-" + ("x" * 40)
 
 
 class FakeGo2rtcHandler(BaseHTTPRequestHandler):
+    requests = []
+
     def do_GET(self):
+        type(self).requests.append(self.path)
         body = (
             b'<!doctype html><html><head></head><body>'
             b'<script type="module" src="./video-stream.js"></script>'
@@ -75,6 +78,7 @@ class MediaTicketHTTPTests(unittest.TestCase):
         self.gateway = MediaGateway(
             "http://127.0.0.1:%s" % self.upstream.server_address[1]
         )
+        FakeGo2rtcHandler.requests = []
         self.patches = [
             patch.object(server_module, "MEDIA_GATEWAY", self.gateway),
             patch.object(server_module, "read_token", return_value=TOKEN),
@@ -170,6 +174,45 @@ class MediaTicketHTTPTests(unittest.TestCase):
             self.fail("A media asset must not be public.")
         except urllib.error.HTTPError as exc:
             self.assertEqual(exc.code, 401)
+
+    def test_root_hls_is_bound_to_the_camera_session(self):
+        salon_session = self.gateway._exchange_ticket(
+            self.gateway.issue_ticket("salon"), "salon"
+        )
+        entree_session = self.gateway._exchange_ticket(
+            self.gateway.issue_ticket("entree"), "entree"
+        )
+
+        def get(path, cookie=None):
+            connection = http.client.HTTPConnection(
+                "127.0.0.1", self.httpd.server_address[1], timeout=3
+            )
+            headers = {"Cookie": cookie} if cookie else {}
+            connection.request("GET", path, headers=headers)
+            response = connection.getresponse()
+            status = response.status
+            response.read()
+            connection.close()
+            return status
+
+        salon_cookie = "go2rtc_media_salon=" + salon_session
+        entree_cookie = "go2rtc_media_entree=" + entree_session
+
+        self.assertEqual(get("/api/hls/salon/index.m3u8", salon_cookie), 200)
+        self.assertEqual(get("/api/hls/salon_transcode/index.m3u8", salon_cookie), 200)
+        self.assertEqual(get("/api/hls/entree/index.m3u8", salon_cookie), 403)
+        self.assertEqual(get("/api/hls/entree/index.m3u8", entree_cookie), 200)
+        self.assertEqual(get("/api/hls/salon/index.m3u8"), 401)
+
+        # A denied cross-camera request must never reach go2rtc.
+        self.assertEqual(
+            FakeGo2rtcHandler.requests,
+            [
+                "/api/hls/salon/index.m3u8",
+                "/api/hls/salon_transcode/index.m3u8",
+                "/api/hls/entree/index.m3u8",
+            ],
+        )
 
     def test_media_cookie_cannot_be_reused_from_another_origin(self):
         status, result = self.request({"camera": "salon"})
