@@ -28,6 +28,7 @@ from camera_profiles import (
     CameraProfileError, create_camera_profile, delete_camera_profile,
     normalize_camera_profiles, update_camera_profile, validate_selected_profile,
 )
+from media_gateway import MediaGateway
 
 VENDOR_DIR = Path(__file__).resolve().parent / "vendor"
 if VENDOR_DIR.is_dir():
@@ -44,11 +45,13 @@ GO2RTC_CONFIG = Path(os.environ.get("GO2RTC_CONFIG", "/etc/go2rtc/go2rtc.yaml"))
 SOURCE_REGISTRY = Path(os.environ.get("SOURCE_REGISTRY", "/var/lib/go2rtc-control/cameras.json"))
 TOKEN_FILE = Path(os.environ.get("TOKEN_FILE", "/etc/go2rtc-control/token"))
 DASHBOARD_ORIGIN = os.environ.get("DASHBOARD_ORIGIN", "http://192.168.1.21:8080").rstrip("/")
+DASHBOARD_ORIGINS = {item.strip().rstrip("/") for item in os.environ.get("DASHBOARD_ORIGINS", DASHBOARD_ORIGIN).split(",") if item.strip()}
 CONTROL_HOST = os.environ.get("CONTROL_HOST", "0.0.0.0")
 CONTROL_PORT = int(os.environ.get("CONTROL_PORT", "1985"))
 TRANSCODE_FFMPEG = os.environ.get("TRANSCODE_FFMPEG", "/usr/bin/ffmpeg")
 TRANSCODE_RTSP_HOST = os.environ.get("TRANSCODE_RTSP_HOST", "127.0.0.1")
 TRANSCODE_RTSP_PORT = int(os.environ.get("TRANSCODE_RTSP_PORT", "8554"))
+MEDIA_GATEWAY = MediaGateway(GO2RTC_API)
 REGISTRY_LOCK = threading.RLock()
 LOGGER = logging.getLogger("go2rtc-control.ptz")
 TRANSCODE_ENGINE = FFmpegTranscodeEngine(
@@ -485,15 +488,15 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
         origin = self.headers.get("Origin", "")
-        if origin == DASHBOARD_ORIGIN:
-            self.send_header("Access-Control-Allow-Origin", DASHBOARD_ORIGIN)
+        if origin in DASHBOARD_ORIGINS:
+            self.send_header("Access-Control-Allow-Origin", origin)
             self.send_header("Vary", "Origin")
         self.end_headers()
         self.wfile.write(body)
 
     def authorized(self) -> bool:
         origin = self.headers.get("Origin", "")
-        if origin and origin != DASHBOARD_ORIGIN:
+        if origin and origin not in DASHBOARD_ORIGINS:
             self.send_json(403, {"error": "Origine non autorisée."})
             return False
         try:
@@ -508,11 +511,11 @@ class Handler(BaseHTTPRequestHandler):
         return True
 
     def do_OPTIONS(self) -> None:
-        if self.headers.get("Origin", "") != DASHBOARD_ORIGIN:
+        if self.headers.get("Origin", "") not in DASHBOARD_ORIGINS:
             self.send_json(403, {"error": "Origine non autorisée."})
             return
         self.send_response(204)
-        self.send_header("Access-Control-Allow-Origin", DASHBOARD_ORIGIN)
+        self.send_header("Access-Control-Allow-Origin", self.headers.get("Origin", ""))
         self.send_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Authorization, Content-Type")
         self.send_header("Access-Control-Max-Age", "600")
@@ -800,7 +803,38 @@ class Handler(BaseHTTPRequestHandler):
         except ControlError as exc:
             self.send_json(502, {"error": str(exc)})
 
+    def handle_media_ticket(self) -> None:
+        """Issue a one-use player ticket after normal control-token authorization."""
+        if not self.authorized():
+            return
+        try:
+            payload = _read_json_body(self)
+            camera = payload.get("camera")
+            if not isinstance(camera, str) or not STREAM_NAME.fullmatch(camera):
+                raise ControlError("Identifiant de caméra invalide.")
+            with REGISTRY_LOCK:
+                cameras = load_camera_settings()
+                if camera not in cameras:
+                    self.send_json(404, {"error": "Caméra absente du registre local."})
+                    return
+            source = payload.get("source", camera)
+            if not isinstance(source, str) or not MEDIA_GATEWAY._valid_source(source, camera):
+                raise ControlError("Source de lecture non autorisée pour cette caméra.")
+            ticket = MEDIA_GATEWAY.issue_ticket(camera)
+            query = urllib.parse.urlencode({
+                "ticket": ticket,
+                "src": source,
+                "mode": "webrtc,mse,hls",
+            })
+            self.send_json(201, {
+                "path": f"/media/{urllib.parse.quote(camera, safe='')}/stream.html?{query}"
+            })
+        except ControlError as exc:
+            self.send_json(400, {"error": str(exc)})
+
     def do_GET(self) -> None:
+        if MEDIA_GATEWAY.handle(self):
+            return
         path = urllib.parse.urlsplit(self.path).path.rstrip("/")
         if path.startswith("/api/cameras/") and "/profiles" in path:
             self.handle_profiles()
@@ -816,6 +850,9 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         path = urllib.parse.urlsplit(self.path).path.rstrip("/")
+        if path == "/api/media/ticket":
+            self.handle_media_ticket()
+            return
         if path.startswith("/api/cameras/") and "/profiles" in path:
             self.handle_profiles()
             return
@@ -826,6 +863,11 @@ class Handler(BaseHTTPRequestHandler):
         action = parts[-1]
         self.handle_camera(action)
  
+    def do_HEAD(self) -> None:
+        if MEDIA_GATEWAY.handle(self):
+            return
+        self.send_json(405, {"error": "Méthode HTTP non autorisée."})
+
     def do_PUT(self) -> None:
         self.handle_profiles()
 
