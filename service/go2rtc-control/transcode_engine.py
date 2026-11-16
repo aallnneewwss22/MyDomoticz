@@ -85,6 +85,8 @@ def build_ffmpeg_commands(
     relay_command = [
         ffmpeg_bin,
         "-hide_banner", "-nostdin", "-loglevel", "warning",
+        "-probesize", "32768",
+        "-analyzeduration", "1000000",
         "-i", udp_input_url,
         "-map", "0:v:0", "-an", "-c:v", "copy",
         "-f", "rtsp", "-rtsp_transport", "tcp", output_url,
