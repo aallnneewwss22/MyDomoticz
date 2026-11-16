@@ -86,6 +86,16 @@ class BuildCommandTests(unittest.TestCase):
         self.assertEqual(encoder[encoder.index("-f") + 1], "mpegts")
         self.assertTrue(encoder[-1].startswith("udp://127.0.0.1:12345?pkt_size=1316"))
 
+    def test_relay_uses_bounded_probe_before_opening_udp_input(self):
+        relay, encoder = self.commands()
+        input_index = relay.index("-i")
+        self.assertEqual(
+            relay[input_index - 4:input_index],
+            ["-probesize", "32768", "-analyzeduration", "1000000"],
+        )
+        self.assertNotIn("-probesize", encoder)
+        self.assertNotIn("-analyzeduration", encoder)
+
     def test_relay_receives_udp_and_publishes_rtsp_copy(self):
         relay, _encoder = self.commands()
         joined = " ".join(relay)
