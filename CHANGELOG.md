@@ -2,6 +2,17 @@
 
 ## [Non publié]
 
+### Corrigé — Réautorisation du lecteur lors de l'ouverture et de la fermeture du panneau PTZ
+
+- Avant chaque déplacement de l'iframe entre la carte caméra et le panneau PTZ, l'ancienne navigation média est arrêtée ; un nouveau ticket à usage unique est demandé après le déplacement.
+- Le retour du panneau PTZ vers la carte caméra suit la même procédure, afin qu'un rechargement éventuel ne réutilise jamais un ticket déjà consommé.
+- Le lecteur reste unique et conserve la source active (native ou transcodée) ; la session de transcodage et son heartbeat ne sont pas recréés.
+- L'arrêt global et le changement de page ferment le panneau sans relancer le lecteur.
+- Le garde-fou de disponibilité PTZ introduit en v97 est conservé.
+- Création de `maison-dashboard-v98.html` et mise à jour du lanceur.
+
+## [Non publié]
+
 ### Corrigé — Disponibilité du lecteur dans le panneau PTZ
 
 - Le bouton « Pilotage PTZ » reste désactivé pendant toute la préparation du lecteur vidéo, notamment pendant l'acquisition d'une session de transcodage et la génération de son URL média.
