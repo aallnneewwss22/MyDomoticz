@@ -2,6 +2,13 @@
 
 ## [Non publié]
 
+### Corrigé — Démarrage du relais de transcodage
+
+- Limite l'analyse initiale du flux MPEG-TS reçu en UDP par le relais FFmpeg (-probesize 32768, -analyzeduration 1000000) afin qu'il identifie rapidement le flux H.264 et puisse publier son producteur RTSP.
+- Ces options s'appliquent uniquement au relais UDP→RTSP ; la commande d'encodage et les contrôles stricts de disponibilité du producteur restent inchangés.
+- Le test unitaire vérifie la présence et le positionnement des options avant l'entrée UDP.
+
+
 ### Ajouté — Passerelle média authentifiée (PR50)
 
 - Le lecteur caméra du tableau de bord v96 utilise désormais une passerelle média intégrée au service de contrôle, au lieu d'accéder directement à l'interface HTTP go2rtc.
