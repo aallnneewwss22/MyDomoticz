@@ -2,6 +2,16 @@
 
 ## [Non publié]
 
+### Corrigé — Disponibilité du lecteur dans le panneau PTZ
+
+- Le bouton « Pilotage PTZ » reste désactivé pendant toute la préparation du lecteur vidéo, notamment pendant l'acquisition d'une session de transcodage et la génération de son URL média.
+- Le panneau PTZ ne peut plus déplacer l'iframe avant que le démarrage du flux natif ou transcodé soit terminé.
+- Le bouton reste également désactivé après un échec de lecture, jusqu'à une nouvelle tentative réussie.
+- Les commandes ONVIF et le mécanisme de lecture vidéo unique partagé entre la carte et le panneau PTZ restent inchangés.
+- Création de `maison-dashboard-v97.html` et mise à jour du lanceur.
+
+## [Non publié]
+
 ### Corrigé — Cloisonnement HLS par caméra
 
 - Les URL HLS globales `/api/hls/{source}/...` sont désormais liées à une session valide de la caméra correspondant à la source demandée (flux natif ou transcodé).
