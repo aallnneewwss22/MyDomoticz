@@ -8,6 +8,7 @@ on:
   pull_request:
     branches:
       - main
+      - feature/camera-media-gateway
     paths:
       - "service/go2rtc-control/**"
       - ".github/workflows/package-go2rtc-control.yml"
