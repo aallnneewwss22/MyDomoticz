@@ -202,6 +202,27 @@ class SessionManagerTests(unittest.TestCase):
         with self.assertRaises(SessionUnavailable):
             self.manager.acquire("salon", PROFILE_1080)
 
+    def test_active_camera_profile_cannot_be_deleted(self):
+        self.manager.acquire("salon", PROFILE_1080)
+        active_camera_profile = {
+            "width": 854, "height": 480, "fps": 10,
+            "bitrate_kbps": 400,
+        }
+        with self.assertRaises(SessionConflict):
+            self.manager.assert_profile_not_in_use(
+                "salon", active_camera_profile, "1080p",
+            )
+
+    def test_inactive_camera_profile_can_be_deleted_during_another_profile_session(self):
+        self.manager.acquire("salon", PROFILE_1080)
+        inactive_camera_profile = {
+            "width": 640, "height": 360, "fps": 5,
+            "bitrate_kbps": 250,
+        }
+        self.manager.assert_profile_not_in_use(
+            "salon", inactive_camera_profile, "1080p",
+        )
+
     def test_native_quality_change_allowed_only_when_idle(self):
         self.manager.assert_native_quality_change_allowed("salon")
         session = self.manager.acquire("salon", PROFILE_1080)
