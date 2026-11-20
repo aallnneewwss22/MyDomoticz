@@ -273,5 +273,63 @@ class CameraAudioSettingsTests(unittest.TestCase):
         )
 
 
+
+class SettingsBackupStorageTests(unittest.TestCase):
+    def setUp(self):
+        self.directory = tempfile.TemporaryDirectory()
+        self.old_backup_dir = module.SETTINGS_BACKUP_DIR
+        module.SETTINGS_BACKUP_DIR = Path(self.directory.name) / "private-backups"
+
+    def tearDown(self):
+        module.SETTINGS_BACKUP_DIR = self.old_backup_dir
+        self.directory.cleanup()
+
+    def payload(self):
+        return {
+            "format": "mydomoticz-settings",
+            "version": 1,
+            "settings": {
+                "refreshIntervalSeconds": "30",
+                "theme": "dark",
+                "pageNames": "{}",
+                "cameraControlUrl": "http://domoticz.local:1985",
+                "cameraControlToken": "secret-token",
+                "ptzGainPc": "0.08",
+                "ptzSpeedPc": "0.5",
+                "ptzGainMobile": "0.08",
+                "ptzSpeedMobile": "0.5",
+            },
+        }
+
+    def test_backup_round_trip_includes_camera_token_and_restricts_permissions(self):
+        module.write_settings_backup("browser-change.json", self.payload())
+        loaded = module.read_settings_backup("browser-change.json")
+        self.assertEqual(loaded, self.payload())
+        self.assertEqual(module.SETTINGS_BACKUP_DIR.stat().st_mode & 0o777, 0o700)
+        self.assertEqual((module.SETTINGS_BACKUP_DIR / "browser-change.json").stat().st_mode & 0o777, 0o600)
+
+    def test_rejects_path_traversal_and_invalid_names(self):
+        for name in ("../outside.json", "/tmp/outside.json", "bad/name.json", ".hidden.json"):
+            with self.subTest(name=name), self.assertRaises(ValueError):
+                module.settings_backup_path(name)
+
+    def test_rejects_unknown_format_and_unexpected_setting_fields(self):
+        invalid = self.payload()
+        invalid["format"] = "other"
+        with self.assertRaises(ValueError):
+            module.write_settings_backup("invalid.json", invalid)
+        invalid = self.payload()
+        invalid["settings"]["arbitraryPath"] = "/etc/passwd"
+        with self.assertRaises(ValueError):
+            module.write_settings_backup("invalid.json", invalid)
+
+    def test_rejects_symlink_when_reading_backup(self):
+        module.ensure_settings_backup_dir()
+        outside = Path(self.directory.name) / "outside.json"
+        outside.write_text(json.dumps(self.payload()), encoding="utf-8")
+        (module.SETTINGS_BACKUP_DIR / "linked.json").symlink_to(outside)
+        with self.assertRaises(FileNotFoundError):
+            module.read_settings_backup("linked.json")
+
 if __name__ == "__main__":
     unittest.main()
