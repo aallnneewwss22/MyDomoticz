@@ -1,5 +1,11 @@
 ## [Non publié]
 
+### Amélioré — Sauvegarde dans la bibliothèque des profils caméra
+
+- Renommage du bouton de bibliothèque « Enregistrer » en « Sauver ».
+- Désactivation de « Sauver » dès qu'un champ du profil courant est modifié ; le bouton redevient disponible après l'enregistrement du profil dans la caméra.
+- Création de `maison-dashboard-v102.html` et mise à jour du lanceur.
+
 ### Ajouté — Bibliothèque commune de profils vidéo
 
 - Ajout d'une bibliothèque centralisée sur le Raspberry Pi, commune à toutes les caméras d'un même environnement.
