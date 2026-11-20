@@ -291,6 +291,39 @@ class SessionManager:
                 "session_count": len(state["sessions"]),
             }
 
+    def assert_profile_not_in_use(
+        self, camera_id: str, profile: object, source: str,
+    ) -> None:
+        """Prevent deleting the custom profile currently backing a live transcode."""
+        if not isinstance(profile, dict):
+            raise SessionConflict("Suppression bloquée : profil vidéo actif non vérifiable.")
+        try:
+            normalized = normalize_profile({
+                "source": source,
+                "width": profile.get("width"),
+                "height": profile.get("height"),
+                "fps": profile.get("fps"),
+                "bitrate_kbps": profile.get("bitrate_kbps"),
+            })
+        except SessionError as exc:
+            raise SessionConflict(
+                "Suppression bloquée : profil vidéo actif non vérifiable."
+            ) from exc
+
+        with self.camera_guard(camera_id):
+            state = self._camera_state(camera_id)
+            sessions = state["sessions"]
+            assert isinstance(sessions, dict)
+            active_profile = state["active_profile"]
+            if active_profile == normalized:
+                raise SessionConflict(
+                    "Suppression impossible : ce profil est utilisé par une session de transcodage active."
+                )
+            if sessions and active_profile is None:
+                raise SessionConflict(
+                    "Suppression bloquée : impossible de vérifier le profil utilisé par la session active."
+                )
+
     def assert_native_source_change_allowed(self, camera_id: str) -> None:
         """Raise while a transcode profile reserves the native camera source."""
         with self.camera_guard(camera_id):
