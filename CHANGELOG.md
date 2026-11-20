@@ -1,3 +1,13 @@
+## [Non publié]
+
+### Amélioré — Simplification des paramètres de connexion caméra
+
+- Suppression de l'ancien champ d'adresse directe go2rtc, qui n'était plus utilisé depuis l'introduction de la passerelle média authentifiée.
+- Suppression du code JavaScript associé et nettoyage de l'ancienne préférence enregistrée dans le navigateur.
+- Renommage et clarification du champ de l'adresse de la passerelle caméra `go2rtc-control`, avec rappel de son rôle pour les commandes, les profils, la lecture média, le PTZ et le transcodage.
+- Précision du rôle et du stockage local du jeton d'authentification.
+- Création de `maison-dashboard-v99.html` et mise à jour du lanceur.
+
 # Journal des modifications
 
 ## [Non publié]
