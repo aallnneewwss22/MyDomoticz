@@ -1,5 +1,10 @@
 ## [Non publié]
 
+### Correctif — Déclenchement de l’alerte de suppression
+
+- Transmettre le statut HTTP et les données d'erreur depuis la requête de gestion des profils caméra afin que le refus HTTP 409 ouvre bien la fenêtre modale.
+- Publier le correctif dans `maison-dashboard-v104.html` et mettre à jour le lanceur.
+
 ### Amélioré — Alerte de suppression d’un profil vidéo actif
 
 - En cas de refus HTTP 409 parce qu'une session de transcodage utilise le profil, afficher une fenêtre modale « Suppression impossible ».
