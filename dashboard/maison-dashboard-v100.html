@@ -3199,10 +3199,17 @@
             }
 
             function collectSettingsBackup() {
-                const settings = {};
-                for (const [field, key] of Object.entries(SETTINGS_BACKUP_KEYS)) {
-                    settings[field] = localStorage.getItem(key);
-                }
+                const settings = {
+                    refreshIntervalSeconds: String(refreshIntervalSeconds),
+                    theme: selectedTheme,
+                    pageNames: JSON.stringify(savedPageNames),
+                    cameraControlUrl: localStorage.getItem(CAMERA_CONTROL_URL_KEY) || "",
+                    cameraControlToken: cameraControlToken(),
+                    ptzGainPc: String(ptzSettings.pc.gain),
+                    ptzSpeedPc: String(ptzSettings.pc.speed),
+                    ptzGainMobile: String(ptzSettings.mobile.gain),
+                    ptzSpeedMobile: String(ptzSettings.mobile.speed)
+                };
                 return { format: SETTINGS_BACKUP_FORMAT, version: SETTINGS_BACKUP_VERSION, createdAt: new Date().toISOString(), settings };
             }
 
