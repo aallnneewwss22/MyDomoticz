@@ -2,12 +2,12 @@
 
 Pages web personnalisées pour Domoticz, développées progressivement et versionnées avec Git.
 
-## Tableau de bord — version courante v101
+## Tableau de bord — version courante v102
 
 Le tableau de bord est fourni sous deux fichiers :
 
 - `dashboard/maison.html` : page d'entrée à installer dans le menu **Custom** de Domoticz ;
-- `dashboard/maison-dashboard-v101.html` : version actuelle du tableau de bord autonome, destinée à s'ouvrir dans son propre onglet.
+- `dashboard/maison-dashboard-v102.html` : version actuelle du tableau de bord autonome, destinée à s'ouvrir dans son propre onglet.
 
 Le suffixe `-vN` du tableau de bord fait partie de la stratégie de cache : chaque évolution du tableau de bord crée un nouveau fichier numéroté afin que le navigateur demande une URL différente.
 
@@ -17,7 +17,7 @@ Fonctions du tableau de bord :
 - boîte de dialogue Paramètres avec contenu défilant et boutons Annuler/Enregistrer toujours visibles ;
 - sauvegarde des paramètres sur le Raspberry Pi : export JSON versionné et import complet, jeton caméra inclus ; fichiers protégés par permissions Linux restrictives et API authentifiée du service go2rtc-control ;
 - gestion des profils vidéo indépendants par caméra ; le lecteur applique le profil préféré et gère automatiquement l'acquisition, le heartbeat et la libération des sessions de transcodage ;
-- bibliothèque commune de profils vidéo sur le Raspberry Pi : enregistrer un profil personnalisé, le charger dans une autre caméra ou le supprimer de la bibliothèque, sans manipulation de fichiers sur le PC ; les profils déjà copiés dans les caméras restent indépendants ;
+- bibliothèque commune de profils vidéo sur le Raspberry Pi : sauver un profil personnalisé, le charger dans une autre caméra ou le supprimer de la bibliothèque, sans manipulation de fichiers sur le PC ; les profils déjà copiés dans les caméras restent indépendants ;
 - récupération indépendante du profil vidéo préféré à l'ouverture de chaque carte, même lorsque le lecteur reste arrêté ; en cas d'indisponibilité de l'API, affichage explicite « Profil vidéo : indisponible » ;
 - en cas d'échec du démarrage vidéo, affichage d'un bandeau rouge avec le détail de l'erreur et un bouton « Réessayer » ; aucune relance automatique ; le passage en arrêt global efface l'alerte et réinitialise l'état d'échec ;
 - cartes vidéo intégrées pour les lignes marquées caméra ; le lecteur passe par la passerelle média authentifiée du service de contrôle, sans accès navigateur direct à l'API go2rtc ; WebRTC est privilégié avec repli MSE/HLS ;
@@ -77,7 +77,7 @@ Les deux classeurs doivent être placés à côté du HTML dans `/home/pi/domoti
 
 1. Sauvegarder le répertoire `www/templates` de Domoticz.
 2. Copier `dashboard/maison.html` vers `www/templates/maison.html`.
-3. Copier le dernier fichier numéroté du tableau de bord — actuellement `dashboard/maison-dashboard-v101.html` — vers `www/templates/maison-dashboard-v101.html`, dans le même répertoire.
+3. Copier le dernier fichier numéroté du tableau de bord — actuellement `dashboard/maison-dashboard-v102.html` — vers `www/templates/maison-dashboard-v102.html`, dans le même répertoire.
 4. Activer le menu **Custom** dans les paramètres Domoticz si cette option est disponible dans la version installée.
 5. Recharger l'interface Domoticz puis ouvrir **Custom → maison**.
 
@@ -90,7 +90,7 @@ Le fichier autonome doit rester à côté du lanceur dans `www/templates`, car l
 Lorsqu'une Pull Request modifie le tableau de bord, GitHub Actions construit l'artefact `maison-dashboard-raspberry-pi`. Il contient à la racine du ZIP :
 
 - `maison.html` ;
-- le fichier versionné actuellement référencé par le lanceur, par exemple `maison-dashboard-v101.html` ;
+- le fichier versionné actuellement référencé par le lanceur, par exemple `maison-dashboard-v102.html` ;
 - `LISEZ-MOI.txt`, qui rappelle le chemin de destination et les fichiers à copier.
 
 Pour le récupérer, ouvrir la Pull Request, suivre son exécution dans **Checks** ou **Actions**, puis télécharger l'artefact `maison-dashboard-raspberry-pi` depuis le détail de l'exécution réussie. Décompresser le ZIP et copier les deux fichiers HTML dans `/home/pi/domoticz/www/templates` sur le Raspberry Pi. Les classeurs `IDX2.xlsx` et `IDX1.xlsx` ne sont pas inclus : ils restent à gérer séparément et doivent être conservés dans le répertoire `templates`.
