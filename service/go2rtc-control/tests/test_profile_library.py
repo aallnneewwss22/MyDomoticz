@@ -77,10 +77,12 @@ class ProfileLibraryTests(unittest.TestCase):
         )
 
     def test_filename_collision_between_different_names_is_rejected(self):
-        save_profile_library_entry(self.directory, PROFILE)
+        save_profile_library_entry(
+            self.directory, dict(PROFILE, name="Profil / mobile")
+        )
         with self.assertRaises(ProfileLibraryError):
             save_profile_library_entry(
-                self.directory, dict(PROFILE, name="Equilibre"), overwrite=True
+                self.directory, dict(PROFILE, name="Profil - mobile"), overwrite=True
             )
 
     def test_invalid_profile_values_are_rejected(self):
