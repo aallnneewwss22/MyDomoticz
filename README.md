@@ -2,12 +2,12 @@
 
 Pages web personnalisées pour Domoticz, développées progressivement et versionnées avec Git.
 
-## Tableau de bord — version courante v98
+## tableau de bord — version courante v99
 
 Le tableau de bord est fourni sous deux fichiers :
 
 - `dashboard/maison.html` : page d'entrée à installer dans le menu **Custom** de Domoticz ;
-- `dashboard/maison-dashboard-v98.html` : version actuelle du tableau de bord autonome, destinée à s'ouvrir dans son propre onglet.
+- `dashboard/maison-dashboard-v99.html` : version actuelle du tableau de bord autonome, destinée à s'ouvrir dans son propre onglet.
 
 Le suffixe `-vN` du tableau de bord fait partie de la stratégie de cache : chaque évolution du tableau de bord crée un nouveau fichier numéroté afin que le navigateur demande une URL différente.
 
@@ -59,7 +59,7 @@ Chaque carte caméra dispose d'un bouton **Pilotage PTZ** qui ouvre un panneau a
 
 Les flux RTSP ne sont pas lus directement par le navigateur. Pour les afficher, installer go2rtc sur le Raspberry Pi (ou sur un autre serveur du réseau), y déclarer les sources RTSP et utiliser dans le classeur une ligne dont la colonne C vaut « caméra ». La colonne A contient uniquement le nom du flux go2rtc, par exemple « salon », et la colonne B son libellé. Les identifiants RTSP restent dans le fichier de configuration local de go2rtc.
 
-Le lecteur utilise la passerelle média authentifiée du service de contrôle (port 1985 par défaut). L'API HTTP go2rtc reste confinée au Raspberry Pi sur 127.0.0.1:1984 et n'est plus appelée directement par le navigateur. Le port WebRTC 8555 (TCP/UDP) transporte toujours le média directement entre le navigateur et go2rtc ; vérifier les candidats ICE et la configuration réseau selon l'installation.
+Le lecteur et les fonctions de commande caméra utilisent la passerelle authentifiée `go2rtc-control` (port 1985 par défaut). L'API HTTP go2rtc reste confinée au Raspberry Pi sur 127.0.0.1:1984 et n'est jamais appelée directement par le navigateur. Le port WebRTC 8555 (TCP/UDP) transporte toujours le média directement entre le navigateur et go2rtc ; vérifier les candidats ICE et la configuration réseau selon l'installation.
 
 Exemple de configuration sans identifiants réels : [docs/go2rtc.example.yaml](docs/go2rtc.example.yaml). Guide de mise en place : [docs/cameras-go2rtc.md](docs/cameras-go2rtc.md).
 
@@ -75,7 +75,7 @@ Les deux classeurs doivent être placés à côté du HTML dans `/home/pi/domoti
 
 1. Sauvegarder le répertoire `www/templates` de Domoticz.
 2. Copier `dashboard/maison.html` vers `www/templates/maison.html`.
-3. Copier le dernier fichier numéroté du tableau de bord — actuellement `dashboard/maison-dashboard-v98.html` — vers `www/templates/maison-dashboard-v98.html`, dans le même répertoire.
+3. Copier le dernier fichier numéroté du tableau de bord — actuellement `dashboard/maison-dashboard-v99.html` — vers `www/templates/maison-dashboard-v99.html`, dans le même répertoire.
 4. Activer le menu **Custom** dans les paramètres Domoticz si cette option est disponible dans la version installée.
 5. Recharger l'interface Domoticz puis ouvrir **Custom → maison**.
 
@@ -88,7 +88,7 @@ Le fichier autonome doit rester à côté du lanceur dans `www/templates`, car l
 Lorsqu'une Pull Request modifie le tableau de bord, GitHub Actions construit l'artefact `maison-dashboard-raspberry-pi`. Il contient à la racine du ZIP :
 
 - `maison.html` ;
-- le fichier versionné actuellement référencé par le lanceur, par exemple `maison-dashboard-v98.html` ;
+- le fichier versionné actuellement référencé par le lanceur, par exemple `maison-dashboard-v99.html` ;
 - `LISEZ-MOI.txt`, qui rappelle le chemin de destination et les fichiers à copier.
 
 Pour le récupérer, ouvrir la Pull Request, suivre son exécution dans **Checks** ou **Actions**, puis télécharger l'artefact `maison-dashboard-raspberry-pi` depuis le détail de l'exécution réussie. Décompresser le ZIP et copier les deux fichiers HTML dans `/home/pi/domoticz/www/templates` sur le Raspberry Pi. Les classeurs `IDX2.xlsx` et `IDX1.xlsx` ne sont pas inclus : ils restent à gérer séparément et doivent être conservés dans le répertoire `templates`.
