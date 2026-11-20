@@ -5,7 +5,6 @@ import json
 import os
 import re
 import tempfile
-import unicodedata
 from pathlib import Path
 from typing import Any
 
@@ -14,7 +13,7 @@ from camera_profiles import CameraProfileError, normalize_camera_profiles
 PROFILE_LIBRARY_FORMAT = "mydomoticz-camera-profile-library"
 PROFILE_LIBRARY_VERSION = 1
 PROFILE_LIBRARY_MAX_BYTES = 64 * 1024
-PROFILE_LIBRARY_FILENAME = re.compile(r"^[a-z0-9][a-z0-9-]{0,63}\.json$")
+PROFILE_LIBRARY_FILENAME = re.compile(r"^[^/\\\x00-\x1f]+\.json$")
 _VALIDATION_ID = "00000000000000000000000000000000"
 _PROFILE_FIELDS = {"name", "width", "height", "fps", "bitrate_kbps"}
 
@@ -26,11 +25,13 @@ class ProfileLibraryError(ValueError):
 def profile_library_filename(profile_name: object) -> str:
     if not isinstance(profile_name, str) or not profile_name.strip() or len(profile_name.strip()) > 64:
         raise ProfileLibraryError("Nom de profil invalide.")
-    ascii_name = unicodedata.normalize("NFKD", profile_name.strip()).encode("ascii", "ignore").decode("ascii")
-    slug = re.sub(r"[^A-Za-z0-9]+", "-", ascii_name).strip("-").lower()[:64].strip("-")
-    if not slug:
+    safe_name = re.sub(r'[\\/:*?"<>|\x00-\x1f]', "-", profile_name.strip()).strip(" .")
+    if not safe_name:
         raise ProfileLibraryError("Le nom du profil ne permet pas de créer un nom de fichier sûr.")
-    return slug + ".json"
+    filename = safe_name + ".json"
+    if len(filename.encode("utf-8")) > 255:
+        raise ProfileLibraryError("Le nom du profil est trop long pour un nom de fichier.")
+    return filename
 
 
 def _validate_profile(profile: object) -> dict[str, Any]:

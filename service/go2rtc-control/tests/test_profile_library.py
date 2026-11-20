@@ -5,6 +5,7 @@ import tempfile
 import threading
 import unittest
 import urllib.error
+import urllib.parse
 import urllib.request
 from contextlib import contextmanager
 from pathlib import Path
@@ -42,12 +43,13 @@ class ProfileLibraryTests(unittest.TestCase):
         self.temp_dir.cleanup()
 
     def test_filename_is_derived_safely_from_profile_name(self):
-        self.assertEqual(profile_library_filename("Équilibré"), "equilibre.json")
-        self.assertEqual(profile_library_filename("../secret"), "secret.json")
+        self.assertEqual(profile_library_filename("Équilibré"), "Équilibré.json")
+        self.assertEqual(profile_library_filename("../secret"), "secret.json"
+        self.assertEqual(profile_library_filename("Profil mobile"), "Profil mobile.json")
 
     def test_save_and_read_profile_use_common_library_format(self):
         saved = save_profile_library_entry(self.directory, PROFILE)
-        self.assertEqual(saved["filename"], "equilibre.json")
+        self.assertEqual(saved["filename"], "Équilibré.json")
         path = self.directory / saved["filename"]
         payload = json.loads(path.read_text(encoding="utf-8"))
         self.assertEqual(payload["format"], PROFILE_LIBRARY_FORMAT)
@@ -70,7 +72,7 @@ class ProfileLibraryTests(unittest.TestCase):
         replacement = dict(PROFILE, bitrate_kbps=600)
         save_profile_library_entry(self.directory, replacement, overwrite=True)
         self.assertEqual(
-            read_profile_library_entry(self.directory, "equilibre.json")["profile"]["bitrate_kbps"],
+            read_profile_library_entry(self.directory, "Équilibré.json")["profile"]["bitrate_kbps"],
             600,
         )
 
@@ -180,7 +182,7 @@ class ProfileLibraryHTTPApiTests(unittest.TestCase):
             "POST", "/api/profile-library", {"profile": profile}
         )
         self.assertEqual(status, 201)
-        self.assertEqual(created["filename"], "equilibre.json")
+        self.assertEqual(created["filename"], "Équilibré.json")
 
         status, listing = self.request("GET", "/api/profile-library")
         self.assertEqual(status, 200)
@@ -194,7 +196,7 @@ class ProfileLibraryHTTPApiTests(unittest.TestCase):
             "POST", "/api/profile-library", {"profile": profile}
         )
         self.assertEqual(status, 409)
-        self.assertEqual(conflict["filename"], "equilibre.json")
+        self.assertEqual(conflict["filename"], "Équilibré.json")
 
         status, replaced = self.request(
             "PUT", "/api/profile-library/equilibre.json",
@@ -205,7 +207,7 @@ class ProfileLibraryHTTPApiTests(unittest.TestCase):
 
         status, deleted = self.request("DELETE", "/api/profile-library/equilibre.json")
         self.assertEqual(status, 200)
-        self.assertEqual(deleted["deleted"], "equilibre.json")
+        self.assertEqual(deleted["deleted"], "Équilibré.json")
 
     def test_import_creates_a_camera_local_profile_and_can_replace_it(self):
         status, imported = self.request(
