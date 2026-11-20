@@ -1,5 +1,16 @@
 ## [Non publié]
 
+### Ajouté — Sauvegarde et restauration des paramètres
+
+- Ajout des boutons Import et Export dans la boîte « Les paramètres de l'application ».
+- Les sauvegardes JSON versionnées sont stockées sur le Raspberry Pi dans un répertoire dédié, hors du répertoire web.
+- L'export inclut tous les paramètres de l'application, y compris le jeton d'authentification caméra ; l'import restaure ces valeurs dans le navigateur et recharge le tableau de bord.
+- L'API de sauvegarde est intégrée à go2rtc-control, protégée par le jeton existant et limitée à des noms de fichiers validés.
+- Les fichiers sont écrits atomiquement avec des permissions 0600 et le répertoire avec des permissions 0700 ; production et test disposent de répertoires séparés.
+- Création de `maison-dashboard-v100.html` et mise à jour du lanceur.
+
+## [Non publié]
+
 ### Amélioré — Simplification des paramètres de connexion caméra
 
 - Suppression de l'ancien champ d'adresse directe go2rtc, qui n'était plus utilisé depuis l'introduction de la passerelle média authentifiée.
