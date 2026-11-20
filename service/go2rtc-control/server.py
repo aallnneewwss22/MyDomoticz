@@ -803,6 +803,11 @@ class Handler(BaseHTTPRequestHandler):
                     self.send_json(200, {"profile": updated[profile_id]})
                     return
                 if self.command == "DELETE" and profile_id:
+                    profile_to_delete = profiles.get(profile_id)
+                    if profile_to_delete is not None:
+                        SESSION_MANAGER.assert_profile_not_in_use(
+                            camera_id, profile_to_delete, quality,
+                        )
                     updated = delete_camera_profile(profiles, profile_id)
                     settings["profiles"] = updated
                     if selected == profile_id:
