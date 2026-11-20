@@ -3240,7 +3240,7 @@
             $("settings-backup-refresh").addEventListener("click", refreshSettingsBackupList);
             $("settings-backup-export").addEventListener("click", async () => {
                 const name = $("settings-backup-name").value.trim();
-                if (!/^[A-Za-z0-9][A-Za-z0-9_. -]{0,62}\\.json$/.test(name)) {
+                if (!/^[A-Za-z0-9][A-Za-z0-9_. -]{0,62}[.]json$/.test(name)) {
                     $("settings-backup-status").textContent = "Nom invalide : utilise des lettres, chiffres, espaces, tirets ou points, avec l'extension .json.";
                     return;
                 }
