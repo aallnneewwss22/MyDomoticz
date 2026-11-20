@@ -43,6 +43,9 @@ STREAM_NAME = re.compile(r"^[A-Za-z0-9_.-]{1,80}$")
 GO2RTC_API = os.environ.get("GO2RTC_API", "http://127.0.0.1:1984").rstrip("/")
 GO2RTC_CONFIG = Path(os.environ.get("GO2RTC_CONFIG", "/etc/go2rtc/go2rtc.yaml"))
 SOURCE_REGISTRY = Path(os.environ.get("SOURCE_REGISTRY", "/var/lib/go2rtc-control/cameras.json"))
+SETTINGS_BACKUP_DIR = Path(os.environ.get("SETTINGS_BACKUP_DIR", "/var/lib/go2rtc-control/settings-backups"))
+SETTINGS_BACKUP_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_. -]{0,62}\.json$")
+SETTINGS_BACKUP_MAX_BYTES = 256 * 1024
 TOKEN_FILE = Path(os.environ.get("TOKEN_FILE", "/etc/go2rtc-control/token"))
 DASHBOARD_ORIGIN = os.environ.get("DASHBOARD_ORIGIN", "http://192.168.1.21:8080").rstrip("/")
 DASHBOARD_ORIGINS = {item.strip().rstrip("/") for item in os.environ.get("DASHBOARD_ORIGINS", DASHBOARD_ORIGIN).split(",") if item.strip()}
@@ -474,6 +477,80 @@ def _read_json_body(handler: BaseHTTPRequestHandler) -> dict[str, object]:
     if not isinstance(payload, dict): raise ControlError("Le corps JSON doit être un objet.")
     return payload
 
+
+
+def settings_backup_path(name: str) -> Path:
+    if not isinstance(name, str) or not SETTINGS_BACKUP_NAME.fullmatch(name) or name in {".", ".."}:
+        raise ValueError("Nom de sauvegarde invalide.")
+    return SETTINGS_BACKUP_DIR / name
+
+
+def ensure_settings_backup_dir() -> None:
+    if SETTINGS_BACKUP_DIR.is_symlink():
+        raise OSError("Le répertoire de sauvegardes ne peut pas être un lien symbolique.")
+    SETTINGS_BACKUP_DIR.mkdir(mode=0o700, parents=True, exist_ok=True)
+    SETTINGS_BACKUP_DIR.chmod(0o700)
+
+
+def write_settings_backup(name: str, payload: object) -> None:
+    path = settings_backup_path(name)
+    if not isinstance(payload, dict) or payload.get("format") != "mydomoticz-settings" or payload.get("version") != 1:
+        raise ValueError("Format de sauvegarde non reconnu.")
+    settings = payload.get("settings")
+    allowed = {"refreshIntervalSeconds", "theme", "pageNames", "cameraControlUrl", "cameraControlToken", "ptzGainPc", "ptzSpeedPc", "ptzGainMobile", "ptzSpeedMobile"}
+    if not isinstance(settings, dict) or set(settings) != allowed or any(not isinstance(value, str) or len(value) > 4096 for value in settings.values()):
+        raise ValueError("Contenu de sauvegarde invalide.")
+    try:
+        refresh = int(settings["refreshIntervalSeconds"])
+        page_names = json.loads(settings["pageNames"])
+        ptz_values = [float(settings[key]) for key in ("ptzGainPc", "ptzSpeedPc", "ptzGainMobile", "ptzSpeedMobile")]
+    except (TypeError, ValueError, json.JSONDecodeError):
+        raise ValueError("Valeurs de sauvegarde invalides.")
+    if not 5 <= refresh <= 3600 or settings["theme"] not in {"auto", "classic", "dark", "nature", "midnight"}:
+        raise ValueError("Période ou thème invalide.")
+    if not isinstance(page_names, dict) or any(not re.fullmatch(r"IDX[1-9]", key) or not isinstance(value, str) for key, value in page_names.items()):
+        raise ValueError("Noms de pages invalides.")
+    for index, number in enumerate(ptz_values):
+        minimum = 0.01 if index in (0, 2) else 0.05
+        if not minimum <= number <= 1:
+            raise ValueError("Réglage PTZ invalide.")
+    camera_url = settings["cameraControlUrl"]
+    if camera_url:
+        parsed_url = urllib.parse.urlsplit(camera_url)
+        if parsed_url.scheme not in {"http", "https"} or not parsed_url.netloc or parsed_url.path or parsed_url.query or parsed_url.fragment:
+            raise ValueError("Adresse de passerelle invalide.")
+    encoded = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    if len(encoded) > SETTINGS_BACKUP_MAX_BYTES:
+        raise ValueError("Fichier de sauvegarde trop volumineux.")
+    ensure_settings_backup_dir()
+    fd, temporary = tempfile.mkstemp(prefix=".backup-", suffix=".tmp", dir=str(SETTINGS_BACKUP_DIR))
+    try:
+        os.fchmod(fd, 0o600)
+        with os.fdopen(fd, "wb") as stream:
+            stream.write(encoded)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, path)
+        path.chmod(0o600)
+    finally:
+        try:
+            os.unlink(temporary)
+        except FileNotFoundError:
+            pass
+
+
+def read_settings_backup(name: str) -> dict[str, object]:
+    path = settings_backup_path(name)
+    if not path.is_file() or path.is_symlink():
+        raise FileNotFoundError("Sauvegarde introuvable.")
+    if path.stat().st_size > SETTINGS_BACKUP_MAX_BYTES:
+        raise ValueError("Fichier de sauvegarde trop volumineux.")
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict) or payload.get("format") != "mydomoticz-settings" or payload.get("version") != 1 or not isinstance(payload.get("settings"), dict):
+        raise ValueError("Fichier de sauvegarde invalide.")
+    return payload
+
+
 class Handler(BaseHTTPRequestHandler):
     server_version = "go2rtc-control/1.5"
 
@@ -832,7 +909,42 @@ class Handler(BaseHTTPRequestHandler):
         except ControlError as exc:
             self.send_json(400, {"error": str(exc)})
 
+    def handle_settings_backups(self, method: str) -> None:
+        if not self.authorized():
+            return
+        path = urllib.parse.urlsplit(self.path).path.rstrip("/")
+        prefix = "/api/settings-backups"
+        suffix = path[len(prefix):].lstrip("/") if path.startswith(prefix) else ""
+        try:
+            ensure_settings_backup_dir()
+            if method == "GET" and not suffix:
+                names = sorted(item.name for item in SETTINGS_BACKUP_DIR.iterdir() if item.is_file() and not item.is_symlink() and SETTINGS_BACKUP_NAME.fullmatch(item.name))
+                self.send_json(200, {"files": names})
+                return
+            if method == "GET" and suffix:
+                self.send_json(200, read_settings_backup(urllib.parse.unquote(suffix)))
+                return
+            if method == "PUT" and suffix:
+                length = int(self.headers.get("Content-Length", "0"))
+                if length <= 0 or length > SETTINGS_BACKUP_MAX_BYTES:
+                    self.send_json(413, {"error": "Taille de sauvegarde invalide."})
+                    return
+                payload = json.loads(self.rfile.read(length).decode("utf-8"))
+                write_settings_backup(urllib.parse.unquote(suffix), payload)
+                self.send_json(201, {"saved": urllib.parse.unquote(suffix)})
+                return
+            self.send_json(405, {"error": "Méthode ou chemin non autorisé."})
+        except FileNotFoundError:
+            self.send_json(404, {"error": "Sauvegarde introuvable."})
+        except (ValueError, json.JSONDecodeError, UnicodeDecodeError) as error:
+            self.send_json(400, {"error": str(error) or "Sauvegarde invalide."})
+        except OSError:
+            self.send_json(500, {"error": "Opération de sauvegarde impossible."})
+
     def do_GET(self) -> None:
+        if urllib.parse.urlsplit(self.path).path.rstrip("/").startswith("/api/settings-backups"):
+            self.handle_settings_backups("GET")
+            return
         if MEDIA_GATEWAY.handle(self):
             return
         path = urllib.parse.urlsplit(self.path).path.rstrip("/")
@@ -869,6 +981,9 @@ class Handler(BaseHTTPRequestHandler):
         self.send_json(405, {"error": "Méthode HTTP non autorisée."})
 
     def do_PUT(self) -> None:
+        if urllib.parse.urlsplit(self.path).path.rstrip("/").startswith("/api/settings-backups"):
+            self.handle_settings_backups("PUT")
+            return
         self.handle_profiles()
 
     def do_DELETE(self) -> None:
@@ -878,6 +993,7 @@ class Handler(BaseHTTPRequestHandler):
 if __name__ == "__main__":
     read_token()
     ensure_source_registry()
+    ensure_settings_backup_dir()
     SESSION_MANAGER.start_reaper()
     server = ThreadingHTTPServer((CONTROL_HOST, CONTROL_PORT), Handler)
     try:

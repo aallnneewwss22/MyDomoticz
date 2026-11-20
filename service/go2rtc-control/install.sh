@@ -141,6 +141,7 @@ validate_env_value() {
 }
 
 install -d -o root -g "${SERVICE_USER}" -m 0750 "${INSTALL_DIR}" "${ETC_DIR}" "${GO2RTC_INSTALL_DIR}"
+install -d -o "${SERVICE_USER}" -g "${SERVICE_USER}" -m 0700 /var/lib/go2rtc-control/settings-backups /var/lib/go2rtc-control-test/settings-backups
 install -d -o root -g "${SERVICE_USER}" -m 0750 "${TEST_INSTALL_DIR}" "${TEST_ETC_DIR}"
 if [[ ! -f "${GO2RTC_ENV}" ]]; then
   printf 'GO2RTC_CONFIG=%s\n' "${CONFIG_PATH}" > "${GO2RTC_ENV}"
@@ -193,6 +194,7 @@ if [[ ! -f "${ETC_DIR}/go2rtc-control.env" ]]; then
 GO2RTC_API=http://127.0.0.1:1984
 GO2RTC_CONFIG=${CONFIG_PATH}
 SOURCE_REGISTRY=/var/lib/go2rtc-control/cameras.json
+SETTINGS_BACKUP_DIR=/var/lib/go2rtc-control/settings-backups
 TOKEN_FILE=${ETC_DIR}/token
 DASHBOARD_ORIGIN=${DASHBOARD_ORIGIN}
 CONTROL_HOST=0.0.0.0
@@ -208,6 +210,7 @@ else
   ensure_env_value "${ETC_DIR}/go2rtc-control.env" GO2RTC_API http://127.0.0.1:1984
   ensure_env_value "${ETC_DIR}/go2rtc-control.env" GO2RTC_CONFIG "${CONFIG_PATH}"
   ensure_env_value "${ETC_DIR}/go2rtc-control.env" SOURCE_REGISTRY /var/lib/go2rtc-control/cameras.json
+  ensure_env_value "${ETC_DIR}/go2rtc-control.env" SETTINGS_BACKUP_DIR /var/lib/go2rtc-control/settings-backups
   ensure_env_value "${ETC_DIR}/go2rtc-control.env" TOKEN_FILE "${ETC_DIR}/token"
   ensure_env_value "${ETC_DIR}/go2rtc-control.env" CONTROL_HOST 0.0.0.0
   ensure_env_value "${ETC_DIR}/go2rtc-control.env" CONTROL_PORT 1985
@@ -220,6 +223,7 @@ validate_env_value "${ETC_DIR}/go2rtc-control.env" GO2RTC_CONFIG "${CONFIG_PATH}
 validate_env_value "${ETC_DIR}/go2rtc-control.env" CONTROL_HOST 0.0.0.0
 validate_env_value "${ETC_DIR}/go2rtc-control.env" CONTROL_PORT 1985
 validate_env_value "${ETC_DIR}/go2rtc-control.env" SOURCE_REGISTRY /var/lib/go2rtc-control/cameras.json
+validate_env_value "${ETC_DIR}/go2rtc-control.env" SETTINGS_BACKUP_DIR /var/lib/go2rtc-control/settings-backups
 validate_env_value "${ETC_DIR}/go2rtc-control.env" TRANSCODE_RTSP_PORT 8554
 
 ensure_env_value "${ETC_DIR}/go2rtc-control.env" TOKEN_FILE "${ETC_DIR}/token"
@@ -245,6 +249,7 @@ if [[ ! -f "${TEST_ENV}" ]]; then
 GO2RTC_API=http://127.0.0.1:1987
 GO2RTC_CONFIG=${TEST_CONFIG}
 SOURCE_REGISTRY=/var/lib/go2rtc-control-test/cameras.json
+SETTINGS_BACKUP_DIR=/var/lib/go2rtc-control-test/settings-backups
 TOKEN_FILE=${TEST_ETC_DIR}/token
 CONTROL_HOST=127.0.0.1
 CONTROL_PORT=1986
@@ -258,6 +263,7 @@ else
   ensure_env_value "${TEST_ENV}" GO2RTC_API http://127.0.0.1:1987
   ensure_env_value "${TEST_ENV}" GO2RTC_CONFIG "${TEST_CONFIG}"
   ensure_env_value "${TEST_ENV}" SOURCE_REGISTRY /var/lib/go2rtc-control-test/cameras.json
+  ensure_env_value "${TEST_ENV}" SETTINGS_BACKUP_DIR /var/lib/go2rtc-control-test/settings-backups
   ensure_env_value "${TEST_ENV}" TOKEN_FILE "${TEST_ETC_DIR}/token"
   ensure_env_value "${TEST_ENV}" CONTROL_HOST 127.0.0.1
   ensure_env_value "${TEST_ENV}" CONTROL_PORT 1986
@@ -270,6 +276,7 @@ validate_env_value "${TEST_ENV}" GO2RTC_CONFIG "${TEST_CONFIG}"
 validate_env_value "${TEST_ENV}" CONTROL_HOST 127.0.0.1
 validate_env_value "${TEST_ENV}" CONTROL_PORT 1986
 validate_env_value "${TEST_ENV}" SOURCE_REGISTRY /var/lib/go2rtc-control-test/cameras.json
+validate_env_value "${TEST_ENV}" SETTINGS_BACKUP_DIR /var/lib/go2rtc-control-test/settings-backups
 validate_env_value "${TEST_ENV}" TRANSCODE_RTSP_PORT 8556
 
 TEST_TOKEN_FILE="$(read_env_value "${TEST_ENV}" TOKEN_FILE)"
