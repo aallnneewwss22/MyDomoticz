@@ -1,5 +1,11 @@
 ## [Non publié]
 
+### Amélioré — Alerte de suppression d’un profil vidéo actif
+
+- En cas de refus HTTP 409 parce qu'une session de transcodage utilise le profil, afficher une fenêtre modale « Suppression impossible ».
+- Présenter l'explication intégralement en caractères gras, avec un bouton « OK » ; les autres erreurs conservent leur affichage dans la fenêtre des profils.
+- Création de `maison-dashboard-v103.html` et mise à jour du lanceur.
+
 ### Amélioré — Sauvegarde dans la bibliothèque des profils caméra
 
 - Renommage du bouton de bibliothèque « Enregistrer » en « Sauver ».
