@@ -62,7 +62,11 @@ def ensure_profile_library_dir(directory: Path) -> None:
 
 
 def _entry_path(directory: Path, filename: object) -> Path:
-    if not isinstance(filename, str) or not PROFILE_LIBRARY_FILENAME.fullmatch(filename):
+    if (
+        not isinstance(filename, str)
+        or not PROFILE_LIBRARY_FILENAME.fullmatch(filename)
+        or len(filename.encode("utf-8")) > 255
+    ):
         raise ProfileLibraryError("Nom de fichier de profil invalide.")
     return directory / filename
 

@@ -44,7 +44,7 @@ class ProfileLibraryTests(unittest.TestCase):
 
     def test_filename_is_derived_safely_from_profile_name(self):
         self.assertEqual(profile_library_filename("Équilibré"), "Équilibré.json")
-        self.assertEqual(profile_library_filename("../secret"), "secret.json"
+        self.assertEqual(profile_library_filename("../secret"), "secret.json")
         self.assertEqual(profile_library_filename("Profil mobile"), "Profil mobile.json")
 
     def test_save_and_read_profile_use_common_library_format(self):
@@ -188,7 +188,7 @@ class ProfileLibraryHTTPApiTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(listing["files"][0]["name"], "Équilibré")
 
-        status, loaded = self.request("GET", "/api/profile-library/equilibre.json")
+        status, loaded = self.request("GET", "/api/profile-library/" + urllib.parse.quote("Équilibré.json"))
         self.assertEqual(status, 200)
         self.assertEqual(loaded["profile"]["name"], "Équilibré")
 
@@ -199,13 +199,13 @@ class ProfileLibraryHTTPApiTests(unittest.TestCase):
         self.assertEqual(conflict["filename"], "Équilibré.json")
 
         status, replaced = self.request(
-            "PUT", "/api/profile-library/equilibre.json",
+            "PUT", "/api/profile-library/" + urllib.parse.quote("Équilibré.json"),
             {"profile": dict(profile, bitrate_kbps=600)},
         )
         self.assertEqual(status, 200)
         self.assertEqual(replaced["profile"]["bitrate_kbps"], 600)
 
-        status, deleted = self.request("DELETE", "/api/profile-library/equilibre.json")
+        status, deleted = self.request("DELETE", "/api/profile-library/" + urllib.parse.quote("Équilibré.json"))
         self.assertEqual(status, 200)
         self.assertEqual(deleted["deleted"], "Équilibré.json")
 
