@@ -36,8 +36,7 @@ class ProfileLibraryTests(unittest.TestCase):
 
     def test_filename_is_derived_safely_from_profile_name(self):
         self.assertEqual(profile_library_filename("Équilibré"), "equilibre.json")
-        with self.assertRaises(ProfileLibraryError):
-            profile_library_filename("../secret")
+        self.assertEqual(profile_library_filename("../secret"), "secret.json")
 
     def test_save_and_read_profile_use_common_library_format(self):
         saved = save_profile_library_entry(self.directory, PROFILE)

@@ -14,7 +14,7 @@ from camera_profiles import CameraProfileError, normalize_camera_profiles
 PROFILE_LIBRARY_FORMAT = "mydomoticz-camera-profile-library"
 PROFILE_LIBRARY_VERSION = 1
 PROFILE_LIBRARY_MAX_BYTES = 64 * 1024
-PROFILE_LIBRARY_FILENAME = re.compile(r"^[a-z0-9][a-z0-9-]{0,63}\\.json$")
+PROFILE_LIBRARY_FILENAME = re.compile(r"^[a-z0-9][a-z0-9-]{0,63}\.json$")
 _VALIDATION_ID = "00000000000000000000000000000000"
 _PROFILE_FIELDS = {"name", "width", "height", "fps", "bitrate_kbps"}
 
@@ -146,7 +146,7 @@ def save_profile_library_entry(
         "version": PROFILE_LIBRARY_VERSION,
         "profile": normalized,
     }
-    encoded = (json.dumps(payload, ensure_ascii=False, indent=2) + "\\n").encode("utf-8")
+    encoded = (json.dumps(payload, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
     if len(encoded) > PROFILE_LIBRARY_MAX_BYTES:
         raise ProfileLibraryError("Fichier de profil trop volumineux.")
     fd, temporary_name = tempfile.mkstemp(prefix=".profile-", suffix=".tmp", dir=str(directory))

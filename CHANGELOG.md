@@ -1,5 +1,16 @@
 ## [Non publié]
 
+### Ajouté — Bibliothèque commune de profils vidéo
+
+- Ajout d'une bibliothèque centralisée sur le Raspberry Pi, commune à toutes les caméras d'un même environnement.
+- Depuis la fenêtre des profils d'une caméra, un profil personnalisé peut être enregistré dans la bibliothèque, chargé dans une autre caméra ou supprimé de la bibliothèque.
+- Les fichiers JSON portent un nom dérivé du profil ; les remplacements nécessitent une confirmation et les fichiers sont écrits atomiquement avec des permissions 0600 dans un répertoire 0700.
+- Les profils chargés reçoivent un nouvel identifiant interne et restent indépendants de leur modèle dans la bibliothèque ; la suppression d'un modèle ne touche pas les caméras.
+- Les environnements production et test disposent de bibliothèques strictement séparées.
+- Création de `maison-dashboard-v101.html` et mise à jour du lanceur.
+
+## [Non publié]
+
 ### Ajouté — Sauvegarde et restauration des paramètres
 
 - Ajout des boutons Import et Export dans la boîte « Les paramètres de l'application ».

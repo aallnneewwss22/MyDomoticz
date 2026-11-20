@@ -858,8 +858,8 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json(200, {"deleted": filename})
                 return
             self.send_json(405, {"error": "Méthode ou ressource de bibliothèque non autorisée."})
-        except FileExistsError:
-            self.send_json(409, {"error": "Un profil portant ce nom existe déjà dans la bibliothèque.", "exists": True})
+        except FileExistsError as exc:
+            self.send_json(409, {"error": "Un profil portant ce nom existe déjà dans la bibliothèque.", "exists": True, "filename": str(exc)})
         except FileNotFoundError:
             self.send_json(404, {"error": "Profil de bibliothèque introuvable."})
         except (ProfileLibraryError, ValueError, json.JSONDecodeError, UnicodeDecodeError) as exc:
