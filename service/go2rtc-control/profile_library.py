@@ -25,7 +25,7 @@ class ProfileLibraryError(ValueError):
 def profile_library_filename(profile_name: object) -> str:
     if not isinstance(profile_name, str) or not profile_name.strip() or len(profile_name.strip()) > 64:
         raise ProfileLibraryError("Nom de profil invalide.")
-    safe_name = re.sub(r'[\\/:*?"<>|\x00-\x1f]', "-", profile_name.strip()).strip(" .")
+    safe_name = re.sub(r'[\\/:*?"<>|\x00-\x1f]', "-", profile_name.strip()).strip(" .-")
     if not safe_name:
         raise ProfileLibraryError("Le nom du profil ne permet pas de créer un nom de fichier sûr.")
     filename = safe_name + ".json"
