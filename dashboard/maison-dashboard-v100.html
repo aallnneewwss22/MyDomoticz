@@ -362,6 +362,21 @@
             line-height: 1;
         }
 
+        .settings-backup-actions {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .settings-backup-actions button {
+            width: 100%;
+            min-width: 0;
+            min-height: 42px;
+            padding: 4px 2px;
+            font-size: clamp(0.65rem, 0.9vw, 0.82rem);
+            line-height: 1.15;
+            white-space: normal;
+            overflow-wrap: anywhere;
+        }
+
         .page-name-save {
             border-color: var(--good);
             background: color-mix(in srgb, var(--good) 16%, var(--panel));
@@ -826,7 +841,7 @@
                     <select id="settings-backup-list"><option value="">Chargement des fichiers…</option></select>
                     <label for="settings-backup-name">Nom du fichier pour l'export</label>
                     <input id="settings-backup-name" type="text" maxlength="63" value="parametres-domoticz.json" autocomplete="off">
-                    <div class="page-name-edit-row">
+                    <div class="page-name-edit-row settings-backup-actions">
                         <button id="settings-backup-refresh" type="button">Actualiser la liste</button>
                         <button id="settings-backup-import" type="button">Import</button>
                         <button id="settings-backup-export" type="button">Export</button>
