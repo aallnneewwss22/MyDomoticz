@@ -486,6 +486,8 @@ def settings_backup_path(name: str) -> Path:
 
 
 def ensure_settings_backup_dir() -> None:
+    if SETTINGS_BACKUP_DIR.is_symlink():
+        raise OSError("Le répertoire de sauvegardes ne peut pas être un lien symbolique.")
     SETTINGS_BACKUP_DIR.mkdir(mode=0o700, parents=True, exist_ok=True)
     SETTINGS_BACKUP_DIR.chmod(0o700)
 
@@ -496,8 +498,27 @@ def write_settings_backup(name: str, payload: object) -> None:
         raise ValueError("Format de sauvegarde non reconnu.")
     settings = payload.get("settings")
     allowed = {"refreshIntervalSeconds", "theme", "pageNames", "cameraControlUrl", "cameraControlToken", "ptzGainPc", "ptzSpeedPc", "ptzGainMobile", "ptzSpeedMobile"}
-    if not isinstance(settings, dict) or set(settings) - allowed:
+    if not isinstance(settings, dict) or set(settings) != allowed or any(not isinstance(value, str) or len(value) > 4096 for value in settings.values()):
         raise ValueError("Contenu de sauvegarde invalide.")
+    try:
+        refresh = int(settings["refreshIntervalSeconds"])
+        page_names = json.loads(settings["pageNames"])
+        ptz_values = [float(settings[key]) for key in ("ptzGainPc", "ptzSpeedPc", "ptzGainMobile", "ptzSpeedMobile")]
+    except (TypeError, ValueError, json.JSONDecodeError):
+        raise ValueError("Valeurs de sauvegarde invalides.")
+    if not 5 <= refresh <= 3600 or settings["theme"] not in {"auto", "classic", "dark", "nature", "midnight"}:
+        raise ValueError("Période ou thème invalide.")
+    if not isinstance(page_names, dict) or any(not re.fullmatch(r"IDX[1-9]", key) or not isinstance(value, str) for key, value in page_names.items()):
+        raise ValueError("Noms de pages invalides.")
+    for index, number in enumerate(ptz_values):
+        minimum = 0.01 if index in (0, 2) else 0.05
+        if not minimum <= number <= 1:
+            raise ValueError("Réglage PTZ invalide.")
+    camera_url = settings["cameraControlUrl"]
+    if camera_url:
+        parsed_url = urllib.parse.urlsplit(camera_url)
+        if parsed_url.scheme not in {"http", "https"} or not parsed_url.netloc or parsed_url.path or parsed_url.query or parsed_url.fragment:
+            raise ValueError("Adresse de passerelle invalide.")
     encoded = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
     if len(encoded) > SETTINGS_BACKUP_MAX_BYTES:
         raise ValueError("Fichier de sauvegarde trop volumineux.")
