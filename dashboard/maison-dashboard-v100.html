@@ -3200,15 +3200,15 @@
 
             function collectSettingsBackup() {
                 const settings = {
-                    refreshIntervalSeconds: String(refreshIntervalSeconds),
-                    theme: selectedTheme,
-                    pageNames: JSON.stringify(savedPageNames),
-                    cameraControlUrl: localStorage.getItem(CAMERA_CONTROL_URL_KEY) || "",
-                    cameraControlToken: cameraControlToken(),
-                    ptzGainPc: String(ptzSettings.pc.gain),
-                    ptzSpeedPc: String(ptzSettings.pc.speed),
-                    ptzGainMobile: String(ptzSettings.mobile.gain),
-                    ptzSpeedMobile: String(ptzSettings.mobile.speed)
+                    refreshIntervalSeconds: $("refresh-interval").value,
+                    theme: $("theme-select").value,
+                    pageNames: JSON.stringify(draftPageNames),
+                    cameraControlUrl: $("camera-control-url").value.trim() || "",
+                    cameraControlToken: $("camera-control-token").value.trim(),
+                    ptzGainPc: $("ptz-gain-pc").value,
+                    ptzSpeedPc: $("ptz-speed-pc").value,
+                    ptzGainMobile: $("ptz-gain-mobile").value,
+                    ptzSpeedMobile: $("ptz-speed-mobile").value
                 };
                 return { format: SETTINGS_BACKUP_FORMAT, version: SETTINGS_BACKUP_VERSION, createdAt: new Date().toISOString(), settings };
             }
