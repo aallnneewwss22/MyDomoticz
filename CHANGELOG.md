@@ -1,5 +1,33 @@
 ## [Non publié]
 
+### Correctif — Déclenchement de l’alerte de suppression
+
+- Transmettre le statut HTTP et les données d'erreur depuis la requête de gestion des profils caméra afin que le refus HTTP 409 ouvre bien la fenêtre modale.
+- Publier le correctif dans `maison-dashboard-v104.html` et mettre à jour le lanceur.
+
+### Amélioré — Alerte de suppression d’un profil vidéo actif
+
+- En cas de refus HTTP 409 parce qu'une session de transcodage utilise le profil, afficher une fenêtre modale « Suppression impossible ».
+- Présenter l'explication intégralement en caractères gras, avec un bouton « OK » ; les autres erreurs conservent leur affichage dans la fenêtre des profils.
+- Création de `maison-dashboard-v103.html` et mise à jour du lanceur.
+
+### Amélioré — Sauvegarde dans la bibliothèque des profils caméra
+
+- Renommage du bouton de bibliothèque « Enregistrer » en « Sauver ».
+- Désactivation de « Sauver » dès qu'un champ du profil courant est modifié ; le bouton redevient disponible après l'enregistrement du profil dans la caméra.
+- Création de `maison-dashboard-v102.html` et mise à jour du lanceur.
+
+### Ajouté — Bibliothèque commune de profils vidéo
+
+- Ajout d'une bibliothèque centralisée sur le Raspberry Pi, commune à toutes les caméras d'un même environnement.
+- Depuis la fenêtre des profils d'une caméra, un profil personnalisé peut être enregistré dans la bibliothèque, chargé dans une autre caméra ou supprimé de la bibliothèque.
+- Les fichiers JSON portent un nom dérivé du profil ; les remplacements nécessitent une confirmation et les fichiers sont écrits atomiquement avec des permissions 0600 dans un répertoire 0700.
+- Les profils chargés reçoivent un nouvel identifiant interne et restent indépendants de leur modèle dans la bibliothèque ; la suppression d'un modèle ne touche pas les caméras.
+- Les environnements production et test disposent de bibliothèques strictement séparées.
+- Création de `maison-dashboard-v101.html` et mise à jour du lanceur.
+
+## [Non publié]
+
 ### Ajouté — Sauvegarde et restauration des paramètres
 
 - Ajout des boutons Import et Export dans la boîte « Les paramètres de l'application ».

@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light dark">
-    <title>Ma maison — Domoticz v99</title>
+    <title>Ma maison — Domoticz v104</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;500;700&display=swap" rel="stylesheet">
@@ -524,7 +524,11 @@
         .camera-profile-list { font-weight: 600; }
         .camera-profile-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
         .camera-profile-actions button { min-height: 38px; }
+        .camera-profile-library-group { min-width: 0; margin: 0; padding: 10px 12px 12px; border: 1px solid var(--border); border-radius: 10px; }
+        .camera-profile-library-group legend { padding: 0 7px; color: var(--text); font-weight: 650; }
         .camera-profile-status { min-height: 1.4em; margin: 0; color: var(--muted); font-size: .85rem; }
+        .camera-profile-error-dialog { width: min(calc(100vw - 32px), 480px); }
+        .camera-profile-error-message { margin: 0; font-weight: 700; overflow-wrap: anywhere; }
         @media (max-width: 520px) { .camera-profiles-dialog { padding: 12px; } .camera-profile-fields { grid-template-columns: 1fr; } .camera-profile-actions { justify-content: stretch; } .camera-profile-actions button { flex: 1 1 auto; } }
 
 
@@ -914,6 +918,41 @@
                     <button id="camera-profile-delete" type="button">Supprimer</button>
                     <button id="camera-profile-save" type="button">Enregistrer</button>
                     <button id="camera-profile-prefer" type="button">Choisir comme préféré</button>
+                </div>
+                <fieldset class="camera-profile-library-group">
+                    <legend>Bibliothèque</legend>
+                    <div class="camera-profile-actions">
+                        <button id="camera-profile-library-save" type="button">Sauver</button>
+                        <button id="camera-profile-library-load" type="button">Charger</button>
+                        <button id="camera-profile-library-delete" type="button">Supprimer</button>
+                    </div>
+                </fieldset>
+            </div>
+        </dialog>
+
+        <dialog id="camera-profile-error-dialog" class="camera-profile-error-dialog" aria-labelledby="camera-profile-error-title">
+            <div class="camera-profiles-shell">
+                <h2 id="camera-profile-error-title">Suppression impossible</h2>
+                <p id="camera-profile-error-message" class="camera-profile-error-message" role="alert" aria-live="assertive"></p>
+                <div class="dialog-actions"><button id="camera-profile-error-ok" type="button">OK</button></div>
+            </div>
+        </dialog>
+
+        <dialog id="camera-profile-library-dialog" class="camera-profiles-dialog" aria-labelledby="camera-profile-library-title">
+            <div class="camera-profiles-shell">
+                <div class="camera-profiles-heading">
+                    <h2 id="camera-profile-library-title">Bibliothèque commune des profils</h2>
+                    <button id="camera-profile-library-close" type="button">Fermer</button>
+                </div>
+                <p id="camera-profile-library-description" class="settings-help"></p>
+                <label class="settings-field" for="camera-profile-library-list">Profils disponibles sur le Raspberry Pi</label>
+                <select id="camera-profile-library-list" class="camera-profile-list" aria-label="Profil de la bibliothèque"></select>
+                <p id="camera-profile-library-details" class="settings-help" role="status" aria-live="polite"></p>
+                <p id="camera-profile-library-status" class="camera-profile-status" role="status" aria-live="polite"></p>
+                <div class="camera-profile-actions">
+                    <button id="camera-profile-library-refresh" type="button">Actualiser</button>
+                    <button id="camera-profile-library-cancel" type="button">Fermer</button>
+                    <button id="camera-profile-library-action" type="button">Charger dans cette caméra</button>
                 </div>
             </div>
         </dialog>
@@ -1343,10 +1382,34 @@
                     method, headers, body: payload === null ? undefined : JSON.stringify(payload), cache: "no-store"
                 });
                 const data = await response.json().catch(() => ({}));
-                if (!response.ok) throw new Error(data.error || "Erreur HTTP " + response.status);
+                if (!response.ok) {
+                    const error = new Error(data.error || "Erreur HTTP " + response.status);
+                    error.status = response.status;
+                    error.data = data;
+                    throw error;
+                }
                 return data;
             }
 
+
+            async function cameraProfileLibraryRequest(method = "GET", filename = null, payload = null) {
+                const token = cameraControlToken();
+                if (!token) throw new Error("Configure le jeton d'accès dans les paramètres du tableau de bord.");
+                const suffix = filename === null ? "" : "/" + encodeURIComponent(filename);
+                const headers = { Authorization: "Bearer " + token };
+                if (payload !== null) headers["Content-Type"] = "application/json";
+                const response = await fetch(cameraControlBaseUrl() + "/api/profile-library" + suffix, {
+                    method, headers, body: payload === null ? undefined : JSON.stringify(payload), cache: "no-store"
+                });
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    const error = new Error(data.error || "Erreur HTTP " + response.status);
+                    error.status = response.status;
+                    error.data = data;
+                    throw error;
+                }
+                return data;
+            }
 
             async function cameraTranscodeRequest(stream, action, payload = null, keepalive = false) {
                 const token = cameraControlToken();
@@ -1396,6 +1459,15 @@
             ];
             function cameraProfileById(id) { return cameraProfileState.profiles.find(profile => profile.id === id) || null; }
             function cameraProfileSetStatus(message) { $("camera-profile-status").textContent = message || ""; }
+
+            const cameraProfileErrorDialog = $("camera-profile-error-dialog");
+            function cameraProfileShowDeleteError(message) {
+                $("camera-profile-error-message").textContent = message || "Ce profil ne peut pas être supprimé tant qu’une session de transcodage l’utilise.";
+                if (!cameraProfileErrorDialog.open) cameraProfileErrorDialog.showModal();
+                $("camera-profile-error-ok").focus();
+            }
+            $("camera-profile-error-ok").addEventListener("click", () => cameraProfileErrorDialog.close());
+            cameraProfileErrorDialog.addEventListener("cancel", event => { event.preventDefault(); cameraProfileErrorDialog.close(); });
             function cameraProfileSetFieldsEnabled(enabled) {
                 for (const id of ["camera-profile-name", "camera-profile-resolution", "camera-profile-fps", "camera-profile-bitrate"]) $(id).disabled = !enabled;
             }
@@ -1444,6 +1516,27 @@
                     || cameraProfileState.editingId === cameraProfileState.selectedProfileId
                     || incompatible;
                 $("camera-profile-prefer").textContent = "Profil préféré";
+                cameraProfileUpdateLibrarySaveState();
+            }
+            function cameraProfileHasUnsavedChanges() {
+                if (cameraProfileState.creating) return true;
+                const profile = cameraProfileById(cameraProfileState.editingId);
+                if (!profile || profile.id === "native") return false;
+                const resolution = CAMERA_PROFILE_RESOLUTIONS.find(item => item.value === $("camera-profile-resolution").value);
+                return $("camera-profile-name").value.trim() !== profile.name
+                    || !resolution
+                    || resolution.width !== profile.width
+                    || resolution.height !== profile.height
+                    || Number($("camera-profile-fps").value) !== profile.fps
+                    || Number($("camera-profile-bitrate").value) !== profile.bitrate_kbps;
+            }
+            function cameraProfileUpdateLibrarySaveState() {
+                const isNative = !cameraProfileState.creating && cameraProfileState.editingId === "native";
+                $("camera-profile-library-save").disabled = isNative || cameraProfileState.creating || cameraProfileHasUnsavedChanges();
+            }
+            for (const id of ["camera-profile-name", "camera-profile-resolution", "camera-profile-fps", "camera-profile-bitrate"]) {
+                $(id).addEventListener("input", cameraProfileUpdateLibrarySaveState);
+                $(id).addEventListener("change", cameraProfileUpdateLibrarySaveState);
             }
             async function cameraProfilesReload(preferredEditingId = null) {
                 const result = await cameraProfileRequest(cameraProfileState.stream);
@@ -1463,6 +1556,7 @@
                 $("camera-profile-delete").disabled = true;
                 $("camera-profile-save").disabled = true;
                 $("camera-profile-prefer").disabled = true;
+                $("camera-profile-library-save").disabled = true;
                 try {
                     const results = await Promise.all([cameraProfileRequest(config.stream), cameraControlRequest(config.stream, "status")]);
                     const result = results[0], status = results[1];
@@ -1502,7 +1596,7 @@
                     cameraProfileSetStatus("Vérifie le nom, la résolution, la cadence et le débit (50 à 2000 kbit/s)."); return;
                 }
                 const payload = { name, width: resolution.width, height: resolution.height, fps, bitrate_kbps: bitrate };
-                const saveButton = $("camera-profile-save"); saveButton.disabled = true; cameraProfileSetStatus("Enregistrement…");
+                const saveButton = $("camera-profile-save"); saveButton.disabled = true; $("camera-profile-library-save").disabled = true; cameraProfileSetStatus("Enregistrement…");
                 try {
                     if (cameraProfileState.creating) {
                         const result = await cameraProfileRequest(cameraProfileState.stream, "POST", null, payload);
@@ -1512,7 +1606,7 @@
                         await cameraProfilesReload(cameraProfileState.editingId); cameraProfileSetStatus("Profil modifié et enregistré sur le Raspberry Pi.");
                     }
                 } catch (error) { cameraProfileSetStatus("Enregistrement impossible : " + (error.message || "erreur inconnue")); }
-                finally { saveButton.disabled = false; }
+                finally { saveButton.disabled = false; cameraProfileUpdateLibrarySaveState(); }
             });
             $("camera-profile-delete").addEventListener("click", async () => {
                 const id = cameraProfileState.editingId;
@@ -1523,7 +1617,10 @@
                     await cameraProfilesReload(deletion.selected_profile_id || "native");
                     cameraProfileSetStatus("Profil supprimé. Le profil Natif est sélectionné si le profil supprimé était préféré.");
                     refreshCameraPlaybackForStream(cameraProfileState.stream);
-                } catch (error) { cameraProfileSetStatus("Suppression impossible : " + (error.message || "erreur inconnue")); }
+                } catch (error) {
+                    if (error.status === 409) cameraProfileShowDeleteError(error.message);
+                    else cameraProfileSetStatus("Suppression impossible : " + (error.message || "erreur inconnue"));
+                }
                 finally { $("camera-profile-delete").disabled = false; }
             });
             $("camera-profile-prefer").addEventListener("click", async () => {
@@ -1536,6 +1633,189 @@
                     cameraProfileSetStatus("Préférence enregistrée. Le lecteur applique le profil choisi.");
                     refreshCameraPlaybackForStream(cameraProfileState.stream);
                 } catch (error) { cameraProfileSetStatus("Sélection impossible : " + (error.message || "erreur inconnue")); $("camera-profile-prefer").disabled = false; }
+            });
+
+            const cameraProfileLibraryDialog = $("camera-profile-library-dialog");
+            const cameraProfileLibraryState = { mode: "load", files: [], filename: "" };
+
+            function cameraProfileLibrarySelectedFile() {
+                return cameraProfileLibraryState.files.find(item => item.filename === cameraProfileLibraryState.filename) || null;
+            }
+
+            function cameraProfileLibrarySetStatus(message) {
+                $("camera-profile-library-status").textContent = message || "";
+            }
+
+            function cameraProfileLibraryRenderSelection() {
+                const item = cameraProfileLibrarySelectedFile();
+                const action = $("camera-profile-library-action");
+                action.disabled = !item || (cameraProfileLibraryState.mode === "load" && !item.valid);
+                action.textContent = cameraProfileLibraryState.mode === "load" ? "Charger dans cette caméra" : "Supprimer du Raspberry Pi";
+                if (!item) {
+                    $("camera-profile-library-details").textContent = "Aucun profil sélectionné.";
+                    return;
+                }
+                if (!item.valid) {
+                    $("camera-profile-library-details").textContent = "Ce fichier est invalide. Il peut être supprimé, mais pas chargé.";
+                    return;
+                }
+                $("camera-profile-library-details").textContent =
+                    item.name + " · " + item.width + " × " + item.height + " · " +
+                    String(item.fps).replace(".", ",") + " images/s · " + item.bitrate_kbps + " kbit/s";
+            }
+
+            async function cameraProfileLibraryReload(preferredFilename = "") {
+                const select = $("camera-profile-library-list");
+                select.replaceChildren();
+                const placeholder = document.createElement("option");
+                placeholder.value = "";
+                placeholder.textContent = "Chargement…";
+                select.append(placeholder);
+                try {
+                    const result = await cameraProfileLibraryRequest();
+                    cameraProfileLibraryState.files = Array.isArray(result.files) ? result.files : [];
+                    select.replaceChildren();
+                    const empty = document.createElement("option");
+                    empty.value = "";
+                    empty.textContent = cameraProfileLibraryState.files.length
+                        ? "Choisir un profil"
+                        : "Aucun profil dans la bibliothèque";
+                    select.append(empty);
+                    for (const item of cameraProfileLibraryState.files) {
+                        const option = document.createElement("option");
+                        option.value = item.filename;
+                        option.textContent = item.valid
+                            ? item.name + " · " + item.width + " × " + item.height
+                            : item.filename + " · fichier invalide";
+                        option.disabled = cameraProfileLibraryState.mode === "load" && !item.valid;
+                        select.append(option);
+                    }
+                    const selected = cameraProfileLibraryState.files.find(item => item.filename === preferredFilename)
+                        || cameraProfileLibraryState.files.find(item => item.valid)
+                        || cameraProfileLibraryState.files[0];
+                    cameraProfileLibraryState.filename = selected?.filename || "";
+                    select.value = cameraProfileLibraryState.filename;
+                    cameraProfileLibraryRenderSelection();
+                    cameraProfileLibrarySetStatus(cameraProfileLibraryState.files.length
+                        ? cameraProfileLibraryState.files.length + " fichier(s) trouvé(s) dans la bibliothèque commune."
+                        : "La bibliothèque est vide.");
+                } catch (error) {
+                    cameraProfileLibraryState.files = [];
+                    cameraProfileLibraryState.filename = "";
+                    select.replaceChildren();
+                    const option = document.createElement("option");
+                    option.value = "";
+                    option.textContent = "Bibliothèque indisponible";
+                    select.append(option);
+                    cameraProfileLibraryRenderSelection();
+                    cameraProfileLibrarySetStatus("Lecture impossible : " + (error.message || "erreur inconnue"));
+                }
+            }
+
+            async function openCameraProfileLibrary(mode) {
+                cameraProfileLibraryState.mode = mode;
+                $("camera-profile-library-title").textContent = mode === "load"
+                    ? "Charger un profil de la bibliothèque"
+                    : "Supprimer un profil de la bibliothèque";
+                $("camera-profile-library-description").textContent = mode === "load"
+                    ? "Choisis un profil enregistré sur le Raspberry Pi pour le récupérer dans « " + cameraProfileState.label + " »."
+                    : "La suppression retire uniquement le fichier commun du Raspberry Pi. Les profils déjà chargés dans les caméras restent inchangés.";
+                $("camera-profile-library-action").disabled = true;
+                cameraProfileLibrarySetStatus("Lecture de la bibliothèque…");
+                if (!cameraProfileLibraryDialog.open) cameraProfileLibraryDialog.showModal();
+                await cameraProfileLibraryReload();
+            }
+
+            async function saveCurrentCameraProfileToLibrary() {
+                const profile = cameraProfileById(cameraProfileState.editingId);
+                if (!profile || profile.id === "native" || cameraProfileState.creating) return;
+                const payload = {
+                    name: profile.name,
+                    width: profile.width,
+                    height: profile.height,
+                    fps: profile.fps,
+                    bitrate_kbps: profile.bitrate_kbps
+                };
+                const button = $("camera-profile-library-save");
+                button.disabled = true;
+                cameraProfileSetStatus("Enregistrement du profil dans la bibliothèque commune…");
+                try {
+                    let result;
+                    try {
+                        result = await cameraProfileLibraryRequest("POST", null, { profile: payload });
+                    } catch (error) {
+                        if (error.status !== 409 || !error.data?.exists) throw error;
+                        if (!window.confirm("Le profil « " + profile.name + " » existe déjà dans la bibliothèque. Le remplacer ?")) {
+                            cameraProfileSetStatus("Enregistrement annulé.");
+                            return;
+                        }
+                        result = await cameraProfileLibraryRequest("PUT", error.data.filename || (profile.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + ".json"), { profile: payload });
+                    }
+                    cameraProfileSetStatus("Profil enregistré dans la bibliothèque du Raspberry Pi : " + result.filename);
+                } catch (error) {
+                    cameraProfileSetStatus("Enregistrement dans la bibliothèque impossible : " + (error.message || "erreur inconnue"));
+                } finally {
+                    button.disabled = false;
+                }
+            }
+
+            $("camera-profile-library-save").addEventListener("click", saveCurrentCameraProfileToLibrary);
+            $("camera-profile-library-load").addEventListener("click", () => openCameraProfileLibrary("load"));
+            $("camera-profile-library-delete").addEventListener("click", () => openCameraProfileLibrary("delete"));
+            $("camera-profile-library-close").addEventListener("click", () => cameraProfileLibraryDialog.close());
+            $("camera-profile-library-cancel").addEventListener("click", () => cameraProfileLibraryDialog.close());
+            cameraProfileLibraryDialog.addEventListener("cancel", event => { event.preventDefault(); cameraProfileLibraryDialog.close(); });
+            $("camera-profile-library-refresh").addEventListener("click", () => cameraProfileLibraryReload(cameraProfileLibraryState.filename));
+            $("camera-profile-library-list").addEventListener("change", event => {
+                cameraProfileLibraryState.filename = event.target.value;
+                cameraProfileLibraryRenderSelection();
+                cameraProfileLibrarySetStatus("");
+            });
+            $("camera-profile-library-action").addEventListener("click", async () => {
+                const item = cameraProfileLibrarySelectedFile();
+                if (!item) return;
+                const button = $("camera-profile-library-action");
+                button.disabled = true;
+                if (cameraProfileLibraryState.mode === "delete") {
+                    if (!window.confirm("Supprimer définitivement « " + item.name + " » de la bibliothèque commune ? Les profils déjà présents dans les caméras ne seront pas modifiés.")) {
+                        button.disabled = false;
+                        return;
+                    }
+                    try {
+                        await cameraProfileLibraryRequest("DELETE", item.filename);
+                        await cameraProfileLibraryReload();
+                        cameraProfileLibrarySetStatus("Profil supprimé de la bibliothèque. Les caméras ne sont pas modifiées.");
+                    } catch (error) {
+                        cameraProfileLibrarySetStatus("Suppression impossible : " + (error.message || "erreur inconnue"));
+                        button.disabled = false;
+                    }
+                    return;
+                }
+
+                try {
+                    const stored = await cameraProfileLibraryRequest("GET", item.filename);
+                    const profile = stored.profile;
+                    const existing = cameraProfileState.profiles.find(candidate =>
+                        candidate.id !== "native" && candidate.name.toLocaleLowerCase() === profile.name.toLocaleLowerCase()
+                    );
+                    let replaceId = null;
+                    if (existing) {
+                        if (!window.confirm("Un profil nommé « " + existing.name + " » existe déjà dans cette caméra. Le remplacer par celui de la bibliothèque ?")) {
+                            button.disabled = false;
+                            return;
+                        }
+                        replaceId = existing.id;
+                    }
+                    const payload = { profile };
+                    if (replaceId) payload.replace_profile_id = replaceId;
+                    const result = await cameraProfileRequest(cameraProfileState.stream, "POST", "import", payload);
+                    await cameraProfilesReload(result.profile.id);
+                    cameraProfileSetStatus("Profil « " + result.profile.name + " » chargé depuis la bibliothèque et enregistré dans cette caméra.");
+                    cameraProfileLibraryDialog.close();
+                } catch (error) {
+                    cameraProfileLibrarySetStatus("Chargement impossible : " + (error.message || "erreur inconnue"));
+                    button.disabled = false;
+                }
             });
 
             const ptzDialog = $("ptz-dialog");

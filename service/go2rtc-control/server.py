@@ -29,6 +29,10 @@ from camera_profiles import (
     normalize_camera_profiles, update_camera_profile, validate_selected_profile,
 )
 from media_gateway import MediaGateway
+from profile_library import (
+    ProfileLibraryError, delete_profile_library_entry, ensure_profile_library_dir,
+    list_profile_library, read_profile_library_entry, save_profile_library_entry,
+)
 
 VENDOR_DIR = Path(__file__).resolve().parent / "vendor"
 if VENDOR_DIR.is_dir():
@@ -44,6 +48,7 @@ GO2RTC_API = os.environ.get("GO2RTC_API", "http://127.0.0.1:1984").rstrip("/")
 GO2RTC_CONFIG = Path(os.environ.get("GO2RTC_CONFIG", "/etc/go2rtc/go2rtc.yaml"))
 SOURCE_REGISTRY = Path(os.environ.get("SOURCE_REGISTRY", "/var/lib/go2rtc-control/cameras.json"))
 SETTINGS_BACKUP_DIR = Path(os.environ.get("SETTINGS_BACKUP_DIR", "/var/lib/go2rtc-control/settings-backups"))
+PROFILE_LIBRARY_DIR = Path(os.environ.get("PROFILE_LIBRARY_DIR", "/var/lib/go2rtc-control/profile-library"))
 SETTINGS_BACKUP_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_. -]{0,62}\.json$")
 SETTINGS_BACKUP_MAX_BYTES = 256 * 1024
 TOKEN_FILE = Path(os.environ.get("TOKEN_FILE", "/etc/go2rtc-control/token"))
@@ -754,6 +759,25 @@ class Handler(BaseHTTPRequestHandler):
                     save_camera_settings(cameras)
                     self.send_json(201, {"profile": updated[new_id]})
                     return
+                if self.command == "POST" and profile_id == "import":
+                    payload = _read_json_body(self)
+                    if set(payload) not in ({"profile"}, {"profile", "replace_profile_id"}):
+                        raise CameraProfileError("Contenu d'import de profil invalide.")
+                    imported_profile = payload.get("profile")
+                    replace_id = payload.get("replace_profile_id")
+                    if replace_id is not None:
+                        if not isinstance(replace_id, str):
+                            raise CameraProfileError("Identifiant du profil à remplacer invalide.")
+                        updated = update_camera_profile(profiles, quality, replace_id, imported_profile)
+                        imported_id = replace_id
+                        status_code = 200
+                    else:
+                        updated, imported_id = create_camera_profile(profiles, quality, imported_profile)
+                        status_code = 201
+                    settings["profiles"] = updated
+                    save_camera_settings(cameras)
+                    self.send_json(status_code, {"profile": updated[imported_id], "replaced": replace_id is not None})
+                    return
                 if self.command == "PUT" and profile_id == "selected":
                     payload = _read_json_body(self)
                     selected_profile_id = validate_selected_profile(profiles, payload.get("profile_id"))
@@ -779,6 +803,11 @@ class Handler(BaseHTTPRequestHandler):
                     self.send_json(200, {"profile": updated[profile_id]})
                     return
                 if self.command == "DELETE" and profile_id:
+                    profile_to_delete = profiles.get(profile_id)
+                    if profile_to_delete is not None:
+                        SESSION_MANAGER.assert_profile_not_in_use(
+                            camera_id, profile_to_delete, quality,
+                        )
                     updated = delete_camera_profile(profiles, profile_id)
                     settings["profiles"] = updated
                     if selected == profile_id:
@@ -794,6 +823,54 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(409, {"error": str(exc), "result": "blocked"})
         except ControlError as exc:
             self.send_json(502, {"error": str(exc)})
+
+    def handle_profile_library(self, method: str) -> None:
+        """Authenticated CRUD API for the shared Raspberry Pi profile library."""
+        if not self.authorized():
+            return
+        path = urllib.parse.urlsplit(self.path).path.rstrip("/")
+        prefix = "/api/profile-library"
+        if path != prefix and not path.startswith(prefix + "/"):
+            self.send_json(404, {"error": "Route de bibliothèque inconnue."})
+            return
+        suffix = path[len(prefix):].lstrip("/")
+        if suffix and "/" in suffix:
+            self.send_json(404, {"error": "Chemin de bibliothèque invalide."})
+            return
+        filename = urllib.parse.unquote(suffix) if suffix else None
+        try:
+            ensure_profile_library_dir(PROFILE_LIBRARY_DIR)
+            if method == "GET" and filename is None:
+                self.send_json(200, {"files": list_profile_library(PROFILE_LIBRARY_DIR)})
+                return
+            if method == "GET" and filename is not None:
+                self.send_json(200, read_profile_library_entry(PROFILE_LIBRARY_DIR, filename))
+                return
+            if method in ("POST", "PUT"):
+                payload = _read_json_body(self)
+                if set(payload) != {"profile"}:
+                    raise ProfileLibraryError("Le corps doit contenir uniquement le profil vidéo.")
+                saved = save_profile_library_entry(
+                    PROFILE_LIBRARY_DIR,
+                    payload["profile"],
+                    overwrite=method == "PUT",
+                    expected_filename=filename if method == "PUT" else None,
+                )
+                self.send_json(201 if method == "POST" else 200, saved)
+                return
+            if method == "DELETE" and filename is not None:
+                delete_profile_library_entry(PROFILE_LIBRARY_DIR, filename)
+                self.send_json(200, {"deleted": filename})
+                return
+            self.send_json(405, {"error": "Méthode ou ressource de bibliothèque non autorisée."})
+        except FileExistsError as exc:
+            self.send_json(409, {"error": "Un profil portant ce nom existe déjà dans la bibliothèque.", "exists": True, "filename": str(exc)})
+        except FileNotFoundError:
+            self.send_json(404, {"error": "Profil de bibliothèque introuvable."})
+        except (ProfileLibraryError, ValueError, json.JSONDecodeError, UnicodeDecodeError) as exc:
+            self.send_json(400, {"error": str(exc) or "Profil de bibliothèque invalide."})
+        except OSError:
+            self.send_json(500, {"error": "Opération sur la bibliothèque impossible."})
 
     def handle_transcode(self, action: str) -> None:
         if not self.authorized():
@@ -942,7 +1019,11 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(500, {"error": "Opération de sauvegarde impossible."})
 
     def do_GET(self) -> None:
-        if urllib.parse.urlsplit(self.path).path.rstrip("/").startswith("/api/settings-backups"):
+        path = urllib.parse.urlsplit(self.path).path.rstrip("/")
+        if path == "/api/profile-library" or path.startswith("/api/profile-library/"):
+            self.handle_profile_library("GET")
+            return
+        if path.startswith("/api/settings-backups"):
             self.handle_settings_backups("GET")
             return
         if MEDIA_GATEWAY.handle(self):
@@ -965,6 +1046,9 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/media/ticket":
             self.handle_media_ticket()
             return
+        if path == "/api/profile-library":
+            self.handle_profile_library("POST")
+            return
         if path.startswith("/api/cameras/") and "/profiles" in path:
             self.handle_profiles()
             return
@@ -981,12 +1065,20 @@ class Handler(BaseHTTPRequestHandler):
         self.send_json(405, {"error": "Méthode HTTP non autorisée."})
 
     def do_PUT(self) -> None:
-        if urllib.parse.urlsplit(self.path).path.rstrip("/").startswith("/api/settings-backups"):
+        path = urllib.parse.urlsplit(self.path).path.rstrip("/")
+        if path.startswith("/api/settings-backups"):
             self.handle_settings_backups("PUT")
+            return
+        if path.startswith("/api/profile-library/"):
+            self.handle_profile_library("PUT")
             return
         self.handle_profiles()
 
     def do_DELETE(self) -> None:
+        path = urllib.parse.urlsplit(self.path).path.rstrip("/")
+        if path.startswith("/api/profile-library/"):
+            self.handle_profile_library("DELETE")
+            return
         self.handle_profiles()
 
 
@@ -994,6 +1086,7 @@ if __name__ == "__main__":
     read_token()
     ensure_source_registry()
     ensure_settings_backup_dir()
+    ensure_profile_library_dir(PROFILE_LIBRARY_DIR)
     SESSION_MANAGER.start_reaper()
     server = ThreadingHTTPServer((CONTROL_HOST, CONTROL_PORT), Handler)
     try:
