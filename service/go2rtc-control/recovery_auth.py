@@ -87,53 +87,52 @@ class RecoveryAuth:
             {"version": 1, "salt": salt.hex(), "digest": digest.hex()},
             separators=(",", ":"),
         ) + "\n"
-        parent = self.key_file.parent
-        parent.mkdir(mode=0o700, parents=True, exist_ok=True)
-        if parent.is_symlink() or self.key_file.is_symlink():
-            raise OSError("Le stockage de la clé de récupération est invalide.")
-        parent.chmod(0o700)
-        fd, temporary_name = tempfile.mkstemp(prefix=".recovery-key-", dir=str(parent))
-        try:
-            os.fchmod(fd, 0o600)
-            with os.fdopen(fd, "w", encoding="utf-8") as handle:
-                handle.write(payload)
-                handle.flush()
-                os.fsync(handle.fileno())
-            os.replace(temporary_name, self.key_file)
-            os.chmod(self.key_file, 0o600)
-        finally:
-            try:
-                os.unlink(temporary_name)
-            except FileNotFoundError:
-                pass
         with self._lock:
+            parent = self.key_file.parent
+            parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+            if parent.is_symlink() or self.key_file.is_symlink():
+                raise OSError("Le stockage de la clé de récupération est invalide.")
+            parent.chmod(0o700)
+            fd, temporary_name = tempfile.mkstemp(prefix=".recovery-key-", dir=str(parent))
+            try:
+                os.fchmod(fd, 0o600)
+                with os.fdopen(fd, "w", encoding="utf-8") as handle:
+                    handle.write(payload)
+                    handle.flush()
+                    os.fsync(handle.fileno())
+                os.replace(temporary_name, self.key_file)
+                os.chmod(self.key_file, 0o600)
+            finally:
+                try:
+                    os.unlink(temporary_name)
+                except FileNotFoundError:
+                    pass
             self._sessions.clear()
             self._failures.clear()
         return key
 
     def issue_session(self, key: str, client_id: str) -> str:
         """Validate a recovery key and return an in-memory, short-lived token."""
-        if not isinstance(key, str) or not KEY_PATTERN.fullmatch(key):
-            self._record_failure(client_id)
-            raise RecoveryUnauthorized("Clé de récupération absente ou invalide.")
         with self._lock:
             self._check_rate_limit(client_id)
-        try:
-            salt, expected = self._load_verifier()
-            actual = self._derive(key, salt)
-            valid = hmac.compare_digest(actual, expected)
-        except RecoveryUnauthorized:
-            valid = False
-        if not valid:
-            self._record_failure(client_id)
-            raise RecoveryUnauthorized("Clé de récupération absente ou invalide.")
-        token = secrets.token_urlsafe(32)
-        token_digest = hashlib.sha256(token.encode("ascii")).hexdigest()
-        with self._lock:
+            if not isinstance(key, str) or not KEY_PATTERN.fullmatch(key):
+                self._record_failure(client_id)
+                raise RecoveryUnauthorized("Clé de récupération absente ou invalide.")
+            try:
+                salt, expected = self._load_verifier()
+                actual = self._derive(key, salt)
+                valid = hmac.compare_digest(actual, expected)
+            except RecoveryUnauthorized:
+                valid = False
+            if not valid:
+                self._record_failure(client_id)
+                raise RecoveryUnauthorized("Clé de récupération absente ou invalide.")
+            token = secrets.token_urlsafe(32)
+            token_digest = hashlib.sha256(token.encode("ascii")).hexdigest()
             self._failures.pop(client_id, None)
             self._purge_expired_sessions()
             self._sessions[token_digest] = self.clock() + self.session_ttl
-        return token
+            return token
 
     def _check_rate_limit(self, client_id: str) -> None:
         now = self.clock()
