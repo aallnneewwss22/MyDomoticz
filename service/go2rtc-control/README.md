@@ -121,6 +121,23 @@ Routes authentifiées : `GET ptz-status`, `POST ptz-config`, `POST ptz-move` (un
 
 Le port ONVIF est généralement 80, mais certaines caméras utilisent un port différent : renseigne celui qui fonctionne avec ton logiciel de pilotage habituel. La configuration ONVIF est distincte de l'URL RTSP et peut utiliser des identifiants différents.
 
+## Récupération indépendante des sauvegardes
+
+Le tableau de bord permet de créer une clé de récupération depuis Paramètres, avec le jeton Bearer habituel. La clé aléatoire (256 bits) est affichée une seule fois. Le service ne conserve que son vérificateur scrypt salé dans :
+
+- production : `/var/lib/go2rtc-control/recovery/recovery-key.json` ;
+- test : `/var/lib/go2rtc-control-test/recovery/recovery-key.json`.
+
+Le sous-répertoire est créé avec le mode 0700 et le fichier avec le mode 0600. La clé ne doit jamais être copiée dans les sauvegardes de paramètres, dans un classeur IDX ou dans un journal.
+
+Après effacement du stockage du navigateur, l'utilisateur saisit la clé dans le dialogue de sauvegarde. `POST /api/recovery/session` exige une origine présente dans `DASHBOARD_ORIGINS` et délivre un jeton aléatoire valable cinq minutes. Ce jeton, transmis dans `X-Recovery-Token`, autorise uniquement `GET /api/settings-backups` et la lecture d'un fichier de sauvegarde. Il ne permet ni écriture/suppression de sauvegarde, ni commande caméra, ni accès aux profils ou à la bibliothèque. Les sessions ne sont conservées qu'en mémoire et sont invalidées par un renouvellement de clé ou un redémarrage.
+
+La création/rotation utilise `POST /api/recovery/key` et exige le jeton Bearer normal. Le renouvellement invalide l'ancienne clé et toutes les sessions existantes. Cinq tentatives invalides par adresse cliente sur cinq minutes entraînent une limitation temporaire.
+
+**Perte de la clé :** récupérer le jeton normal sur le Raspberry Pi avec `sudo go2rtc-control-show-token`, le saisir dans les paramètres du tableau de bord, puis générer une nouvelle clé. La commande d'affichage existante ne modifie aucun jeton.
+
+**Transport :** la clé et les sauvegardes transitent par HTTP si le service est utilisé en HTTP. Sur un réseau où le trafic peut être observé, un attaquant pourrait intercepter la clé ou le contenu des sauvegardes. Pour une protection contre l'écoute réseau, utiliser HTTPS avec un reverse proxy correctement configuré et inscrire l'origine du tableau de bord dans `DASHBOARD_ORIGINS`. Ne pas exposer le port 1985 directement à Internet.
+
 ## Sécurité
 
 - Les identifiants RTSP et ONVIF restent sur le Raspberry Pi, dans le YAML go2rtc et le registre privé ; ils ne sont jamais renvoyés au navigateur par l'API auxiliaire.
