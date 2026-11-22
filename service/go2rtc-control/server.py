@@ -33,6 +33,7 @@ from profile_library import (
     ProfileLibraryError, delete_profile_library_entry, ensure_profile_library_dir,
     list_profile_library, read_profile_library_entry, save_profile_library_entry,
 )
+from recovery_auth import RecoveryAuth, RecoveryRateLimited, RecoveryUnauthorized
 
 VENDOR_DIR = Path(__file__).resolve().parent / "vendor"
 if VENDOR_DIR.is_dir():
@@ -52,6 +53,8 @@ PROFILE_LIBRARY_DIR = Path(os.environ.get("PROFILE_LIBRARY_DIR", "/var/lib/go2rt
 SETTINGS_BACKUP_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_. -]{0,62}\.json$")
 SETTINGS_BACKUP_MAX_BYTES = 256 * 1024
 TOKEN_FILE = Path(os.environ.get("TOKEN_FILE", "/etc/go2rtc-control/token"))
+RECOVERY_KEY_FILE = Path(os.environ.get("RECOVERY_KEY_FILE", "/var/lib/go2rtc-control/recovery-key.json"))
+RECOVERY_AUTH = RecoveryAuth(RECOVERY_KEY_FILE)
 DASHBOARD_ORIGIN = os.environ.get("DASHBOARD_ORIGIN", "http://192.168.1.21:8080").rstrip("/")
 DASHBOARD_ORIGINS = {item.strip().rstrip("/") for item in os.environ.get("DASHBOARD_ORIGINS", DASHBOARD_ORIGIN).split(",") if item.strip()}
 CONTROL_HOST = os.environ.get("CONTROL_HOST", "0.0.0.0")
@@ -557,7 +560,7 @@ def read_settings_backup(name: str) -> dict[str, object]:
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "go2rtc-control/1.5"
+    server_version = "go2rtc-control/1.6"
 
     def log_message(self, fmt: str, *args: object) -> None:
         # Never log query parameters: a start request contains an RTSP source.
@@ -576,21 +579,60 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def authorized(self) -> bool:
+    def authorized(self, *, allow_recovery: bool = False) -> bool:
         origin = self.headers.get("Origin", "")
         if origin and origin not in DASHBOARD_ORIGINS:
             self.send_json(403, {"error": "Origine non autorisée."})
             return False
+        supplied = self.headers.get("Authorization", "")
         try:
             expected = "Bearer " + read_token()
         except RuntimeError:
-            self.send_json(503, {"error": "Jeton d'accès indisponible."})
+            expected = ""
+        if expected and secrets.compare_digest(supplied, expected):
+            return True
+        if allow_recovery:
+            recovery_token = self.headers.get("X-Recovery-Token", "")
+            if recovery_token and RECOVERY_AUTH.is_session_valid(recovery_token):
+                return True
+        self.send_json(401, {"error": "Jeton absent ou invalide."})
+        return False
+
+    def recovery_origin_allowed(self) -> bool:
+        # Recovery endpoints are browser-facing and require an explicit allowlisted
+        # Origin. Unlike normal API calls, a missing Origin is never accepted.
+        if self.headers.get("Origin", "") not in DASHBOARD_ORIGINS:
+            self.send_json(403, {"error": "Origine non autorisée."})
             return False
-        supplied = self.headers.get("Authorization", "")
-        if not secrets.compare_digest(supplied, expected):
-            self.send_json(401, {"error": "Jeton absent ou invalide."})
+        if not self.headers.get("Content-Type", "").lower().startswith("application/json"):
+            self.send_json(415, {"error": "Type de contenu JSON requis."})
             return False
         return True
+
+    def handle_recovery_session(self) -> None:
+        if not self.recovery_origin_allowed():
+            return
+        try:
+            payload = _read_json_body(self)
+            key = payload.get("key")
+            client_id = self.client_address[0] if self.client_address else "unknown"
+            session = RECOVERY_AUTH.issue_session(key, client_id)
+            self.send_json(200, {"recoveryToken": session, "expiresIn": RECOVERY_AUTH.session_ttl})
+        except RecoveryRateLimited as exc:
+            self.send_json(429, {"error": str(exc)})
+        except RecoveryUnauthorized as exc:
+            self.send_json(401, {"error": str(exc)})
+        except ControlError as exc:
+            self.send_json(400, {"error": str(exc)})
+
+    def handle_recovery_key(self) -> None:
+        if not self.authorized():
+            return
+        try:
+            key = RECOVERY_AUTH.create_or_rotate_key()
+            self.send_json(201, {"recoveryKey": key})
+        except OSError:
+            self.send_json(500, {"error": "Création de la clé de récupération impossible."})
 
     def do_OPTIONS(self) -> None:
         if self.headers.get("Origin", "") not in DASHBOARD_ORIGINS:
@@ -599,7 +641,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(204)
         self.send_header("Access-Control-Allow-Origin", self.headers.get("Origin", ""))
         self.send_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Authorization, Content-Type")
+        self.send_header("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Recovery-Token")
         self.send_header("Access-Control-Max-Age", "600")
         self.send_header("Vary", "Origin")
         self.end_headers()
@@ -987,11 +1029,14 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(400, {"error": str(exc)})
 
     def handle_settings_backups(self, method: str) -> None:
-        if not self.authorized():
+        if not self.authorized(allow_recovery=(method == "GET")):
             return
         path = urllib.parse.urlsplit(self.path).path.rstrip("/")
         prefix = "/api/settings-backups"
-        suffix = path[len(prefix):].lstrip("/") if path.startswith(prefix) else ""
+        if path != prefix and not path.startswith(prefix + "/"):
+            self.send_json(404, {"error": "Route de sauvegarde inconnue."})
+            return
+        suffix = path[len(prefix):].lstrip("/")
         try:
             ensure_settings_backup_dir()
             if method == "GET" and not suffix:
@@ -1043,6 +1088,12 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         path = urllib.parse.urlsplit(self.path).path.rstrip("/")
+        if path == "/api/recovery/session":
+            self.handle_recovery_session()
+            return
+        if path == "/api/recovery/key":
+            self.handle_recovery_key()
+            return
         if path == "/api/media/ticket":
             self.handle_media_ticket()
             return
