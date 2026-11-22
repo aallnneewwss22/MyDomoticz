@@ -61,6 +61,24 @@ sudo go2rtc-control-show-token --test
 
 Sans option, la commande lit le jeton de production ; avec `--test`, elle lit celui de test. Elle ne régénère aucun jeton. Elle exige les droits root, vérifie le propriétaire et les permissions du fichier, et refuse d'afficher le secret si sa sortie n'est pas un terminal interactif. Traite le résultat comme un mot de passe : ne le partage pas et ne le laisse pas dans une capture d'écran ou un journal.
 
+### Initialiser la clé de récupération sans jeton caméra
+
+La première clé doit être créée **avant** de perdre le jeton caméra. Si elle n'a pas encore été créée, ou si le navigateur a déjà été entièrement nettoyé, utilise la commande d'administration locale depuis un terminal SSH sur le Raspberry Pi :
+
+```bash
+sudo go2rtc-control-recovery-key
+```
+
+La commande exige root et un terminal interactif. Elle génère la clé, stocke uniquement le vérificateur scrypt dans le répertoire privé de récupération, attribue le fichier et son répertoire au compte du service (droits 0600/0700), puis affiche la clé une seule fois. Conserve-la immédiatement hors du Raspberry Pi, par exemple dans ton gestionnaire de mots de passe. Elle n'est jamais écrite dans les journaux.
+
+Pour l'environnement de test, utilise `sudo go2rtc-control-recovery-key --test`. Les deux environnements sont isolés.
+
+Si une clé existe déjà, la commande refuse de l'écraser. Pour un renouvellement volontaire, utilise `sudo go2rtc-control-recovery-key --rotate` (ou ajoute `--test` pour l'environnement de test) et confirme en tapant exactement `ROTATE`. L'ancienne clé et toutes les sessions temporaires sont alors invalidées.
+
+La commande lit uniquement la valeur `RECOVERY_KEY_FILE` du fichier d'environnement ; elle ne source ni n'exécute ce fichier. Elle n'utilise pas le jeton caméra, ne modifie pas les sauvegardes ni les registres caméra et n'expose aucune route HTTP supplémentaire.
+
+Après la génération, saisis la clé dans le dialogue de récupération du tableau de bord. Si la clé est perdue, cette commande permet d'en générer une nouvelle uniquement depuis le Raspberry Pi ; elle ne permet pas de retrouver l'ancienne.
+
 
 Après installation :
 
