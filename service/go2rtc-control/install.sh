@@ -190,6 +190,7 @@ install -o root -g root -m 0644 "${SCRIPT_DIR}/go2rtc-test.service.example" /etc
 install -o root -g root -m 0644 "${SCRIPT_DIR}/go2rtc-control-test.service" /etc/systemd/system/go2rtc-control-test.service
 
 install -o root -g root -m 0755 "${SCRIPT_DIR}/show-token.sh" /usr/local/sbin/go2rtc-control-show-token
+install -o root -g root -m 0755 "${SCRIPT_DIR}/recovery-key-admin.py" /usr/local/sbin/go2rtc-control-recovery-key
 
 if [[ ! -f "${ETC_DIR}/go2rtc-control.env" ]]; then
   cat > "${ETC_DIR}/go2rtc-control.env" <<EOF
