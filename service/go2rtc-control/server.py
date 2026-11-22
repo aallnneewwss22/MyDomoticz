@@ -608,7 +608,7 @@ class Handler(BaseHTTPRequestHandler):
         if self.headers.get("Origin", "") not in DASHBOARD_ORIGINS:
             self.send_json(403, {"error": "Origine non autorisée."})
             return False
-        if not self.headers.get("Content-Type", "").lower().startswith("application/json"):
+        if self.headers.get("Content-Type", "").split(";", 1)[0].strip().lower() != "application/json":
             self.send_json(415, {"error": "Type de contenu JSON requis."})
             return False
         return True
