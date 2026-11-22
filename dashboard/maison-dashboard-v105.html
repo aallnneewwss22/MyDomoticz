@@ -3593,6 +3593,12 @@
                 }
             });
 
+            settingsDialog.addEventListener("close", () => {
+                // A newly generated recovery key is intentionally shown only
+                // until the dialog closes; it is never persisted by the page.
+                $("recovery-key-output").value = "";
+            });
+
             $("recovery-key-unlock").addEventListener("click", async () => {
                 const key = $("recovery-key-input").value.trim();
                 if (!key) {
