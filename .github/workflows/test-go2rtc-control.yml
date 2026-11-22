@@ -28,8 +28,27 @@ jobs:
       - name: Install test dependency
         run: python -m pip install -r service/go2rtc-control/requirements.txt
       - name: Check Python syntax
-        run: python -m py_compile service/go2rtc-control/recovery-key-admin.py service/go2rtc-control/camera_profiles.py service/go2rtc-control/profile_library.py service/go2rtc-control/recovery_auth.py service/go2rtc-control/server.py service/go2rtc-control/media_gateway.py service/go2rtc-control/session_manager.py service/go2rtc-control/transcode_engine.py service/go2rtc-control/tests/test_transcode_engine.py service/go2rtc-control/tests/test_config.py service/go2rtc-control/tests/test_ptz.py service/go2rtc-control/tests/test_ptz_relative_move.py service/go2rtc-control/tests/test_session_manager.py service/go2rtc-control/tests/test_camera_profiles.py service/go2rtc-control/tests/test_profile_library.py service/go2rtc-control/tests/test_transcode_api.py service/go2rtc-control/tests/test_media_gateway.py service/go2rtc-control/tests/test_recovery_auth.py service/go2rtc-control/tests/test_recovery_api.py service/go2rtc-control/tests/test_recovery_dashboard.py service/go2rtc-control/tests/test_recovery_admin.py
+        run: python -m py_compile service/go2rtc-control/recovery-key-admin.py service/go2rtc-control/camera_profiles.py service/go2rtc-control/camera_settings_backup.py service/go2rtc-control/profile_library.py service/go2rtc-control/recovery_auth.py service/go2rtc-control/server.py service/go2rtc-control/media_gateway.py service/go2rtc-control/session_manager.py service/go2rtc-control/transcode_engine.py service/go2rtc-control/tests/test_transcode_engine.py service/go2rtc-control/tests/test_config.py service/go2rtc-control/tests/test_ptz.py service/go2rtc-control/tests/test_ptz_relative_move.py service/go2rtc-control/tests/test_session_manager.py service/go2rtc-control/tests/test_camera_profiles.py service/go2rtc-control/tests/test_profile_library.py service/go2rtc-control/tests/test_transcode_api.py service/go2rtc-control/tests/test_media_gateway.py service/go2rtc-control/tests/test_recovery_auth.py service/go2rtc-control/tests/test_recovery_api.py service/go2rtc-control/tests/test_recovery_dashboard.py service/go2rtc-control/tests/test_recovery_admin.py service/go2rtc-control/tests/test_camera_settings_backup.py service/go2rtc-control/tests/test_camera_settings_backup_api.py service/go2rtc-control/tests/test_camera_settings_backup_dashboard.py
       - name: Check installer syntax
         run: bash -n service/go2rtc-control/install.sh
+      - name: Check versioned dashboard JavaScript
+        shell: bash
+        run: |
+          set -euo pipefail
+          dashboard_file="$(grep -oE 'maison-dashboard-v[0-9]+\.html' dashboard/maison.html | head -n 1)"
+          test -n "${dashboard_file}"
+          test -f "dashboard/${dashboard_file}"
+          python - "${dashboard_file}" <<'PY'
+          from pathlib import Path
+          import re
+          import sys
+          html = Path("dashboard", sys.argv[1]).read_text(encoding="utf-8")
+          scripts = re.findall(r"<script\b[^>]*>(.*?)</script\s*>", html, re.IGNORECASE | re.DOTALL)
+          inline = [script for script in scripts if script.strip()]
+          if len(inline) != 1:
+              raise SystemExit(f"Expected one inline dashboard script, found {len(inline)}")
+          Path("/tmp/maison-dashboard.js").write_text(inline[0], encoding="utf-8")
+          PY
+          node --check /tmp/maison-dashboard.js
       - name: Run unit tests
         run: python -m unittest discover -s service/go2rtc-control/tests -v
