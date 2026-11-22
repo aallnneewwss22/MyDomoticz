@@ -1,5 +1,17 @@
 ## [Non publié]
 
+### Ajouté — Récupération sécurisée des sauvegardes après effacement du navigateur
+
+- Ajout d'une clé de récupération aléatoire indépendante du stockage navigateur ; seul un vérificateur scrypt salé est conservé sur le Raspberry Pi.
+- La clé est générée ou renouvelée depuis les paramètres avec l'authentification Bearer habituelle et n'est affichée qu'une fois.
+- Après perte du localStorage et des cookies, la clé ouvre une session de cinq minutes limitée à la liste et à la lecture des sauvegardes.
+- Les sessions sont conservées uniquement en mémoire, limitées par adresse cliente, invalidées lors du renouvellement et perdues au redémarrage du service.
+- Les écritures de sauvegardes, les commandes caméra, les profils et la bibliothèque restent exclusivement accessibles avec le jeton Bearer.
+- Ajout de tests unitaires et d'intégration couvrant le cycle de vie de la clé, le stockage privé, les limites de tentatives, les expirations, les origines CORS et l'isolation des autorisations.
+- Création de `maison-dashboard-v105.html` et mise à jour du lanceur.
+
+## [Non publié]
+
 ### Correctif — Déclenchement de l’alerte de suppression
 
 - Transmettre le statut HTTP et les données d'erreur depuis la requête de gestion des profils caméra afin que le refus HTTP 409 ouvre bien la fenêtre modale.
