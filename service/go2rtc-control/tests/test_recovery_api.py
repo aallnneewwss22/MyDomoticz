@@ -139,6 +139,41 @@ class RecoveryApiTests(unittest.TestCase):
         status, _, _ = self.request("/api/recovery/session", method="POST", payload={"key": "A" * 43})
         self.assertEqual(status, 429)
 
+    def test_recovery_session_requires_an_allowlisted_origin_for_reads(self):
+        session = self.create_recovery_session()
+        request = urllib.request.Request(
+            self.base + "/api/settings-backups",
+            headers={"X-Recovery-Token": session},
+            method="GET",
+        )
+        with self.assertRaises(urllib.error.HTTPError) as caught:
+            urllib.request.urlopen(request, timeout=3)
+        self.assertEqual(caught.exception.code, 403)
+
+    def test_recovery_session_cannot_escape_backup_directory(self):
+        session = self.create_recovery_session()
+        status, _, _ = self.request(
+            "/api/settings-backups/%2e%2e%2fsecret.json",
+            headers={"X-Recovery-Token": session},
+        )
+        self.assertEqual(status, 400)
+
+    def test_normal_bearer_keeps_backup_write_access(self):
+        status, _, _ = self.request(
+            "/api/settings-backups/normal.json", method="PUT",
+            payload={
+                "format": "mydomoticz-settings", "version": 1,
+                "settings": {
+                    "refreshIntervalSeconds": "30", "theme": "auto", "pageNames": "{}",
+                    "cameraControlUrl": "", "cameraControlToken": "normal-token",
+                    "ptzGainPc": "0.2", "ptzSpeedPc": "0.5",
+                    "ptzGainMobile": "0.2", "ptzSpeedMobile": "0.5",
+                },
+            },
+            headers={"Authorization": "Bearer " + self.token},
+        )
+        self.assertEqual(status, 201)
+
     def test_recovery_header_is_advertised_for_cors_preflight(self):
         request = urllib.request.Request(
             self.base + "/api/recovery/session", headers={
