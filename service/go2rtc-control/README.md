@@ -61,6 +61,24 @@ sudo go2rtc-control-show-token --test
 
 Sans option, la commande lit le jeton de production ; avec `--test`, elle lit celui de test. Elle ne régénère aucun jeton. Elle exige les droits root, vérifie le propriétaire et les permissions du fichier, et refuse d'afficher le secret si sa sortie n'est pas un terminal interactif. Traite le résultat comme un mot de passe : ne le partage pas et ne le laisse pas dans une capture d'écran ou un journal.
 
+### Initialiser la clé de récupération sans jeton caméra
+
+La première clé doit être créée **avant** de perdre le jeton caméra. Si elle n'a pas encore été créée, ou si le navigateur a déjà été entièrement nettoyé, utilise la commande d'administration locale depuis un terminal SSH sur le Raspberry Pi :
+
+```bash
+sudo go2rtc-control-recovery-key
+```
+
+La commande exige root et un terminal interactif. Elle génère la clé, stocke uniquement le vérificateur scrypt dans le répertoire privé de récupération, attribue le fichier et son répertoire au compte du service (droits 0600/0700), puis affiche la clé une seule fois. Conserve-la immédiatement hors du Raspberry Pi, par exemple dans ton gestionnaire de mots de passe. Elle n'est jamais écrite dans les journaux.
+
+Pour l'environnement de test, utilise `sudo go2rtc-control-recovery-key --test`. Les deux environnements sont isolés.
+
+Si une clé existe déjà, la commande refuse de l'écraser. Pour un renouvellement volontaire, utilise `sudo go2rtc-control-recovery-key --rotate` (ou ajoute `--test` pour l'environnement de test) et confirme en tapant exactement `ROTATE`. L'ancienne clé et toutes les sessions temporaires sont alors invalidées.
+
+La commande lit uniquement la valeur `RECOVERY_KEY_FILE` du fichier d'environnement ; elle ne source ni n'exécute ce fichier. Elle n'utilise pas le jeton caméra, ne modifie pas les sauvegardes ni les registres caméra et n'expose aucune route HTTP supplémentaire.
+
+Après la génération, saisis la clé dans le dialogue de récupération du tableau de bord. Si la clé est perdue, cette commande permet d'en générer une nouvelle uniquement depuis le Raspberry Pi ; elle ne permet pas de retrouver l'ancienne.
+
 
 Après installation :
 
@@ -120,6 +138,23 @@ Le service utilise `onvif-zeep` pour sélectionner un profil média disposant d'
 Routes authentifiées : `GET ptz-status`, `POST ptz-config`, `POST ptz-move` (un pas relatif Pan/Tilt), `POST ptz-stop` (conservée pour compatibilité), `GET ptz-presets`, `POST ptz-goto` et `POST ptz-save-preset`, sous `/api/cameras/{flux}/`.
 
 Le port ONVIF est généralement 80, mais certaines caméras utilisent un port différent : renseigne celui qui fonctionne avec ton logiciel de pilotage habituel. La configuration ONVIF est distincte de l'URL RTSP et peut utiliser des identifiants différents.
+
+## Récupération indépendante des sauvegardes
+
+Le tableau de bord permet de créer une clé de récupération depuis Paramètres, avec le jeton Bearer habituel. La clé aléatoire (256 bits) est affichée une seule fois. Le service ne conserve que son vérificateur scrypt salé dans :
+
+- production : `/var/lib/go2rtc-control/recovery/recovery-key.json` ;
+- test : `/var/lib/go2rtc-control-test/recovery/recovery-key.json`.
+
+Le sous-répertoire est créé avec le mode 0700 et le fichier avec le mode 0600. La clé ne doit jamais être copiée dans les sauvegardes de paramètres, dans un classeur IDX ou dans un journal.
+
+Après effacement du stockage du navigateur, l'utilisateur saisit la clé dans le dialogue de sauvegarde. `POST /api/recovery/session` exige une origine présente dans `DASHBOARD_ORIGINS` et délivre un jeton aléatoire valable cinq minutes. Ce jeton, transmis dans `X-Recovery-Token`, autorise uniquement `GET /api/settings-backups` et la lecture d'un fichier de sauvegarde. Il ne permet ni écriture/suppression de sauvegarde, ni commande caméra, ni accès aux profils ou à la bibliothèque. Les sessions ne sont conservées qu'en mémoire et sont invalidées par un renouvellement de clé ou un redémarrage.
+
+La création/rotation utilise `POST /api/recovery/key` et exige le jeton Bearer normal. Le renouvellement invalide l'ancienne clé et toutes les sessions existantes. Cinq tentatives invalides par adresse cliente sur cinq minutes entraînent une limitation temporaire.
+
+**Perte de la clé :** récupérer le jeton normal sur le Raspberry Pi avec `sudo go2rtc-control-show-token`, le saisir dans les paramètres du tableau de bord, puis générer une nouvelle clé. La commande d'affichage existante ne modifie aucun jeton.
+
+**Transport :** la clé et les sauvegardes transitent par HTTP si le service est utilisé en HTTP. Sur un réseau où le trafic peut être observé, un attaquant pourrait intercepter la clé ou le contenu des sauvegardes. Pour une protection contre l'écoute réseau, utiliser HTTPS avec un reverse proxy correctement configuré et inscrire l'origine du tableau de bord dans `DASHBOARD_ORIGINS`. Ne pas exposer le port 1985 directement à Internet.
 
 ## Sécurité
 

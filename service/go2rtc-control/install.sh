@@ -153,6 +153,7 @@ for target_dir in "${INSTALL_DIR}" "${TEST_INSTALL_DIR}"; do
   install -o root -g root -m 0644 "${SCRIPT_DIR}/media_gateway.py" "${target_dir}/media_gateway.py"
   install -o root -g root -m 0644 "${SCRIPT_DIR}/camera_profiles.py" "${target_dir}/camera_profiles.py"
   install -o root -g root -m 0644 "${SCRIPT_DIR}/profile_library.py" "${target_dir}/profile_library.py"
+  install -o root -g root -m 0644 "${SCRIPT_DIR}/recovery_auth.py" "${target_dir}/recovery_auth.py"
   install -o root -g root -m 0644 "${SCRIPT_DIR}/session_manager.py" "${target_dir}/session_manager.py"
   install -o root -g root -m 0644 "${SCRIPT_DIR}/transcode_engine.py" "${target_dir}/transcode_engine.py"
 done
@@ -189,6 +190,7 @@ install -o root -g root -m 0644 "${SCRIPT_DIR}/go2rtc-test.service.example" /etc
 install -o root -g root -m 0644 "${SCRIPT_DIR}/go2rtc-control-test.service" /etc/systemd/system/go2rtc-control-test.service
 
 install -o root -g root -m 0755 "${SCRIPT_DIR}/show-token.sh" /usr/local/sbin/go2rtc-control-show-token
+install -o root -g root -m 0755 "${SCRIPT_DIR}/recovery-key-admin.py" /usr/local/sbin/go2rtc-control-recovery-key
 
 if [[ ! -f "${ETC_DIR}/go2rtc-control.env" ]]; then
   cat > "${ETC_DIR}/go2rtc-control.env" <<EOF
@@ -197,6 +199,7 @@ GO2RTC_CONFIG=${CONFIG_PATH}
 SOURCE_REGISTRY=/var/lib/go2rtc-control/cameras.json
 SETTINGS_BACKUP_DIR=/var/lib/go2rtc-control/settings-backups
 PROFILE_LIBRARY_DIR=/var/lib/go2rtc-control/profile-library
+RECOVERY_KEY_FILE=/var/lib/go2rtc-control/recovery/recovery-key.json
 TOKEN_FILE=${ETC_DIR}/token
 DASHBOARD_ORIGIN=${DASHBOARD_ORIGIN}
 CONTROL_HOST=0.0.0.0
@@ -214,6 +217,7 @@ else
   ensure_env_value "${ETC_DIR}/go2rtc-control.env" SOURCE_REGISTRY /var/lib/go2rtc-control/cameras.json
   ensure_env_value "${ETC_DIR}/go2rtc-control.env" SETTINGS_BACKUP_DIR /var/lib/go2rtc-control/settings-backups
   ensure_env_value "${ETC_DIR}/go2rtc-control.env" PROFILE_LIBRARY_DIR /var/lib/go2rtc-control/profile-library
+  ensure_env_value "${ETC_DIR}/go2rtc-control.env" RECOVERY_KEY_FILE /var/lib/go2rtc-control/recovery/recovery-key.json
   ensure_env_value "${ETC_DIR}/go2rtc-control.env" TOKEN_FILE "${ETC_DIR}/token"
   ensure_env_value "${ETC_DIR}/go2rtc-control.env" CONTROL_HOST 0.0.0.0
   ensure_env_value "${ETC_DIR}/go2rtc-control.env" CONTROL_PORT 1985
@@ -228,6 +232,7 @@ validate_env_value "${ETC_DIR}/go2rtc-control.env" CONTROL_PORT 1985
 validate_env_value "${ETC_DIR}/go2rtc-control.env" SOURCE_REGISTRY /var/lib/go2rtc-control/cameras.json
 validate_env_value "${ETC_DIR}/go2rtc-control.env" SETTINGS_BACKUP_DIR /var/lib/go2rtc-control/settings-backups
 validate_env_value "${ETC_DIR}/go2rtc-control.env" PROFILE_LIBRARY_DIR /var/lib/go2rtc-control/profile-library
+validate_env_value "${ETC_DIR}/go2rtc-control.env" RECOVERY_KEY_FILE /var/lib/go2rtc-control/recovery/recovery-key.json
 validate_env_value "${ETC_DIR}/go2rtc-control.env" TRANSCODE_RTSP_PORT 8554
 
 ensure_env_value "${ETC_DIR}/go2rtc-control.env" TOKEN_FILE "${ETC_DIR}/token"
@@ -255,6 +260,7 @@ GO2RTC_CONFIG=${TEST_CONFIG}
 SOURCE_REGISTRY=/var/lib/go2rtc-control-test/cameras.json
 SETTINGS_BACKUP_DIR=/var/lib/go2rtc-control-test/settings-backups
 PROFILE_LIBRARY_DIR=/var/lib/go2rtc-control-test/profile-library
+RECOVERY_KEY_FILE=/var/lib/go2rtc-control-test/recovery/recovery-key.json
 TOKEN_FILE=${TEST_ETC_DIR}/token
 CONTROL_HOST=127.0.0.1
 CONTROL_PORT=1986
@@ -270,6 +276,7 @@ else
   ensure_env_value "${TEST_ENV}" SOURCE_REGISTRY /var/lib/go2rtc-control-test/cameras.json
   ensure_env_value "${TEST_ENV}" SETTINGS_BACKUP_DIR /var/lib/go2rtc-control-test/settings-backups
   ensure_env_value "${TEST_ENV}" PROFILE_LIBRARY_DIR /var/lib/go2rtc-control-test/profile-library
+  ensure_env_value "${TEST_ENV}" RECOVERY_KEY_FILE /var/lib/go2rtc-control-test/recovery/recovery-key.json
   ensure_env_value "${TEST_ENV}" TOKEN_FILE "${TEST_ETC_DIR}/token"
   ensure_env_value "${TEST_ENV}" CONTROL_HOST 127.0.0.1
   ensure_env_value "${TEST_ENV}" CONTROL_PORT 1986
@@ -284,6 +291,7 @@ validate_env_value "${TEST_ENV}" CONTROL_PORT 1986
 validate_env_value "${TEST_ENV}" SOURCE_REGISTRY /var/lib/go2rtc-control-test/cameras.json
 validate_env_value "${TEST_ENV}" SETTINGS_BACKUP_DIR /var/lib/go2rtc-control-test/settings-backups
 validate_env_value "${TEST_ENV}" PROFILE_LIBRARY_DIR /var/lib/go2rtc-control-test/profile-library
+validate_env_value "${TEST_ENV}" RECOVERY_KEY_FILE /var/lib/go2rtc-control-test/recovery/recovery-key.json
 validate_env_value "${TEST_ENV}" TRANSCODE_RTSP_PORT 8556
 
 TEST_TOKEN_FILE="$(read_env_value "${TEST_ENV}" TOKEN_FILE)"
