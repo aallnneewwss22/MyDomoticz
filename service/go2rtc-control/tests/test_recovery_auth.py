@@ -90,6 +90,38 @@ class RecoveryAuthTests(unittest.TestCase):
             self.auth.issue_session(second_key, "192.0.2.10")
         ))
 
+    def test_session_does_not_survive_service_restart(self):
+        key = self.auth.create_or_rotate_key()
+        session = self.auth.issue_session(key, "192.0.2.10")
+        restarted = RecoveryAuth(self.auth.key_file, clock=lambda: self.now)
+        self.assertFalse(restarted.is_session_valid(session))
+        self.assertTrue(restarted.issue_session(key, "192.0.2.10"))
+
+    def test_symlinked_verifier_is_rejected(self):
+        key = self.auth.create_or_rotate_key()
+        real_file = self.auth.key_file
+        link_file = self.root / "linked-key.json"
+        link_file.symlink_to(real_file)
+        linked = RecoveryAuth(link_file, clock=lambda: self.now)
+        with self.assertRaises(RecoveryUnauthorized):
+            linked.issue_session(key, "192.0.2.10")
+        with self.assertRaises(OSError):
+            linked.create_or_rotate_key()
+
+    def test_successful_authentication_clears_failed_attempt_counter(self):
+        key = self.auth.create_or_rotate_key()
+        for _ in range(4):
+            with self.assertRaises(RecoveryUnauthorized):
+                self.auth.issue_session("A" * 43, "192.0.2.10")
+        self.auth.issue_session(key, "192.0.2.10")
+        for _ in range(4):
+            with self.assertRaises(RecoveryUnauthorized):
+                self.auth.issue_session("A" * 43, "192.0.2.10")
+        with self.assertRaises(RecoveryUnauthorized):
+            self.auth.issue_session("A" * 43, "192.0.2.10")
+        with self.assertRaises(RecoveryRateLimited):
+            self.auth.issue_session("A" * 43, "192.0.2.10")
+
     def test_expired_sessions_are_purged(self):
         key = self.auth.create_or_rotate_key()
         session = self.auth.issue_session(key, "192.0.2.10")
