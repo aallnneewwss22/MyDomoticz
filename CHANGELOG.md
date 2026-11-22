@@ -10,6 +10,8 @@
 - Ajout de tests unitaires et d'intégration couvrant le cycle de vie de la clé, le stockage privé, les limites de tentatives, les expirations, les origines CORS et l'isolation des autorisations.
 - Création de `maison-dashboard-v105.html` et mise à jour du lanceur.
 
+- Ajout de la commande locale `sudo go2rtc-control-recovery-key` pour initialiser la première clé sans jeton caméra ; option `--rotate` avec confirmation explicite et option `--test` pour l'environnement isolé.
+
 ## [Non publié]
 
 ### Correctif — Déclenchement de l’alerte de suppression
