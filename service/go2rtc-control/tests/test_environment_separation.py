@@ -40,6 +40,8 @@ class EnvironmentSeparationTests(unittest.TestCase):
         self.assertIn("GO2RTC_CONFIG=/home/pi/go2rtc-test/go2rtc.yaml", env)
         self.assertIn("TRANSCODE_RTSP_PORT=8556", env)
         self.assertIn("PROFILE_LIBRARY_DIR=/var/lib/go2rtc-control-test/profile-library", env)
+        self.assertIn("SETTINGS_BACKUP_DIR=/var/lib/go2rtc-control-test/settings-backups", env)
+        self.assertIn("CAMERA_SETTINGS_BACKUP_DIR=/var/lib/go2rtc-control-test/camera-settings-backups", env)
         self.assertIn("CONTROL_PORT=1986", env)
 
     def test_migration_document_covers_both_registries_tokens_and_rollback(self):
@@ -79,6 +81,8 @@ class EnvironmentSeparationTests(unittest.TestCase):
             "127.0.0.1",
             "/var/lib/go2rtc-control-test/cameras.json",
             "/var/lib/go2rtc-control-test/profile-library",
+            "/var/lib/go2rtc-control-test/camera-settings-backups",
+            "camera_settings_backup.py",
             "go2rtc-control-show-token --test",
         ):
             self.assertIn(required, installer)

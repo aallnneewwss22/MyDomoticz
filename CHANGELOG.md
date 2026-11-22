@@ -1,5 +1,17 @@
 ## [Non publié]
 
+### Ajouté — Sauvegarde et restauration de toutes les caméras
+
+- Ajout d'un second groupe indépendant dans les paramètres pour sauvegarder, prévisualiser, restaurer et supprimer les configurations de toutes les caméras sur le Raspberry Pi.
+- Les sauvegardes versionnées contiennent les sources RTSP, la résolution native, la préférence audio, les paramètres ONVIF et leurs identifiants, les profils vidéo locaux, le profil sélectionné et l'orientation PTZ.
+- Les secrets restent exclusivement sur le Raspberry Pi pendant l'aperçu et la restauration ; les réponses API destinées au navigateur ne contiennent jamais les sources RTSP ni les identifiants ONVIF.
+- La restauration remplace le registre caméra après validation et aperçu, bloque si une session de transcodage est active, conserve l'état marche/arrêt des flux et rétablit les sources go2rtc en cas d'échec.
+- Les paramètres généraux, les jetons caméra et de récupération et la bibliothèque commune de profils restent hors du périmètre de restauration caméra.
+- Les sauvegardes utilisent un répertoire privé distinct en production et en test, avec droits 0700/0600. Elles sont stockées en JSON non chiffré, comme le registre caméra existant.
+- Migration de l'orientation PTZ « caméra montée tête en bas » du stockage local du navigateur vers le registre privé du Raspberry Pi.
+- Ajout de tests de validation, de permissions, de prévisualisation et de protection des secrets.
+- Création de `maison-dashboard-v106.html` et mise à jour du lanceur.
+
 ### Ajouté — Récupération sécurisée des sauvegardes après effacement du navigateur
 
 - Ajout d'une clé de récupération aléatoire indépendante du stockage navigateur ; seul un vérificateur scrypt salé est conservé sur le Raspberry Pi.

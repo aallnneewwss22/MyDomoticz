@@ -2,6 +2,22 @@
 
 Service auxiliaire local permettant au tableau de bord MyDomoticz de commander les flux définis dans go2rtc.
 
+## Sauvegardes des paramètres caméra
+
+Les sauvegardes des caméras sont indépendantes des sauvegardes générales de l'application. Elles sont créées depuis le groupe « Sauvegarde des paramètres de toutes les caméras » de la boîte Paramètres du tableau de bord.
+
+- Production : `/var/lib/go2rtc-control/camera-settings-backups`.
+- Test : `/var/lib/go2rtc-control-test/camera-settings-backups`.
+- Répertoires 0700 et fichiers JSON 0600, écrits atomiquement.
+- Le fichier versionné contient les sources RTSP, les paramètres audio/vidéo, les identifiants ONVIF, les profils locaux et leur sélection, ainsi que l'orientation PTZ.
+- Les fichiers sont en clair, comme le registre caméra existant : les permissions du système de fichiers limitent l'accès au compte du service. Une personne ayant un accès privilégié au Raspberry Pi peut néanmoins lire ces secrets.
+- L'API exige toujours le jeton caméra Bearer. La clé et la session de récupération ne donnent aucun accès aux sauvegardes caméra.
+- L'aperçu n'envoie au navigateur que les noms de caméras et les catégories de paramètres modifiés ; aucune URL RTSP ni valeur d'identifiant/mot de passe n'est transmise.
+- La restauration remplace l'ensemble du registre caméra. Elle ne modifie ni les paramètres généraux, ni les jetons d'accès/récupération, ni la bibliothèque commune de profils. Les profils chargés depuis cette bibliothèque restent inclus en tant que profils locaux indépendants.
+- Une session de transcodage active bloque la restauration. Les flux qui étaient arrêtés le restent ; les flux actifs reçoivent la source de la sauvegarde. En cas d'échec, le service tente de rétablir les sources précédentes avant de signaler l'erreur.
+
+Le réglage PTZ « caméra montée tête en bas », auparavant local au navigateur, est désormais conservé dans le registre caméra sur le Raspberry Pi. À la première ouverture PTZ après mise à jour, une ancienne valeur locale est migrée si aucune valeur serveur n'existe encore.
+
 ## Les trois états
 
 - **Marche** : le lecteur vidéo est affiché dans la page.
@@ -31,6 +47,9 @@ L'installation standard déploie les deux environnements indépendants, soit qua
 | RTSP / WebRTC | `8554 / 8555` | `8556 / 8557` |
 | API de contrôle | `0.0.0.0:1985` | `127.0.0.1:1986` |
 | Registre | `/var/lib/go2rtc-control/cameras.json` | `/var/lib/go2rtc-control-test/cameras.json` |
+| Sauvegardes générales | `/var/lib/go2rtc-control/settings-backups` | `/var/lib/go2rtc-control-test/settings-backups` |
+| Sauvegardes caméras | `/var/lib/go2rtc-control/camera-settings-backups` | `/var/lib/go2rtc-control-test/camera-settings-backups` |
+| Bibliothèque profils | `/var/lib/go2rtc-control/profile-library` | `/var/lib/go2rtc-control-test/profile-library` |
 
 **Prérequis à ne pas oublier :** les deux exécutables go2rtc et les deux fichiers YAML doivent déjà être installés et préparés avant de lancer ce script :
 - Production : binaire `/usr/local/bin/go2rtc` et YAML `/etc/go2rtc/go2rtc.yaml` (ou le chemin donné par `GO2RTC_CONFIG`).

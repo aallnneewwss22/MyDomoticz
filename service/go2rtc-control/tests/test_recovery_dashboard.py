@@ -3,7 +3,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).parents[3]
-DASHBOARD = ROOT / "dashboard" / "maison-dashboard-v105.html"
+DASHBOARD = ROOT / "dashboard" / "maison-dashboard-v106.html"
 LAUNCHER = ROOT / "dashboard" / "maison.html"
 
 
@@ -26,7 +26,7 @@ class RecoveryDashboardTests(unittest.TestCase):
         self.assertNotIn("localStorage.setItem(\"recoverySessionToken\"", html)
         self.assertNotIn("localStorage.setItem(\"recovery-key", html)
         launcher = LAUNCHER.read_text(encoding="utf-8")
-        self.assertIn("maison-dashboard-v105.html", launcher)
+        self.assertIn("maison-dashboard-v106.html", launcher)
         self.assertNotIn("maison-dashboard-v104.html", launcher)
 
 

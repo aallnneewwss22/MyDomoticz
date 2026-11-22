@@ -2,6 +2,8 @@
 """Authenticated local control API for go2rtc streams."""
 from __future__ import annotations
 
+import hashlib
+import hmac
 import json
 import logging
 import os
@@ -10,6 +12,7 @@ import secrets
 import sys
 import tempfile
 import threading
+from contextlib import ExitStack
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -34,6 +37,12 @@ from profile_library import (
     list_profile_library, read_profile_library_entry, save_profile_library_entry,
 )
 from recovery_auth import RecoveryAuth, RecoveryRateLimited, RecoveryUnauthorized
+from camera_settings_backup import (
+    CAMERA_BACKUP_MAX_BYTES, CAMERA_BACKUP_NAME, CameraBackupError,
+    ensure_backup_directory as ensure_camera_backup_directory,
+    make_backup as make_camera_backup, preview_restore as preview_camera_restore,
+    read_backup as read_camera_backup, write_backup as write_camera_backup,
+)
 
 VENDOR_DIR = Path(__file__).resolve().parent / "vendor"
 if VENDOR_DIR.is_dir():
@@ -52,6 +61,8 @@ SETTINGS_BACKUP_DIR = Path(os.environ.get("SETTINGS_BACKUP_DIR", "/var/lib/go2rt
 PROFILE_LIBRARY_DIR = Path(os.environ.get("PROFILE_LIBRARY_DIR", "/var/lib/go2rtc-control/profile-library"))
 SETTINGS_BACKUP_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_. -]{0,62}\.json$")
 SETTINGS_BACKUP_MAX_BYTES = 256 * 1024
+CAMERA_SETTINGS_BACKUP_DIR = Path(os.environ.get("CAMERA_SETTINGS_BACKUP_DIR") or "/var/lib/go2rtc-control/camera-settings-backups")
+CAMERA_BACKUP_PREVIEW_SECRET = secrets.token_bytes(32)
 TOKEN_FILE = Path(os.environ.get("TOKEN_FILE", "/etc/go2rtc-control/token"))
 RECOVERY_KEY_FILE = Path(os.environ.get("RECOVERY_KEY_FILE", "/var/lib/go2rtc-control/recovery/recovery-key.json"))
 RECOVERY_AUTH = RecoveryAuth(RECOVERY_KEY_FILE)
@@ -207,6 +218,8 @@ def load_camera_settings() -> dict[str, dict[str, object]]:
                     username, password = ptz.get("username", ""), ptz.get("password", "")
                     if isinstance(host, str) and host.strip() and isinstance(port, int) and 1 <= port <= 65535 and isinstance(username, str) and isinstance(password, str):
                         settings["ptz"] = {"host": host.strip(), "port": port, "username": username, "password": password}
+                if isinstance(entry.get("ptz_upside_down"), bool):
+                    settings["ptz_upside_down"] = entry["ptz_upside_down"]
                 cameras[name] = settings
     return cameras
 
@@ -559,6 +572,105 @@ def read_settings_backup(name: str) -> dict[str, object]:
     return payload
 
 
+class CameraRestorePreviewStale(Exception):
+    """The camera registry changed after the user reviewed the restore preview."""
+
+
+def camera_registry_revision(cameras: dict[str, dict[str, object]]) -> str:
+    canonical = json.dumps(cameras, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hmac.new(CAMERA_BACKUP_PREVIEW_SECRET, canonical, hashlib.sha256).hexdigest()
+
+
+def validate_camera_source_settings(cameras: dict[str, dict[str, object]]) -> None:
+    for settings in cameras.values():
+        try:
+            source_for_quality(str(settings["source"]), str(settings.get("quality", "1080p")))
+        except ControlError as exc:
+            raise CameraBackupError("La résolution native enregistrée ne correspond pas à la source RTSP.") from exc
+
+
+def restore_camera_settings(cameras_to_restore: dict[str, dict[str, object]], expected_registry_revision: str) -> dict[str, object]:
+    """Restore the complete camera registry and live go2rtc sources as one guarded operation."""
+    validate_camera_source_settings(cameras_to_restore)
+    camera_ids = set(cameras_to_restore)
+    with REGISTRY_LOCK:
+        initial_cameras = load_camera_settings()
+        initial_ids = set(initial_cameras)
+    all_ids = sorted(camera_ids | initial_ids)
+
+    with ExitStack() as stack:
+        for camera_id in all_ids:
+            stack.enter_context(SESSION_MANAGER.camera_guard(camera_id))
+        with REGISTRY_LOCK:
+            current = load_camera_settings()
+            if set(current) != initial_ids or not hmac.compare_digest(camera_registry_revision(current), expected_registry_revision):
+                raise CameraRestorePreviewStale("Les paramètres caméra ont changé depuis l’aperçu. Relance l’aperçu avant de restaurer.")
+            for camera_id in all_ids:
+                SESSION_MANAGER.assert_native_source_change_allowed(camera_id)
+
+            running = {camera_id: stream_exists(camera_id) for camera_id in all_ids}
+            original_yaml_sources = load_go2rtc_sources()
+            changed: list[str] = []
+
+            def restore_old_stream(camera_id: str) -> None:
+                old = current.get(camera_id)
+                if isinstance(old, dict):
+                    old_source = source_for_audio(
+                        source_for_quality(str(old["source"]), str(old.get("quality", "1080p"))),
+                        bool(old.get("audio_enabled", True)),
+                    )
+                else:
+                    old_source = original_yaml_sources.get(camera_id, "")
+                if old_source:
+                    replace_stream_source(camera_id, old_source)
+                else:
+                    status, _ = go2rtc_request(
+                        "DELETE", "/api/streams?" + urllib.parse.urlencode({"src": camera_id})
+                    )
+                    if status not in (200, 204, 404):
+                        raise ControlError("Rétablissement d’un flux go2rtc impossible.")
+
+            try:
+                for camera_id in all_ids:
+                    if not running[camera_id]:
+                        continue
+                    changed.append(camera_id)
+                    target = cameras_to_restore.get(camera_id)
+                    if target is None:
+                        status, _ = go2rtc_request(
+                            "DELETE", "/api/streams?" + urllib.parse.urlencode({"src": camera_id})
+                        )
+                        if status not in (200, 204, 404):
+                            raise ControlError("Suppression d’un flux caméra obsolète impossible.")
+                    else:
+                        target_source = source_for_audio(
+                            source_for_quality(
+                                str(target["source"]), str(target.get("quality", "1080p"))
+                            ),
+                            bool(target.get("audio_enabled", True)),
+                        )
+                        replace_stream_source(camera_id, target_source)
+
+                save_camera_settings(cameras_to_restore)
+            except Exception as original_error:
+                rollback_errors = []
+                for camera_id in reversed(changed):
+                    try:
+                        restore_old_stream(camera_id)
+                    except Exception:
+                        rollback_errors.append(camera_id)
+                if rollback_errors:
+                    raise ControlError(
+                        "La restauration a échoué et le retour arrière go2rtc est incomplet. "
+                        "Aucune confirmation de réussite ne peut être donnée."
+                    ) from original_error
+                if isinstance(original_error, (ControlError, SessionConflict)):
+                    raise
+                raise ControlError("La restauration des paramètres caméra a échoué ; les flux précédents ont été rétablis.") from original_error
+
+            return preview_camera_restore(current, cameras_to_restore)
+
+
 class Handler(BaseHTTPRequestHandler):
     server_version = "go2rtc-control/1.6"
 
@@ -734,6 +846,21 @@ class Handler(BaseHTTPRequestHandler):
                 if action == "ptz-status":
                     ptz = settings.get("ptz")
                     self.send_json(200, {"configured": isinstance(ptz, dict), "host": ptz.get("host", "") if isinstance(ptz, dict) else "", "port": ptz.get("port", 80) if isinstance(ptz, dict) else 80})
+                    return
+                if action == "ptz-orientation" and self.command == "GET":
+                    self.send_json(200, {
+                        "configured": "ptz_upside_down" in settings,
+                        "upside_down": bool(settings.get("ptz_upside_down", False)),
+                    })
+                    return
+                if action == "ptz-orientation" and self.command == "POST":
+                    payload = _read_json_body(self)
+                    upside_down = payload.get("upside_down")
+                    if not isinstance(upside_down, bool):
+                        raise ControlError("Le réglage d’orientation PTZ doit être booléen.")
+                    settings["ptz_upside_down"] = upside_down
+                    save_camera_settings(cameras)
+                    self.send_json(200, {"upside_down": upside_down})
                     return
                 if action == "ptz-config":
                     payload = _read_json_body(self)
@@ -1032,6 +1159,105 @@ class Handler(BaseHTTPRequestHandler):
         except ControlError as exc:
             self.send_json(400, {"error": str(exc)})
 
+
+    def handle_camera_settings_backups(self, method: str) -> None:
+        # Camera backups always require the normal camera token. The recovery
+        # session intentionally remains read-only for general settings only.
+        if not self.authorized():
+            return
+        path = urllib.parse.urlsplit(self.path).path.rstrip("/")
+        prefix = "/api/camera-settings-backups"
+        if path != prefix and not path.startswith(prefix + "/"):
+            self.send_json(404, {"error": "Route de sauvegarde caméra inconnue."})
+            return
+        suffix = path[len(prefix):].lstrip("/")
+        parts = [urllib.parse.unquote(item) for item in suffix.split("/") if item]
+        try:
+            ensure_camera_backup_directory(CAMERA_SETTINGS_BACKUP_DIR)
+            if method == "GET" and not parts:
+                names = sorted(
+                    item.name for item in CAMERA_SETTINGS_BACKUP_DIR.iterdir()
+                    if item.is_file() and not item.is_symlink() and CAMERA_BACKUP_NAME.fullmatch(item.name)
+                )
+                self.send_json(200, {"files": names})
+                return
+            if len(parts) == 1 and method == "PUT":
+                name = parts[0]
+                with REGISTRY_LOCK:
+                    snapshot = make_camera_backup(load_camera_settings())
+                validate_camera_source_settings(snapshot["cameras"])
+                write_camera_backup(CAMERA_SETTINGS_BACKUP_DIR, name, snapshot)
+                self.send_json(201, {"saved": name, "camera_count": len(snapshot["cameras"])})
+                return
+            if len(parts) == 1 and method == "GET":
+                snapshot = read_camera_backup(CAMERA_SETTINGS_BACKUP_DIR, parts[0])
+                self.send_json(200, {
+                    "name": parts[0], "createdAt": snapshot["createdAt"],
+                    "camera_count": len(snapshot["cameras"]),
+                })
+                return
+            if len(parts) == 2 and parts[1] == "preview" and method == "POST":
+                read_body = _read_json_body(self)
+                if read_body:
+                    raise ValueError("Aucune donnée ne doit être envoyée pour l’aperçu.")
+                snapshot = read_camera_backup(CAMERA_SETTINGS_BACKUP_DIR, parts[0])
+                validate_camera_source_settings(snapshot["cameras"])
+                with REGISTRY_LOCK:
+                    current = load_camera_settings()
+                preview = preview_camera_restore(current, snapshot["cameras"])
+                preview["createdAt"] = snapshot["createdAt"]
+                preview["registry_revision"] = camera_registry_revision(current)
+                preview["session_conflicts"] = []
+                for camera_id in sorted(set(current) | set(snapshot["cameras"])):
+                    session_status = SESSION_MANAGER.status(camera_id)
+                    if session_status["session_count"] or session_status["state"] != "idle":
+                        preview["session_conflicts"].append({
+                            "camera": camera_id,
+                            "state": session_status["state"],
+                            "session_count": session_status["session_count"],
+                        })
+                self.send_json(200, preview)
+                return
+            if len(parts) == 2 and parts[1] == "restore" and method == "POST":
+                confirmation = _read_json_body(self)
+                if not isinstance(confirmation, dict) or confirmation.get("confirmed") is not True:
+                    self.send_json(400, {"error": "Confirmation explicite requise."})
+                    return
+                snapshot = read_camera_backup(CAMERA_SETTINGS_BACKUP_DIR, parts[0])
+                if confirmation.get("createdAt") != snapshot["createdAt"]:
+                    self.send_json(409, {"error": "La sauvegarde a changé depuis l’aperçu. Relance l’aperçu.", "result": "stale_preview"})
+                    return
+                expected_revision = confirmation.get("registry_revision")
+                if not isinstance(expected_revision, str) or not re.fullmatch(r"[0-9a-f]{64}", expected_revision):
+                    self.send_json(400, {"error": "Jeton d’aperçu de restauration absent ou invalide."})
+                    return
+                result = restore_camera_settings(snapshot["cameras"], expected_revision)
+                result["restored"] = parts[0]
+                self.send_json(200, result)
+                return
+            if len(parts) == 1 and method == "DELETE":
+                if not CAMERA_BACKUP_NAME.fullmatch(parts[0]):
+                    raise CameraBackupError("Nom de sauvegarde caméra invalide.")
+                path_to_delete = CAMERA_SETTINGS_BACKUP_DIR / parts[0]
+                if path_to_delete.is_symlink() or not path_to_delete.is_file():
+                    raise FileNotFoundError("Sauvegarde caméra introuvable.")
+                path_to_delete.unlink()
+                self.send_json(200, {"deleted": parts[0]})
+                return
+            self.send_json(405, {"error": "Méthode ou chemin non autorisé."})
+        except FileNotFoundError:
+            self.send_json(404, {"error": "Sauvegarde caméra introuvable."})
+        except CameraRestorePreviewStale as error:
+            self.send_json(409, {"error": str(error), "result": "stale_preview"})
+        except SessionConflict as error:
+            self.send_json(409, {"error": str(error), "result": "blocked"})
+        except (CameraBackupError, ValueError, json.JSONDecodeError, UnicodeDecodeError) as error:
+            self.send_json(400, {"error": str(error) or "Sauvegarde caméra invalide."})
+        except OSError:
+            self.send_json(500, {"error": "Opération de sauvegarde caméra impossible."})
+        except ControlError as error:
+            self.send_json(502, {"error": str(error)})
+
     def handle_settings_backups(self, method: str) -> None:
         if not self.authorized(allow_recovery=(method == "GET")):
             return
@@ -1072,6 +1298,9 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/profile-library" or path.startswith("/api/profile-library/"):
             self.handle_profile_library("GET")
             return
+        if path.startswith("/api/camera-settings-backups"):
+            self.handle_camera_settings_backups("GET")
+            return
         if path.startswith("/api/settings-backups"):
             self.handle_settings_backups("GET")
             return
@@ -1086,12 +1315,15 @@ class Handler(BaseHTTPRequestHandler):
             self.handle_transcode(parts[5])
             return
         action = parts[-1]
-        if action not in ("status", "ptz-status", "ptz-presets"):
+        if action not in ("status", "ptz-status", "ptz-presets", "ptz-orientation"):
             action = "status"
         self.handle_camera(action)
 
     def do_POST(self) -> None:
         path = urllib.parse.urlsplit(self.path).path.rstrip("/")
+        if path.startswith("/api/camera-settings-backups"):
+            self.handle_camera_settings_backups("POST")
+            return
         if path == "/api/recovery/session":
             self.handle_recovery_session()
             return
@@ -1121,6 +1353,9 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_PUT(self) -> None:
         path = urllib.parse.urlsplit(self.path).path.rstrip("/")
+        if path.startswith("/api/camera-settings-backups"):
+            self.handle_camera_settings_backups("PUT")
+            return
         if path.startswith("/api/settings-backups"):
             self.handle_settings_backups("PUT")
             return
@@ -1131,6 +1366,9 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_DELETE(self) -> None:
         path = urllib.parse.urlsplit(self.path).path.rstrip("/")
+        if path.startswith("/api/camera-settings-backups"):
+            self.handle_camera_settings_backups("DELETE")
+            return
         if path.startswith("/api/profile-library/"):
             self.handle_profile_library("DELETE")
             return
@@ -1141,6 +1379,7 @@ if __name__ == "__main__":
     read_token()
     ensure_source_registry()
     ensure_settings_backup_dir()
+    ensure_camera_backup_directory(CAMERA_SETTINGS_BACKUP_DIR)
     ensure_profile_library_dir(PROFILE_LIBRARY_DIR)
     SESSION_MANAGER.start_reaper()
     server = ThreadingHTTPServer((CONTROL_HOST, CONTROL_PORT), Handler)
