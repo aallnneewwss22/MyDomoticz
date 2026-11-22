@@ -593,8 +593,12 @@ class Handler(BaseHTTPRequestHandler):
             return True
         if allow_recovery:
             recovery_token = self.headers.get("X-Recovery-Token", "")
-            if recovery_token and RECOVERY_AUTH.is_session_valid(recovery_token):
-                return True
+            if recovery_token:
+                if origin not in DASHBOARD_ORIGINS:
+                    self.send_json(403, {"error": "Origine non autorisée."})
+                    return False
+                if RECOVERY_AUTH.is_session_valid(recovery_token):
+                    return True
         self.send_json(401, {"error": "Jeton absent ou invalide."})
         return False
 
