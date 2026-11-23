@@ -1,8 +1,9 @@
 ## [Non publié]
 
-### Amélioré — Espacement des groupbox dans les paramètres
+### Amélioré — Présentation des paramètres
 
-- Ajout d'un espacement vertical de 20 px avant chaque groupbox de la boîte de dialogue Paramètres.
+- Ajout d'un espacement vertical de 20 px avant chaque groupbox et avant les libellés des champs autonomes, hors groupbox.
+- Renforcement des bordures des groupbox à 2 px, avec une couleur adaptée au thème actif.
 
 
 ### Ajouté — Sauvegarde et restauration de toutes les caméras
