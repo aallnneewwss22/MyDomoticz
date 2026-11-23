@@ -1,5 +1,10 @@
 ## [Non publié]
 
+### Amélioré — Espacement des groupbox dans les paramètres
+
+- Ajout d'un espacement vertical de 10 px avant chaque groupbox de la boîte de dialogue Paramètres.
+
+
 ### Ajouté — Sauvegarde et restauration de toutes les caméras
 
 - Ajout d'un second groupe indépendant dans les paramètres pour sauvegarder, prévisualiser, restaurer et supprimer les configurations de toutes les caméras sur le Raspberry Pi.
