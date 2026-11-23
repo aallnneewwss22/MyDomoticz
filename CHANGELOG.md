@@ -1,5 +1,11 @@
 ## [Non publié]
 
+### Amélioré — Présentation des paramètres
+
+- Ajout d'un espacement vertical de 20 px avant chaque groupbox et avant les libellés des champs autonomes, hors groupbox.
+- Renforcement des bordures des groupbox à 2 px, avec une couleur adaptée au thème actif.
+
+
 ### Ajouté — Sauvegarde et restauration de toutes les caméras
 
 - Ajout d'un second groupe indépendant dans les paramètres pour sauvegarder, prévisualiser, restaurer et supprimer les configurations de toutes les caméras sur le Raspberry Pi.
