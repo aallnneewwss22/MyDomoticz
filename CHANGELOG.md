@@ -1,5 +1,11 @@
 ## [Non publié]
 
+### Documentation — Accès distant WireGuard sur Android
+
+- Ajout d'un guide décrivant le tunnel fractionné WireGuard hébergé par la Freebox Révolution et le dépannage DNS Android.
+- Consignation de la correction validée sur le Poco M4 Pro 5G : suppression de `212.27.38.253` du champ DNS du profil WireGuard, DNS privé Android laissé sur Automatique et `AllowedIPs` inchangés.
+
+
 ### Amélioré — Présentation des paramètres
 
 - Ajout d'un espacement vertical de 20 px avant chaque groupbox et avant les libellés des champs autonomes, hors groupbox.
