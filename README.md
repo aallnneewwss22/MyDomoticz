@@ -136,5 +136,6 @@ La page est en lecture seule. Ne pas exposer l'API Domoticz directement sur Inte
 
 ## Documentation
 
+- [Accès distant à Domoticz avec WireGuard et Freebox](docs/acces-distant-wireguard.md)
 - [Journal des modifications](CHANGELOG.md)
 - [Repères sur la base SQLite Domoticz](docs/database-domoticz.md)
