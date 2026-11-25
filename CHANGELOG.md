@@ -1,5 +1,12 @@
 ## [Non publié]
 
+### Amélioré — Affichage des graphiques d'historique
+
+- Le double clic conserve l'ouverture du graphique agrandi ; le triple clic sur la courbe affiche ce graphique en plein écran.
+- La touche Échap quitte le plein écran et referme le panneau agrandi. Une solution de repli CSS est prévue si l'API plein écran du navigateur est indisponible ou refusée.
+- Création de `maison-dashboard-v109.html` et mise à jour du lanceur.
+
+
 ### Documentation — Accès distant WireGuard sur Android
 
 - Ajout d'un guide décrivant le tunnel fractionné WireGuard hébergé par la Freebox Révolution et le dépannage DNS Android.
