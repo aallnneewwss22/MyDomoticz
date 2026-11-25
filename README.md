@@ -129,7 +129,9 @@ Procédure obligatoire :
 
 Le numéro n'est jamais déduit du numéro de Pull Request. Il est suivi à partir des fichiers, des branches et de l'historique des Pull Requests. Toute mise à jour d'une PR conserve l'indice qui lui a été attribué ; une nouvelle évolution indépendante reçoit un nouvel indice. Les deux fichiers d'une paire doivent toujours être déployés ensemble.
 
-Cette convention donne à chaque version une URL distincte et évite que le navigateur réutilise une ancienne copie du lanceur ou du tableau de bord. L'utilisateur met à jour l'entrée **Custom** après chaque évolution et peut supprimer périodiquement les anciennes paires de fichiers du Raspberry Pi. L'utilisateur conserve la validation et la fusion des Pull Requests ainsi que le déploiement sur l'installation réelle.
+Cette convention donne à chaque version une URL distincte et évite que le navigateur réutilise une ancienne copie du lanceur ou du tableau de bord. Elle constitue un contournement pragmatique du cache navigateur, particulièrement utile pendant les phases de développement et de test : chaque nouvelle version est demandée sous une URL inédite, sans devoir désactiver globalement le cache ni modifier les règles HTTP de Domoticz. Elle ne remplace pas une politique de cache adaptée côté serveur ; elle permet simplement de travailler avec le comportement de cache existant.
+
+L'utilisateur met à jour l'entrée **Custom** après chaque évolution et peut supprimer périodiquement les anciennes paires de fichiers du Raspberry Pi. L'utilisateur conserve la validation et la fusion des Pull Requests ainsi que le déploiement sur l'installation réelle.
 
 ## API et sécurité
 
