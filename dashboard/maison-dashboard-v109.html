@@ -2779,6 +2779,16 @@
                     const moved = Math.hypot(touch.clientX - touchStartPoint.x, touch.clientY - touchStartPoint.y);
                     touchStartPoint = null;
                     if (moved > 20) return;
+
+                    // Les boutons doivent conserver le clic natif du navigateur :
+                    // preventDefault() sur touchend empêcherait leur activation sur mobile.
+                    if (event.target.closest("button")) {
+                        clearTimeout(chartClickTimer);
+                        chartClickCount = 0;
+                        clickSequenceOnChart = false;
+                        return;
+                    }
+
                     event.preventDefault();
                     handleCardClick(event.target);
                 }, { passive: false });
