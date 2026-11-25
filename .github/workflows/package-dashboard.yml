@@ -26,9 +26,9 @@ jobs:
           set -euo pipefail
 
           # Read the versioned dashboard filename currently referenced by the launcher.
-          dashboard_file="$(grep -oE 'maison-dashboard-v[0-9]+\.html' dashboard/maison.html | head -n 1)"
+          dashboard_file="$(grep -oE 'maison-dashboard-v[0-9]+\.html' dashboard/maison-v111.html | head -n 1)"
           if [[ -z "${dashboard_file}" ]]; then
-            echo "Could not determine the versioned dashboard filename from dashboard/maison.html" >&2
+            echo "Could not determine the versioned dashboard filename from dashboard/maison-v111.html" >&2
             exit 1
           fi
           if [[ ! -f "dashboard/${dashboard_file}" ]]; then
@@ -37,16 +37,16 @@ jobs:
           fi
 
           mkdir -p package
-          cp dashboard/maison.html package/maison.html
+          cp dashboard/maison-v111.html package/maison-v111.html
           cp "dashboard/${dashboard_file}" "package/${dashboard_file}"
 
           cat > package/LISEZ-MOI.txt <<EOF
           Déploiement du tableau de bord MyDomoticz
           
-          Copiez maison.html et ${dashboard_file} dans :
+          Copiez maison-v111.html et ${dashboard_file} dans :
           /home/pi/domoticz/www/templates
           
-          Les deux fichiers doivent être copiés ensemble. Le lanceur maison.html
+          Les deux fichiers doivent être copiés ensemble. Le lanceur maison-v111.html
           ouvre ${dashboard_file}. Vous pouvez conserver les anciennes versions.
           
           Ce ZIP contient les fichiers HTML du tableau de bord uniquement.
@@ -64,10 +64,10 @@ jobs:
           from pathlib import Path
           import re
 
-          launcher = Path("dashboard/maison.html").read_text(encoding="utf-8")
+          launcher = Path("dashboard/maison-v111.html").read_text(encoding="utf-8")
           match = re.search(r"maison-dashboard-v[0-9]+\.html", launcher)
           if not match:
-              raise SystemExit("Could not find a versioned dashboard filename in dashboard/maison.html")
+              raise SystemExit("Could not find a versioned dashboard filename in dashboard/maison-v111.html")
           html = Path("dashboard", match.group(0)).read_text(encoding="utf-8")
           scripts = re.findall(r"<script\b[^>]*>(.*?)</script\s*>", html, re.IGNORECASE | re.DOTALL)
           inline = [script for script in scripts if script.strip()]

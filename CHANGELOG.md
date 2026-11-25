@@ -1,5 +1,13 @@
 ## [Non publié]
 
+### Corrigé — Couleurs des échelles des graphiques agrandis
+
+- Les axes verticaux, leurs graduations et leurs libellés reprennent la couleur de la courbe associée : rouge pour la température/compteur et bleu pour l'humidité.
+- Les tracés des graphiques agrandis utilisent explicitement les mêmes couleurs que les cartes en taille normale ; les lignes de grille restent neutres.
+- Le plein écran conserve automatiquement ces couleurs puisqu'il utilise le même graphique agrandi.
+- Création de la paire `maison-v111.html` / `maison-dashboard-v111.html`.
+
+
 ### Corrigé — Fermeture tactile des graphiques en plein écran
 
 - Le double tapotement dans le panneau utilise désormais la fonction centralisée de fermeture, qui masque le panneau et demande également la sortie du plein écran natif.
