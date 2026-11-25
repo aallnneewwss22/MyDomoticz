@@ -2746,11 +2746,15 @@
                             togglePageOverlay();
                         }, 360);
                     } else {
+                        const tripleClickOnChart = clickSequenceOnChart && clickedOnChart;
                         chartClickCount = 0;
                         clickSequenceOnChart = false;
-                        if (!pageOverlay.classList.contains("is-open")) togglePageOverlay();
-                        if (clickedOnChart) enterPageOverlayFullscreen();
-                        else togglePageOverlay();
+                        if (tripleClickOnChart) {
+                            if (!pageOverlay.classList.contains("is-open")) togglePageOverlay();
+                            enterPageOverlayFullscreen();
+                        } else {
+                            togglePageOverlay();
+                        }
                     }
                 });
                 // Empêche la sélection de texte native sans interférer avec le comptage.
