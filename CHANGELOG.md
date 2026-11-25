@@ -1,5 +1,12 @@
 ## [Non publié]
 
+### Corrigé — Fermeture tactile des graphiques en plein écran
+
+- Le double tapotement dans le panneau utilise désormais la fonction centralisée de fermeture, qui masque le panneau et demande également la sortie du plein écran natif.
+- Réinitialisation complète des coordonnées et de l'horodatage du détecteur de double tapotement pour éviter de conserver un geste partiel après fermeture.
+- Durcissement de la gestion de la sortie du plein écran lorsque le navigateur refuse ou ne fournit pas l'API native.
+- Création de `maison-dashboard-v110.html` et mise à jour du lanceur.
+
 ### Amélioré — Affichage des graphiques d'historique
 
 - Le double clic conserve l'ouverture du graphique agrandi ; le triple clic sur la courbe affiche ce graphique en plein écran.
