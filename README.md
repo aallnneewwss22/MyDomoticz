@@ -2,11 +2,9 @@
 
 Pages web personnalisées pour Domoticz, développées progressivement et versionnées avec Git.
 
-## Tableau de bord — version courante v110
+## Tableau de bord — version courante v111
 
-Le tableau de bord est actuellement en version **v110**. Les fichiers de cette version historique sont `dashboard/maison.html` (lanceur encore non versionné) et `dashboard/maison-dashboard-v110.html` (page autonome).
-
-À partir de la prochaine évolution du tableau de bord, les deux fichiers HTML seront versionnés avec le même indice : `maison-vN.html` pour le lanceur et `maison-dashboard-vN.html` pour la page autonome. Le menu **Custom** de Domoticz devra alors pointer vers le nouveau lanceur versionné. Chaque nouvelle paire utilisera un nom inédit afin que le navigateur demande une URL différente.
+Le tableau de bord est actuellement en version **v111**. Les fichiers actifs sont `dashboard/maison-v111.html` (lanceur) et `dashboard/maison-dashboard-v111.html` (page autonome). Les anciennes versions, dont le couple historique `maison.html` / `maison-dashboard-v110.html`, sont conservées dans le dépôt.
 
 Fonctions du tableau de bord :
 
@@ -76,10 +74,9 @@ Les deux classeurs doivent être placés à côté du HTML dans `/home/pi/domoti
 ## Installation
 
 1. Sauvegarder le répertoire `www/templates` de Domoticz.
-2. Pour la version historique actuellement présente dans le dépôt (v110), copier `dashboard/maison.html` et `dashboard/maison-dashboard-v110.html` vers `www/templates`.
-3. À partir de la prochaine évolution, copier ensemble les deux fichiers portant le même indice : `maison-vN.html` et `maison-dashboard-vN.html`.
-4. Dans le menu **Custom** de Domoticz, renseigner l'URL du nouveau lanceur `maison-vN.html` (et la modifier à chaque nouvelle version).
-5. Recharger l'interface Domoticz puis ouvrir l'entrée **Custom** correspondante.
+2. Copier ensemble `dashboard/maison-v111.html` et `dashboard/maison-dashboard-v111.html` vers `www/templates`.
+3. Dans le menu **Custom** de Domoticz, renseigner l'URL du lanceur `maison-v111.html`.
+4. Recharger l'interface Domoticz puis ouvrir l'entrée **Custom** correspondante.
 
 La page d'entrée tente d'ouvrir le tableau de bord dans un nouvel onglet. Si le navigateur bloque l'ouverture automatique, cliquer sur **Ouvrir le tableau de bord**.
 
@@ -113,7 +110,7 @@ Le HTML, le CSS et le JavaScript sont indentés et séparés en blocs lisibles. 
 
 ### Règle de versionnement des deux fichiers HTML du tableau de bord
 
-À chaque évolution fonctionnelle du tableau de bord, créer une nouvelle paire de fichiers portant exactement le même indice :
+À chaque évolution fonctionnelle du tableau de bord, créer une nouvelle paire de fichiers portant exactement le même indice (la paire active est actuellement v111) :
 
 - `dashboard/maison-vN.html` : lanceur à renseigner dans le menu **Custom** de Domoticz ;
 - `dashboard/maison-dashboard-vN.html` : page autonome ouverte par le lanceur.
