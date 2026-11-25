@@ -4,12 +4,9 @@ Pages web personnalisées pour Domoticz, développées progressivement et versio
 
 ## Tableau de bord — version courante v110
 
-Le tableau de bord est fourni sous deux fichiers :
+Le tableau de bord est actuellement en version **v110**. Les fichiers de cette version historique sont `dashboard/maison.html` (lanceur encore non versionné) et `dashboard/maison-dashboard-v110.html` (page autonome).
 
-- `dashboard/maison.html` : page d'entrée à installer dans le menu **Custom** de Domoticz ;
-- `dashboard/maison-dashboard-v110.html` : version actuelle du tableau de bord autonome, destinée à s'ouvrir dans son propre onglet.
-
-Le suffixe `-vN` du tableau de bord fait partie de la stratégie de cache : chaque évolution du tableau de bord crée un nouveau fichier numéroté afin que le navigateur demande une URL différente.
+À partir de la prochaine évolution du tableau de bord, les deux fichiers HTML seront versionnés avec le même indice : `maison-vN.html` pour le lanceur et `maison-dashboard-vN.html` pour la page autonome. Le menu **Custom** de Domoticz devra alors pointer vers le nouveau lanceur versionné. Chaque nouvelle paire utilisera un nom inédit afin que le navigateur demande une URL différente.
 
 Fonctions du tableau de bord :
 
@@ -79,10 +76,10 @@ Les deux classeurs doivent être placés à côté du HTML dans `/home/pi/domoti
 ## Installation
 
 1. Sauvegarder le répertoire `www/templates` de Domoticz.
-2. Copier `dashboard/maison.html` vers `www/templates/maison.html`.
-3. Copier le dernier fichier numéroté du tableau de bord — actuellement `dashboard/maison-dashboard-v110.html` — vers `www/templates/maison-dashboard-v110.html`, dans le même répertoire.
-4. Activer le menu **Custom** dans les paramètres Domoticz si cette option est disponible dans la version installée.
-5. Recharger l'interface Domoticz puis ouvrir **Custom → maison**.
+2. Pour la version historique actuellement présente dans le dépôt (v110), copier `dashboard/maison.html` et `dashboard/maison-dashboard-v110.html` vers `www/templates`.
+3. À partir de la prochaine évolution, copier ensemble les deux fichiers portant le même indice : `maison-vN.html` et `maison-dashboard-vN.html`.
+4. Dans le menu **Custom** de Domoticz, renseigner l'URL du nouveau lanceur `maison-vN.html` (et la modifier à chaque nouvelle version).
+5. Recharger l'interface Domoticz puis ouvrir l'entrée **Custom** correspondante.
 
 La page d'entrée tente d'ouvrir le tableau de bord dans un nouvel onglet. Si le navigateur bloque l'ouverture automatique, cliquer sur **Ouvrir le tableau de bord**.
 
@@ -90,13 +87,13 @@ Le fichier autonome doit rester à côté du lanceur dans `www/templates`, car l
 
 ### ZIP de déploiement généré par la Pull Request
 
-Lorsqu'une Pull Request modifie le tableau de bord, GitHub Actions construit l'artefact `maison-dashboard-raspberry-pi`. Il contient à la racine du ZIP :
+Lorsqu'une Pull Request modifie le tableau de bord, GitHub Actions construit l'artefact `maison-dashboard-raspberry-pi`. Pour les évolutions à venir, il contiendra à la racine du ZIP les deux fichiers HTML versionnés avec le même indice :
 
-- `maison.html` ;
-- le fichier versionné actuellement référencé par le lanceur, par exemple `maison-dashboard-v110.html` ;
+- `maison-vN.html` ;
+- `maison-dashboard-vN.html` ;
 - `LISEZ-MOI.txt`, qui rappelle le chemin de destination et les fichiers à copier.
 
-Pour le récupérer, ouvrir la Pull Request, suivre son exécution dans **Checks** ou **Actions**, puis télécharger l'artefact `maison-dashboard-raspberry-pi` depuis le détail de l'exécution réussie. Décompresser le ZIP et copier les deux fichiers HTML dans `/home/pi/domoticz/www/templates` sur le Raspberry Pi. Les classeurs `IDX2.xlsx` et `IDX1.xlsx` ne sont pas inclus : ils restent à gérer séparément et doivent être conservés dans le répertoire `templates`.
+Pour le récupérer, ouvrir la Pull Request, suivre son exécution dans **Checks** ou **Actions**, puis télécharger l'artefact `maison-dashboard-raspberry-pi` depuis le détail de l'exécution réussie. Décompresser le ZIP et copier les deux fichiers HTML versionnés dans `/home/pi/domoticz/www/templates` sur le Raspberry Pi. Après chaque évolution, mettre à jour l'URL de l'entrée **Custom** Domoticz pour qu'elle pointe vers le nouveau lanceur `maison-vN.html`. Les classeurs `IDX2.xlsx` et `IDX1.xlsx` ne sont pas inclus : ils restent à gérer séparément et doivent être conservés dans le répertoire `templates`.
 
 L'artefact est temporaire (conservation de 14 jours) et correspond au contenu de la branche de la Pull Request au moment de l'exécution ; attendre la réussite du workflow après les dernières modifications avant de télécharger le ZIP.
 
@@ -114,20 +111,27 @@ Le HTML, le CSS et le JavaScript sont indentés et séparés en blocs lisibles. 
 - Tester la page sur l'installation réelle avant de fusionner.
 - Ne jamais committer de mot de passe, jeton, données privées ou copie de `domoticz.db`.
 
-### Règle de versionnement des fichiers du tableau de bord
+### Règle de versionnement des deux fichiers HTML du tableau de bord
 
-À chaque évolution fonctionnelle de la page autonome :
+À chaque évolution fonctionnelle du tableau de bord, créer une nouvelle paire de fichiers portant exactement le même indice :
 
-1. Repérer le numéro le plus élevé de `maison-dashboard-vN.html` dans la branche de référence.
-2. Créer le fichier suivant, avec le numéro incrémenté de 1, en partant de la dernière version du tableau de bord.
-3. Appliquer les changements au nouveau fichier, sans écraser ni supprimer les versions précédentes.
-4. Modifier `dashboard/maison.html` pour qu'il ouvre ce nouveau nom de fichier.
-5. Ajouter une entrée au `CHANGELOG.md` indiquant la nouvelle version et l'évolution apportée.
-6. Indiquer dans la Pull Request les fichiers à déployer sur le Raspberry Pi.
+- `dashboard/maison-vN.html` : lanceur à renseigner dans le menu **Custom** de Domoticz ;
+- `dashboard/maison-dashboard-vN.html` : page autonome ouverte par le lanceur.
 
-Le numéro de version est déterminé par les fichiers présents dans le dépôt, et non par le numéro de Pull Request ou par la mémoire de la conversation. Le lanceur et le nouveau fichier numéroté doivent être déployés ensemble. L'utilisateur conserve la validation et la fusion de la Pull Request ainsi que le déploiement sur l'installation réelle.
+Procédure obligatoire :
 
-Cette convention de nommage contourne les caches qui semblent ignorer les paramètres de requête. Elle ne remplace pas une configuration correcte des en-têtes HTTP, mais fournit un mécanisme simple et traçable.
+1. Avant d'attribuer un indice, examiner `main`, les branches existantes et les Pull Requests (ouvertes ou fermées) afin de repérer tous les numéros déjà utilisés ou réservés.
+2. Attribuer un indice supérieur au plus élevé déjà attribué, puis l'utiliser pour les deux fichiers de la paire.
+3. Ne jamais réutiliser un indice déjà attribué ou réservé, même si la Pull Request correspondante n'a finalement apporté aucune modification, a été abandonnée, fermée ou n'a pas été fusionnée. Un indice attribué est définitivement consommé.
+4. Créer les deux nouveaux fichiers à partir de la dernière version validée ; ne pas écraser les fichiers des versions précédentes.
+5. Adapter le lanceur pour qu'il ouvre le fichier autonome portant le même indice.
+6. Mettre à jour le README, le CHANGELOG et l'artefact ZIP de déploiement ; préciser dans la Pull Request les deux fichiers à installer et la nouvelle URL à renseigner dans le menu **Custom**.
+
+Le numéro n'est jamais déduit du numéro de Pull Request. Il est suivi à partir des fichiers, des branches et de l'historique des Pull Requests. Toute mise à jour d'une PR conserve l'indice qui lui a été attribué ; une nouvelle évolution indépendante reçoit un nouvel indice. Les deux fichiers d'une paire doivent toujours être déployés ensemble.
+
+Cette convention donne à chaque version une URL distincte et évite que le navigateur réutilise une ancienne copie du lanceur ou du tableau de bord. Elle constitue un contournement pragmatique du cache navigateur, particulièrement utile pendant les phases de développement et de test : chaque nouvelle version est demandée sous une URL inédite, sans devoir désactiver globalement le cache ni modifier les règles HTTP de Domoticz. Elle ne remplace pas une politique de cache adaptée côté serveur ; elle permet simplement de travailler avec le comportement de cache existant.
+
+L'utilisateur met à jour l'entrée **Custom** après chaque évolution et peut supprimer périodiquement les anciennes paires de fichiers du Raspberry Pi. L'utilisateur conserve la validation et la fusion des Pull Requests ainsi que le déploiement sur l'installation réelle.
 
 ## API et sécurité
 
