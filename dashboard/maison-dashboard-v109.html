@@ -2721,14 +2721,14 @@
                 let chartClickCount = 0;
                 let chartClickTimer = null;
                 let clickSequenceOnChart = false;
-                card.addEventListener("click", (event) => {
-                    if (event.target.closest("button")) {
+                const handleCardClick = (target) => {
+                    if (target.closest("button")) {
                         clearTimeout(chartClickTimer);
                         chartClickCount = 0;
                         clickSequenceOnChart = false;
                         return;
                     }
-                    const clickedOnChart = chart.contains(event.target);
+                    const clickedOnChart = chart.contains(target);
                     if (chartClickCount === 0) clickSequenceOnChart = clickedOnChart;
                     else clickSequenceOnChart = clickSequenceOnChart && clickedOnChart;
                     chartClickCount++;
@@ -2756,7 +2756,32 @@
                             togglePageOverlay();
                         }
                     }
-                });
+                };
+                card.addEventListener("click", (event) => handleCardClick(event.target));
+
+                // Sur écran tactile, on traite les tapotements à la fin du geste et on
+                // neutralise le clic synthétique correspondant pour éviter un double comptage.
+                let touchStartPoint = null;
+                card.addEventListener("touchstart", (event) => {
+                    if (event.touches.length === 1) {
+                        const touch = event.touches[0];
+                        touchStartPoint = { x: touch.clientX, y: touch.clientY };
+                    } else {
+                        touchStartPoint = null;
+                    }
+                }, { passive: true });
+                card.addEventListener("touchend", (event) => {
+                    if (event.changedTouches.length !== 1 || !touchStartPoint) {
+                        touchStartPoint = null;
+                        return;
+                    }
+                    const touch = event.changedTouches[0];
+                    const moved = Math.hypot(touch.clientX - touchStartPoint.x, touch.clientY - touchStartPoint.y);
+                    touchStartPoint = null;
+                    if (moved > 20) return;
+                    event.preventDefault();
+                    handleCardClick(event.target);
+                }, { passive: false });
                 // Empêche la sélection de texte native sans interférer avec le comptage.
                 card.addEventListener("dblclick", (event) => event.preventDefault());
 
