@@ -349,6 +349,10 @@
             width: 18px;
             min-height: 18px;
             margin: 0;
+            padding: 0;
+            border: 0;
+            border-radius: 50%;
+            background: transparent;
             accent-color: var(--accent);
         }
 
@@ -2180,6 +2184,11 @@
                 const frame = document.createElement("iframe");
                 frame.className = "camera-frame is-hidden";
                 frame.title = "Vidéo : " + (config.label || config.stream);
+                card.updateCameraLabel = label => {
+                    config.label = valueOrFallback(label, config.stream);
+                    name.textContent = config.label;
+                    frame.title = "Vidéo : " + config.label;
+                };
                 frame.loading = "lazy";
                 frame.allow = "autoplay; fullscreen; picture-in-picture";
                 frame.allowFullscreen = true;
@@ -2633,8 +2642,7 @@
                         const existing = existingCameras.get(item.stream);
                         const cameraCard = existing || createCameraCard(item);
                         if (existing) {
-                            const cameraName = cameraCard.querySelector(".device-name");
-                            if (cameraName) cameraName.textContent = valueOrFallback(item.label, item.stream);
+                            cameraCard.updateCameraLabel?.(item.label);
                             cameraCard.syncCameraStatus?.();
                         }
                         items.push(cameraCard);
