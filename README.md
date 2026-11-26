@@ -2,9 +2,9 @@
 
 Pages web personnalisées pour Domoticz, développées progressivement et versionnées avec Git.
 
-## Tableau de bord — version courante v112
+## Tableau de bord — version courante v113
 
-Le tableau de bord est actuellement en version **v112**. Les fichiers actifs sont `dashboard/maison-v112.html` (lanceur) et `dashboard/maison-dashboard-v112.html` (page autonome). Les anciennes versions, dont le couple historique `maison.html` / `maison-dashboard-v110.html`, sont conservées dans le dépôt.
+Le tableau de bord est actuellement en version **v113**. Les fichiers actifs sont `dashboard/maison-v113.html` (lanceur) et `dashboard/maison-dashboard-v113.html` (page autonome). Les anciennes versions, dont le couple historique `maison.html` / `maison-dashboard-v110.html`, sont conservées dans le dépôt.
 
 Fonctions du tableau de bord :
 
@@ -25,6 +25,7 @@ Fonctions du tableau de bord :
 - affichage des équipements dont la troisième colonne du classeur associé à la page sélectionnée contient un type reconnu, dans le même ordre que les lignes du classeur ;
 - cartes d'historique de température pour les lignes dont la troisième colonne contient `historique` (sans distinction de casse ni d'espaces superflus), avec périodes 24 heures, 7 jours, 30 jours et 1 an ;
 - double clic sur une carte d'historique pour ouvrir le graphique agrandi, puis triple clic directement sur la courbe pour passer en plein écran ; la fermeture tactile du panneau quitte également correctement le plein écran natif ;
+- actualisation des mini graphes et du graphique agrandi/plein écran après chaque rafraîchissement réussi des équipements, avec conservation de la période et du zoom du panneau ;
 - boîte de dialogue « Action... » : une ligne dont la troisième colonne contient `VirtualSensorSlot` crée un bouton portant le libellé de la deuxième colonne ; les boutons suivent l'ordre des lignes du classeur, les lignes entièrement vides créent un passage à la rangée suivante, et ils envoient à Domoticz la commande d'activation (`switchcmd=On`) de l'IDX de la première colonne ;
 - actualisation automatique réglable depuis la boîte de dialogue « Paramètres... » (30 secondes par défaut, de 5 secondes à 1 heure) ;
 - mémorisation des paramètres dans le navigateur, avec possibilité de sauvegarde/restauration sur le serveur ;
@@ -75,8 +76,8 @@ Les deux classeurs doivent être placés à côté du HTML dans `/home/pi/domoti
 ## Installation
 
 1. Sauvegarder le répertoire `www/templates` de Domoticz.
-2. Copier ensemble `dashboard/maison-v111.html` et `dashboard/maison-dashboard-v111.html` vers `www/templates`.
-3. Dans le menu **Custom** de Domoticz, renseigner l'URL du lanceur `maison-v111.html`.
+2. Copier ensemble `dashboard/maison-v113.html` et `dashboard/maison-dashboard-v113.html` vers `www/templates`.
+3. Dans le menu **Custom** de Domoticz, renseigner l'URL du lanceur `maison-v113.html`.
 4. Recharger l'interface Domoticz puis ouvrir l'entrée **Custom** correspondante.
 
 La page d'entrée tente d'ouvrir le tableau de bord dans un nouvel onglet. Si le navigateur bloque l'ouverture automatique, cliquer sur **Ouvrir le tableau de bord**.
