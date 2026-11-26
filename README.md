@@ -2,14 +2,15 @@
 
 Pages web personnalisées pour Domoticz, développées progressivement et versionnées avec Git.
 
-## Tableau de bord — version courante v111
+## Tableau de bord — version courante v112
 
-Le tableau de bord est actuellement en version **v111**. Les fichiers actifs sont `dashboard/maison-v111.html` (lanceur) et `dashboard/maison-dashboard-v111.html` (page autonome). Les anciennes versions, dont le couple historique `maison.html` / `maison-dashboard-v110.html`, sont conservées dans le dépôt.
+Le tableau de bord est actuellement en version **v112**. Les fichiers actifs sont `dashboard/maison-v112.html` (lanceur) et `dashboard/maison-dashboard-v112.html` (page autonome). Les anciennes versions, dont le couple historique `maison.html` / `maison-dashboard-v110.html`, sont conservées dans le dépôt.
 
 Fonctions du tableau de bord :
 
 - interface responsive pour PC, tablette et smartphone ;
 - boîte de dialogue Paramètres avec contenu défilant et boutons Annuler/Enregistrer toujours visibles ;
+- choix des intitulés de toutes les cartes entre **Long Name** (colonne B, par défaut) et **Short Names** (colonne G), mémorisé dans le navigateur et inclus dans les sauvegardes de paramètres ;
 - sauvegarde des paramètres sur le Raspberry Pi : export JSON versionné et import complet, jeton caméra inclus ; fichiers protégés par permissions Linux restrictives et API authentifiée du service go2rtc-control ;
 - sauvegarde indépendante de toutes les caméras sur le Raspberry Pi : sources RTSP, paramètres ONVIF et identifiants, audio/vidéo, profils locaux, profil préféré et orientation PTZ ; aperçu sans révélation des secrets et restauration atomique protégée contre les sessions de transcodage actives ; bibliothèque commune de profils et paramètres généraux exclus ;
 - récupération des sauvegardes après effacement complet du navigateur grâce à une clé de récupération indépendante, avec session temporaire en lecture seule ;
@@ -38,7 +39,7 @@ Les commandes d'activation sont limitées aux IDX déclarés dans les lignes d'a
 
 Chaque page utilise un classeur distinct. Le nom affiché dans le menu peut être personnalisé depuis **Paramètres** : sélectionner le fichier, modifier le nom associé, valider avec `+`, puis enregistrer les paramètres. Sans personnalisation, le nom technique (`IDX1`, `IDX2`, etc.) est conservé. Les correspondances sont mémorisées dans le navigateur et ne modifient jamais les noms des classeurs.
 
-Le classeur utilise les colonnes suivantes : A = IDX Domoticz (ou nom du flux go2rtc pour une caméra), B = libellé affiché, C = type, D = vue initiale (pour les historiques), E = icône facultative.
+Le classeur utilise les colonnes suivantes : A = IDX Domoticz (ou nom du flux go2rtc pour une caméra), B = nom long et libellé des actions, C = type, D = vue initiale (pour les historiques), E = icône facultative, G = nom court des cartes. Le mode **Long Name** utilise la colonne B ; le mode **Short Names** utilise la colonne G. Si le libellé choisi est vide, l'autre colonne de nom sert de repli.
 
 Valeurs reconnues en colonne C :
 - `scalaire` : carte de valeur classique ;

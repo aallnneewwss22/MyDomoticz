@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Ouvrir — Ma maison</title>
+    <style>
+        :root {
+            color-scheme: light dark;
+            font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        }
+
+        body {
+            display: grid;
+            min-height: 80vh;
+            margin: 0;
+            padding: 24px;
+            place-items: center;
+            text-align: center;
+        }
+
+        main {
+            width: min(100%, 520px);
+        }
+
+        p {
+            line-height: 1.5;
+        }
+
+        a {
+            display: inline-block;
+            margin-top: 12px;
+            padding: 12px 18px;
+            border-radius: 8px;
+            background: #2867d8;
+            color: #fff;
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        a:focus-visible {
+            outline: 3px solid currentColor;
+            outline-offset: 3px;
+        }
+
+        #status {
+            min-height: 1.5em;
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>🏠 Ma maison</h1>
+        <p id="status">
+            Le tableau de bord s'ouvre dans un nouvel onglet.
+            Si rien ne se passe, utilise le bouton ci-dessous.
+        </p>
+        <a id="open-dashboard" href="/templates/maison-dashboard-v112.html" target="_blank" rel="noopener noreferrer">
+            Ouvrir le tableau de bord
+        </a>
+    </main>
+
+    <script>
+        "use strict";
+
+        // Domoticz charge ce fichier comme une page personnalisée.
+        // L'ouverture automatique est tentée une fois ; le lien reste disponible
+        // si le navigateur bloque les fenêtres ouvertes sans action utilisateur.
+        // Le paramètre de cache-busting donne une URL différente à chaque ouverture.
+        const dashboardUrl = new URL("/templates/maison-dashboard-v112.html", window.location.origin);
+        dashboardUrl.searchParams.set("_cb", Date.now().toString());
+        const openLink = document.getElementById("open-dashboard");
+        const status = document.getElementById("status");
+
+        openLink.href = dashboardUrl.href;
+
+        // Tenter l'ouverture immédiatement pendant l'exécution du script.
+        // Certains navigateurs bloquent malgré tout les fenêtres automatiques.
+        const newTab = window.open(dashboardUrl.href, "_blank");
+
+        if (newTab) {
+            newTab.opener = null;
+            status.textContent =
+                "Le tableau de bord a été ouvert dans un nouvel onglet. Tu peux revenir ici si nécessaire.";
+        } else {
+            status.textContent =
+                "Le navigateur a bloqué l'ouverture automatique. Clique sur le bouton pour continuer.";
+        }
+    </script>
+</body>
+</html>
