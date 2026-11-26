@@ -825,7 +825,7 @@
                 <h2 id="settings-title">Paramètres du tableau de bord</h2>
                 <div class="settings-scroll-area">
                 <fieldset class="settings-field page-name-group card-label-mode-group">
-                    <legend>Card names</legend>
+                    <legend>Noms des cartes</legend>
                     <div class="card-label-mode-options">
                         <label><input id="card-label-mode-long" type="radio" name="card-label-mode" value="long" checked> <span>Long Name</span></label>
                         <label><input id="card-label-mode-short" type="radio" name="card-label-mode" value="short"> <span>Short Names</span></label>
@@ -3761,7 +3761,7 @@
                 const settings = {
                     refreshIntervalSeconds: $("refresh-interval").value,
                     theme: $("theme-select").value,
-                    cardLabelMode: selectedCardLabelMode,
+                    cardLabelMode: $("card-label-mode-short").checked ? "short" : "long",
                     pageNames: JSON.stringify(draftPageNames),
                     cameraControlUrl: $("camera-control-url").value.trim() || "",
                     cameraControlToken: $("camera-control-token").value.trim(),
