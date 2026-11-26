@@ -1,5 +1,15 @@
 ## [Non publié]
 
+### Corrigé — Actualisation des graphiques ouverts lors du rafraîchissement
+
+- Invalidation du cache des historiques après chaque récupération réussie des équipements : les mini graphes déjà ouverts sont rechargés avec les nouvelles mesures.
+- Actualisation du graphique agrandi ou en plein écran sans fermer le panneau ni quitter le plein écran.
+- Conservation de la période sélectionnée et du zoom horizontal du graphique agrandi lorsque les données sont rechargées.
+- Les réponses d'historiques devenues obsolètes après un rafraîchissement sont ignorées ; un échec de récupération des équipements ne déclenche pas d'actualisation des graphiques.
+- Création de la paire `maison-v113.html` / `maison-dashboard-v113.html`.
+
+## [Non publié]
+
 ### Ajouté — Choix des noms longs ou courts des cartes
 
 - Ajout d'un sélecteur radio dans les paramètres : **Long Name** (colonne B, valeur par défaut) ou **Short Names** (colonne G).
