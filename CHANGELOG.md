@@ -1,5 +1,15 @@
 ## [Non publié]
 
+### Ajouté — Choix des noms longs ou courts des cartes
+
+- Ajout d'un sélecteur radio dans les paramètres : **Long Name** (colonne B, valeur par défaut) ou **Short Names** (colonne G).
+- Application du libellé choisi à toutes les cartes de capteurs, d'historique et de caméras ; les boutons d'action conservent leur libellé de la colonne B.
+- Le choix est mémorisé dans le navigateur et inclus dans les sauvegardes/exportations des paramètres. Les anciennes sauvegardes sans ce champ sont importées en mode Long Name.
+- Si la cellule du nom sélectionné est vide, l'autre colonne de nom est utilisée en repli.
+- Création de la paire `maison-v112.html` / `maison-dashboard-v112.html`.
+
+## [Non publié]
+
 ### Corrigé — Couleurs des échelles des graphiques agrandis
 
 - Les axes verticaux, leurs graduations et leurs libellés reprennent la couleur de la courbe associée : rouge pour la température/compteur et bleu pour l'humidité.
