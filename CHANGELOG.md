@@ -1,5 +1,16 @@
 ## [Non publié]
 
+### Amélioré — Boutons avec relief adapté au thème
+
+- Ajout d'un relief discret aux boutons : liseré lumineux, ombre portée et bord inférieur renforcé.
+- Au survol, le bouton se soulève légèrement ; à l'appui, il s'enfonce visuellement et son ombre se réduit.
+- Les couleurs et les contrastes sont dérivés des variables existantes du thème actif : Automatique, Classique clair, Sombre, Nature et Bleu nuit.
+- Les états de focus et de désactivation sont conservés ; les animations sont neutralisées lorsque le système demande une réduction des mouvements.
+- Les interrupteurs spécialisés conservent leur présentation dédiée.
+- Création de la paire `maison-v114.html` / `maison-dashboard-v114.html`.
+
+## [Non publié]
+
 ### Corrigé — Actualisation des graphiques ouverts lors du rafraîchissement
 
 - Invalidation du cache des historiques après chaque récupération réussie des équipements : les mini graphes déjà ouverts sont rechargés avec les nouvelles mesures.
